@@ -1,0 +1,75 @@
+*{
+    padding: 0;
+    margin: 0;
+}
+
+body{
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    min-height: 100vh;
+    background-color: #F9F3F3;
+    background-image: url("../wallpaper.png");
+    font-family: 'Libre Franklin', sans-serif;
+}
+
+#content{
+    margin-top: 5vh;
+    margin-bottom: 5vh;
+    margin-left: 20vw;
+    margin-right: 20vw;
+    background-color: white;
+    border-radius: 20px;
+    padding-left: 2vw;
+    padding-right: 2vw;
+    padding-top: 2vh;
+    padding-bottom: 2vh;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+
+#title {
+    color: #C82A3D;
+    display: flex;
+	flex-direction: row;
+	flex-wrap: nowrap;
+	justify-content: flex-start;
+	align-items: flex-start;
+	align-content: stretch;
+}
+
+#title img{
+    padding-left: 10px;
+    height: 48px;
+}
+
+#leaderboard{
+    border-collapse: collapse;
+    margin: 25px 0;
+    font-size: 0.9em;
+    width: 100%;
+    /* box-shadow: 0 0 20px rgba(0, 0, 0, 0.15); */
+}
+
+#leaderboard thead tr{
+    background-color: #F2F2F2;
+    color: black;
+    text-align: left;
+    height: 30px;
+    padding: 4px;
+}
+
+.leaderboard th,
+.leaderboard td {
+    padding: 15px;
+}
+
+th, td {
+    padding: 8px;
+    text-align: left;
+    /* border-bottom: 1px solid gray; */
+  }
+
+td {
+    border-bottom: 1pt solid #ff000d;
+  }
+
+  

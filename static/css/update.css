@@ -1,0 +1,31 @@
+main {
+    margin-left: 20px;
+    margin-top: 20px;
+    margin-right: 20px;
+    margin-bottom: 20px;
+    border-radius: 25px;
+    padding: 40px;
+    /* padding-right: 20px; */
+    background-color: white;
+    /* height: 85%; */
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+    /* max-height: 85vh; */
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    align-items: stretch;
+    align-content: stretch;
+    overflow: hidden;
+}
+
+.update-btn{
+    width: 120px;
+    height: 42px;
+    color: white;
+    background-color: #48409E;
+    border-width: 0;
+    border-radius: 20px;
+    font-size: 10px;
+}

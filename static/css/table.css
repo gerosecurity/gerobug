@@ -1,0 +1,80 @@
+main {
+    margin-top: 20px;
+    margin-bottom: 20px;
+    margin-left: 20px;
+    margin-right: 20px;
+    background-color: white;
+    padding: 12px;
+    border-radius: 25px;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+  }
+  
+  table,
+  th,
+  td {
+    border: 1px solid;
+  }
+  
+  .max-text{
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* number of lines to show */
+            line-clamp: 2; 
+    -webkit-box-orient: vertical;
+  }
+  th,
+  td {
+    padding: 15px;
+    text-align: left;
+    border: 1px solid;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  #report-table {
+    /* font-family: 'Roboto'; */
+    font-style: normal;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 20px;
+    border: 1px solid;
+  }
+  
+  #status-tag {
+  
+    /* Auto layout */
+  
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 2px 8px;
+    gap: 8px;
+  
+    width: 115px;
+    height: 24px;
+  
+    background: #FFA9B3;
+    border-radius: 4px;
+  
+    /* Inside auto layout */
+  
+    flex: none;
+    order: 1;
+    flex-grow: 0;
+  
+    /* Subtitle 2 */
+  
+    /* font-family: 'Roboto';
+    font-style: normal; */
+    font-weight: 500;
+    font-size: 10px;
+    line-height: 24px;
+    /* identical to box height, or 171% */
+  
+    display: flex;
+    align-items: center;
+    letter-spacing: 0.1px;
+  
+    color: rgba(0, 0, 0, 0.48);
+  }

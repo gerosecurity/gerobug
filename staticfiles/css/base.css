@@ -1,0 +1,12 @@
+.nav-bar {
+    background-color: #d02c3c;
+    overflow: hidden;
+}
+
+.nav-bar img {
+    float: left;
+    text-align: center;
+    padding: 15px 35px;
+    text-decoration: none;
+    font-size: 20px;
+}

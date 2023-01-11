@@ -1,0 +1,18 @@
+*{
+    padding: 0;
+    margin: 0;
+}
+
+body{
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    min-height: 100vh;
+    background-color: #F9F3F3;
+    font-family: 'Libre Franklin', sans-serif;
+    overflow-y: scroll;
+    /* padding: 40px; */
+}
+
+main{
+    padding: 40px;
+}

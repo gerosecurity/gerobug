@@ -1,0 +1,100 @@
+import smtplib
+import os
+
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
+
+from . import mail_templates
+from dashboards.models import ReportStatus
+from gerobug.settings import MEDIA_ROOT
+from prerequisites.models import MailBox
+
+
+# GMAIL SMTP CONFIG
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT   = 465
+
+# WRITE EMAIL REPLY (CONFIRMATIONS)
+def write_mail(code, payload, Destination):
+    try:
+        subject = mail_templates.subjectlist[code]
+        body = mail_templates.messagelist[code]
+
+        # GET STATUS NAME
+        status = "NULL"
+        if payload[2] != '':
+            if ReportStatus.objects.filter(status_id=payload[2]).exists():
+                status = ReportStatus.objects.get(status_id=payload[2])
+                status = status.status_name
+
+        # REPLACE WILD CARDS
+        subject = subject.replace("~ID~", payload[0])   #REPORT ID
+        body = body.replace("~ID~", payload[0])         #REPORT ID
+        body = body.replace("~TITLE~", payload[1])      #REPORT TITLE
+        body = body.replace("~STATUS~", status)         #REPORT STATUS
+        body = body.replace("~NOTE~", payload[3])       #REASON / NOTE
+        body = body.replace("~SEVERITY~", str(payload[4]))   #SEVERITY
+
+        # BUILD EMAIL MESSAGE
+        message = MIMEMultipart("alternative")
+        message["From"] = EMAIL
+        message["To"] = Destination
+        message["Subject"] = subject
+        message_body = MIMEText(body, "html")
+        message.attach(message_body)
+
+        # BOUNTY IN PROCESS (NDA)
+        if code == 703:
+            nda_filename = "Template_NDA.pdf"
+            nda_filepath = os.path.join(MEDIA_ROOT,nda_filename)
+            nda_file = open(nda_filepath, 'rb')
+ 
+            attachment = MIMEBase('application', 'octate-stream', Name=nda_filename)
+            attachment.set_payload((nda_file).read())
+            encoders.encode_base64(attachment)
+            
+            attachment.add_header('Content-Decomposition', 'attachment', filename=nda_filename)
+            message.attach(attachment)
+        
+        # COMPLETE (BOUNTY PROOF + CERTIFICATE)
+        elif code == 704:
+            cert_filename = payload[0]+"-C.jpg"
+            cert_filepath = os.path.join(MEDIA_ROOT,payload[0],cert_filename)
+            cert_file = open(cert_filepath, 'rb')
+ 
+            attachment = MIMEBase('application', 'octate-stream', Name=cert_filename)
+            attachment.set_payload((cert_file).read())
+            encoders.encode_base64(attachment)
+            
+            attachment.add_header('Content-Decomposition', 'attachment', filename=cert_filename)
+            message.attach(attachment)
+
+        # SEND EMAIL
+        mailbox     = MailBox.objects.get(mailbox_id=1)
+        EMAIL       = mailbox.email
+        PWD         = mailbox.password
+
+        if EMAIL == "" or PWD == "":
+            pass
+        else:
+            connection = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT)
+            connection.login(EMAIL, PWD)
+            connection.sendmail(EMAIL, Destination, message.as_string())
+            connection.close()
+    
+        print('[LOG] Sent Email Successfully')
+
+    except Exception as e: 
+        print(str(e))
+
+
+# WRITE EMAIL NOTIFICATION / UPDATES
+def notify(destination, payload):
+    if(payload[2] == 0):
+        write_mail(300, payload, destination) # NOTIFY INVALID + REASON
+    else:
+        write_mail(301, payload, destination) # NOTIFY STATUS UPDATE
+    
+    print('[LOG] Sent Notification to',destination,payload)

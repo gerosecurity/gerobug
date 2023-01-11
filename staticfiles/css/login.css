@@ -1,0 +1,59 @@
+* {
+    padding: 0;
+    margin: 0;
+}
+
+#body {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+    gap: 0px 0px;
+
+    max-height: 100vh;
+    font-family: 'Nunito';
+    background-color: #C82A3D;
+}
+
+.container {
+    grid-area: 2 / 2 / 3 / 4;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
+    align-content: space-around;
+}
+
+#login-card {
+    width: 350px;
+    border-radius: 25px;
+
+
+}
+
+#action-btn{
+    display: flex;
+	flex-direction: column;
+	flex-wrap: nowrap;
+	justify-content: center;
+	align-items: center;
+	align-content: center;
+}
+
+#card-body {}
+
+#email {
+    border-radius: 30px;
+    background-color: #ebf0fc;
+    border-color: #ebf0fc;
+    color: #9da3b0;
+}
+
+#button {
+    border-radius: 30px;
+    background-color: #48409E;
+}
+
+#container {
+    margin-top: 25px;
+}

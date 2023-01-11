@@ -1,0 +1,165 @@
+{% block content %}
+<div class="container">
+    <div id="kanban" class="kanban">
+        <div class="row">
+
+            <div id="col1" class="col-sm">
+                <div class="col-header">Need to Review ({{ total_unreviewed }})</div>
+                <!-- looping cardnya sesuai yg mau ditampilin -->
+                <div class="scroll-div">
+                    {% for report in bugposts %}
+                    {% if report.report_status == 1 and report.report_attack != '' %}
+                    <a href="{%  url 'report_detail' report.pk %}" style="text-decoration:none">
+                        <div class="card">
+                            <div class="duplicate">
+                                <div class="card-title">#{{ report.pk }}</div>
+                                {% if report.report_duplicate == 1 %}
+                                <div id="duplicate-symbol">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                        class="bi bi-exclamation-triangle-fill" viewBox="0 0 16 16">
+                                        <path
+                                            d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
+                                    </svg>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="report-status" id="needreview">Need to Review</div>
+                            <div class="card-type">{{ report.report_title }}</div>
+                            <div class="card-hunter">by: {{report.hunter_email}}</div>
+                            <span class="card-time"><i class="bi bi-clock"></i> {{ report.report_datetime }}</span>
+                            <!-- <button type="button" class="card-btn">Move to Fixing</button> -->
+                        </div>
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            <div id="col2" class="col-sm">
+                <div class="col-header">In Review ({{ total_inreview }})</div>
+                <div class="scroll-div">
+                    {% for report in bugposts %}
+                    {% if report.report_status == 2 and report.report_attack != '' %}
+                    <a href="{%  url 'report_detail' report.pk %}" style="text-decoration:none">
+                        <div class="card">
+                            <div class="duplicate">
+                                <div class="card-title">#{{ report.pk }}</div>
+                                {% if report.report_duplicate == 1 %}
+                                <div id="duplicate-symbol">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                        class="bi bi-exclamation-triangle-fill" viewBox="0 0 16 16">
+                                        <path
+                                            d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
+                                    </svg>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="report-status" id="inreview">In Review</div>
+                            <div class="card-type">{{ report.report_title }}</div>
+                            <div class="card-hunter">by: {{report.hunter_email}}</div>
+                            <span class="card-time" style="font-size: 10;"><i class="bi bi-clock"></i> {{ report.report_datetime }}</span>
+                            <!-- <button type="button" class="card-btn">Done Fixing</button> -->
+                        </div>
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            <div id="col3" class="col-sm">
+                <div class="col-header">Fixing ({{ total_fixing }})</div>
+                <div class="scroll-div">
+                    {% for report in bugposts %}
+                    {% if report.report_status == 3 and report.report_attack != '' %}
+                    <a href="{%  url 'report_detail' report.pk %}" style="text-decoration:none">
+                        <div class="card">
+                            <div class="duplicate">
+                                <div class="card-title">#{{ report.pk }}</div>
+                                {% if report.report_duplicate == 1 %}
+                                <div id="duplicate-symbol">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                        class="bi bi-exclamation-triangle-fill" viewBox="0 0 16 16">
+                                        <path
+                                            d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
+                                    </svg>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="report-status" id="fixing">Fixing</div>
+                            <div class="card-type">{{ report.report_title }}</div>
+                            <div class="card-hunter">by: {{report.hunter_email}}</div>
+                            <span class="card-time" style="font-size: 10;"><i class="bi bi-clock"></i> {{ report.report_datetime }}</span>
+                            <!-- <button type="button" class="card-btn">Validate</button> -->
+                        </div>
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            <div id="col4" class="col-sm">
+                <div class="col-header">Retest ({{ total_retest }})</div>
+                <div class="scroll-div">
+                    {% for report in bugposts %}
+                    {% if report.report_status == 4 and report.report_attack != '' %}
+                    <a href="{%  url 'report_detail' report.pk %}" style="text-decoration:none">
+                        <div class="card">
+                            <div class="duplicate">
+                                <div class="card-title">#{{ report.pk }}</div>
+                                {% if report.report_duplicate == 1 %}
+                                <div id="duplicate-symbol">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                        class="bi bi-exclamation-triangle-fill" viewBox="0 0 16 16">
+                                        <path
+                                            d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
+                                    </svg>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="report-status" id="retest">Retest</div>
+                            <div class="card-type">{{ report.report_title }}</div>
+                            <div class="card-hunter">by: {{report.hunter_email}}</div>
+                            <span class="card-time" style="font-size: 10;"><i class="bi bi-clock"></i> {{ report.report_datetime }}</span>
+                            <!-- <button type="button" class="card-btn">Mark as Done</button> -->
+                        </div>
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            <div id="col5" class="col-sm">
+                <div class="col-header">Bounty Preparation ({{ total_bounty }})</div>
+                <div class="scroll-div">
+                    {% for report in bugposts %}
+                    {% if report.report_status == 5 and report.report_attack != '' or report.report_status == 6 and report.report_attack != '' %}
+                    <a href="{%  url 'report_detail' report.pk %}" style="text-decoration:none">
+                        <div class="card">
+                            <div class="duplicate">
+                                <div class="card-title">#{{ report.pk }}</div>
+                                {% if report.report_duplicate == 1 %}
+                                <div id="duplicate-symbol">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                        class="bi bi-exclamation-triangle-fill" viewBox="0 0 16 16">
+                                        <path
+                                            d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
+                                    </svg>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% if report.report_status == 5 %}
+                            <div class="report-status" id="prepare">Bounty Calculation</div>
+                            {% elif report.report_status == 6 %}
+                            <div class="report-status" id="prepare">Processing Bounty</div>
+                            {% endif %}
+                            <div class="card-type">{{ report.report_title }}</div>
+                            <div class="card-hunter">by: {{report.hunter_email}}</div>
+                            <span class="card-time" style="font-size: 10;"><i class="bi bi-clock"></i> {{ report.report_datetime }}</span>
+                        </div>
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock content %}

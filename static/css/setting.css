@@ -1,0 +1,119 @@
+.cke .spell-check-bar {
+    display: block;
+    padding: 0.5em;
+}
+
+.cke .spell-check-bar .suggestion {
+    cursor: pointer;
+    color: red;
+    background: rgba(250, 0, 0, 0.1);
+    padding: 0.25em 0.5em;
+    margin-left: 0;
+    margin-top: 0;
+    margin-right: 0.5em;
+    margin-bottom: 0.5em;
+    line-height: 1em;
+    display: inline-block;
+}
+
+.cke .spell-check-bar .suggestion:hover {
+    color: orange;
+}
+
+.nav-link {
+    /* color: #48409E; */
+    text-decoration: none;
+}
+
+.card {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, .1), 0 1px 2px 0 rgba(0, 0, 0, .06);
+}
+
+.card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    word-wrap: break-word;
+    background-color: #fff;
+    background-clip: border-box;
+    border: 0 solid rgba(0, 0, 0, .125);
+    border-radius: .25rem;
+    /* color: #48409E; */
+}
+
+.card button{
+    background-color: #48409E;
+    border-width: 0;
+    border-radius: 20px;
+    color: white;
+    height: 30px;
+    font-size: 12px;
+}
+
+.card-body {
+    flex: 1 1 auto;
+    min-height: 1px;
+    padding: 1rem;
+}
+
+.gutters-sm {
+    margin-right: -8px;
+    margin-left: -8px;
+}
+
+.gutters-sm>.col,
+.gutters-sm>[class*=col-] {
+    padding-right: 8px;
+    padding-left: 8px;
+}
+
+.mb-3,
+.my-3 {
+    margin-bottom: 1rem !important;
+}
+
+.bg-gray-300 {
+    background-color: #e2e8f0;
+}
+
+.h-100 {
+    height: 100% !important;
+}
+
+.shadow-none {
+    box-shadow: none !important;
+}
+
+#ckeditor-form{
+    max-height: 75vh;
+    overflow-x: auto;
+    overflow-y: auto;
+}
+button{
+    width: 100px;
+    height: 16px;
+    color: white;
+    background-color: #48409E;
+    border-width: 0;
+    border-radius: 4px;
+    font-size: 10px;
+}
+
+element.style {
+    display: block;
+    width: 100%;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #212529;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border-radius: 0.375rem;
+    transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}

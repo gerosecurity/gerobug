@@ -1,0 +1,398 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Report Detail</title>
+
+    <!-- CSS only -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
+    <link href='https://unpkg.com/boxicons@2.0.7/css/boxicons.min.css' rel='stylesheet'>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.0/css/materialize.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"
+        integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js"
+        integrity="sha384-cuYeSxntonz0PPNlHhBs68uyIAVpIIOZZ5JqeqvYYIcEL727kskC66kF92t6Xl2V"
+        crossorigin="anonymous"></script>
+
+    <link rel="stylesheet" href='{% static "/css/sidebar.css" %}'>
+    <link rel="stylesheet" href='{% static "/css/reportDetail.css" %}'>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.1/font/bootstrap-icons.css">
+</head>
+
+<body>
+    <script>
+        $(document).ready(function () {
+            $("#reasons-button").click(function () {
+                var patched = "{% url 'form_handler' 0 '0' %}".replace('0', "{{object.pk}}");
+                $.ajax({
+                    type: 'POST',
+                    url: patched,
+                    data: {
+                        csrfmiddlewaretoken: '{{ csrf_token }}',
+                        reasons: $("#reasons").val(),
+                    },
+                    success: function (data) {
+                        console.log(data)
+                    },
+                    error: function (error) {
+                        console.log(error)
+                    },
+                });
+
+            });
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            $("#complete-button").click(function () {
+                var patched = "{% url 'form_handler' 0 '1' %}".replace('0', "{{object.pk}}");
+                $.ajax({
+                    type: 'POST',
+                    url: patched,
+                    data: {
+                        csrfmiddlewaretoken: '{{ csrf_token }}',
+                        reasons: $("#completereasons").val(),
+                    },
+                    success: function (data) {
+                        console.log(data)
+                    },
+                    error: function (error) {
+                        console.log(error)
+                    },
+                });
+            });
+        });
+    </script>
+
+    <section class="home-section">
+        <header>
+            <div class="home-content">
+                <i class='bx bx-menu'></i>
+                <span class="text">GEROBUG</span> <br />
+            </div>
+        </header>
+        <div class="container">
+        <main>
+            <div id="report-title">
+                <div id="title-left">
+                    <h3 id="report-id">#{{object.report_id}}</h3>
+                    {% if object.report_attack != '' %}
+                        {% if object.report_status == 1 %}
+                            <div class="report-status" id="needreview">{{reportstatus}}</div>
+                        {% elif object.report_status == 2 %}
+                            <div class="report-status" id="inreview">{{reportstatus}}</div>
+                        {% elif object.report_status == 3 or object.report_status == 4 %}
+                            <div class="report-status" id="fixing">{{reportstatus}}</div>
+                        {% elif object.report_status == 5 or object.report_status == 6 %}
+                            <div class="report-status" id="calculate">{{reportstatus}}</div>
+                        {% elif object.report_status == 7 %}
+                            <div class="report-status" id="complete">{{reportstatus}}</div>
+                        {% elif object.report_status == 8 %}
+                            <div class="report-status" id="invalid">{{reportstatus}}</div>
+                        {% endif %}
+                        
+                    {% endif %}
+                </div>
+                {% if object.report_attack != '' %}
+                    {% if object.report_severity == 0 %} 
+                    <div class="severity-type" id="none">NONE</div>
+
+                    {% elif object.report_severity < 4 %} 
+                    <div class="severity-type" id="low">Low</div>
+
+                    {% elif object.report_severity < 7 %} 
+                    <div class="severity-type" id="medium">Medium</div>
+
+                    {% elif object.report_severity < 9 %} 
+                    <div class="severity-type" id="high">High</div>
+
+                    {% elif object.report_severity > 9 %}
+                    <div class="severity-type" id="critical">Critical</div>
+
+                    {% else %}
+                    <div class="severity-type" id="none">NONE</div>
+                    
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            <div class="content">
+                <div id="left-div">
+                    <h6>Report Title</h6>
+                    <h4>{{object.report_title}}</h4>
+                    <table>
+                        <tr>
+                          <td>Attack Type</td>
+                          <td> : </td>
+                          <td>{{object.report_attack}}</td>
+                        </tr>
+                        <tr>
+                            <td>Affected Endpoint</td>
+                            <td> : </td>
+                            <td>{{object.report_endpoint}}</td>
+                          </tr>
+                       
+                      </table>
+
+                    <Br>
+                    <h6>Summary</h6>
+
+                    <div id="report-summary">
+                        {{object.report_summary}}
+                    </div>
+                    
+                    <div id="files"> 
+                        <div id="poc">
+                            <h6>Files</h6>
+                            <div id="download-file">
+                                <div id="file-img"><i class="bi bi-file-earmark"></i></div>
+                                <a href="{% url 'report_files' object.pk %}">Download</a>
+                            </div>
+
+                            {% if object.report_update > 0 %}
+                            <div id="download-file">
+                                <div id="file-img"><i class="bi bi-file-earmark"></i></div>
+                                <a href="{% url 'report_files' object.pk %}U{{ object.report_update }}">Download (Updated)</a>
+                            </div>
+                            <a href="{% url 'report_detail' object.pk %}U{{ object.report_update }}">
+                                <button type="button" class="nda-btn">View Update</button>
+                            </a>
+                            {% endif %}
+                        </div>
+
+                        {% if object.report_nda > 0 %}
+                        <div id="nda">
+                            <div id="nda-details">
+                                <h6>Hunter Data</h6>
+                                <a href="{% url 'report_detail' object.pk %}N{{ object.report_nda }}">
+                                    <button type="button" class="nda-btn">View</button>
+                                </a>
+                            </div>
+
+                            <div id="download-file">
+                                <div id="file-img"><i class="bi bi-file-earmark"></i></div>
+                                <a href="{% url 'report_files' object.pk %}N{{ object.report_nda }}">NDA</a>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if object.report_appeal > 0 %}
+                        <div id="nda">
+                            <div id="nda-details">
+                                <h6>Appeals</h6>
+                                <a href="{% url 'report_detail' object.pk %}A{{ object.report_appeal }}">
+                                    <button type="button" class="nda-btn">View</button>
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if object.report_attack != '' %}
+                <div id="right-div">
+                    <h6>Bug Hunter</h6>
+                    <input type="number" id="severity-point" step="0.1" min="0.0" max="10.0"
+                    placeholder="{{object.hunter_email}}" disabled="disabled"></input>
+                    <h6>Severity</h6>
+                    <input type="number" id="severity-point" step="0.1" min="0.0" max="10.0"
+                        placeholder="{{object.report_severity}}" disabled="disabled"></input>
+
+                    <label for="fname">Reviewer</label>
+                    <input type="text" id="fname" name="fname" placeholder="{{object.report_reviewer}}"
+                        disabled="disabled"></input><br><br>
+                    
+                    <!-- UPDATE BUTTON -->
+                    {% if reportstatus == 'Need to Review' or reportstatus == 'In Review' or reportstatus == 'Fixing' or reportstatus == 'Fixing (Retest)' or reportstatus == 'Bounty Calculation'%}
+                    <button class="update-review-btn" data-bs-toggle="modal" type="button" data-bs-target="#modalUpdate">Update</button>
+                    <div class="modal fade" id="modalUpdate" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h1 class="modal-title fs-5" id="staticBackdropLabel">Important!</h1>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                        aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Please fill out the severity and the reviewer information in order to update the current bug report.</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <a href="{% url 'report_edit' object.pk %}">
+                                        <button type="button" id="update-button" class="ok-btn" data-bs-dismiss="modal">UPDATE</button>
+                                    </a>
+                                    <button type="button" class="cancel-btn" data-bs-dismiss="modal">CANCEL</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            <br>
+            <div id="report-download">
+            {% if object.report_attack != '' %}
+                <!-- REQUEST BUTTON -->
+                {% if reportstatus == 'Need to Review' %}
+                <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#staticBackdropLeft">Mark as Invalid</button>
+                {% elif reportstatus == 'In Review' or reportstatus == 'Fixing' or reportstatus == 'Fixing (Retest)' %}
+                <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#staticBackdropLeft">Request Amend</button>
+                {% elif reportstatus == 'Bounty Calculation' %}
+                <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#staticBackdropLeft">Send Calculations</button>
+                {% elif reportstatus == 'Bounty in Process' %}
+                <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#staticBackdropLeft">Request NDA</button>
+                {% endif %}
+
+                 <!-- REQUEST BUTTON MODAL -->
+                <div class="modal fade" id="staticBackdropLeft" data-bs-backdrop="static"
+                    data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                {% if reportstatus == 'Need to Review' %}
+                                <h1 class="modal-title fs-5" id="staticBackdropLabel">Mark as Invalid</h1>
+                                {% elif reportstatus == 'In Review' or reportstatus == 'Fixing' or reportstatus == 'Fixing (Retest)' %}
+                                <h1 class="modal-title fs-5" id="staticBackdropLabel">Request Amend</h1>
+                                {% elif reportstatus == 'Bounty Calculation' %}
+                                <h1 class="modal-title fs-5" id="staticBackdropLabel">Send Calculations</h1>
+                                {% elif reportstatus == 'Bounty in Process' %}
+                                <h1 class="modal-title fs-5" id="staticBackdropLabel">Request NDA</h1>
+                                {% endif %}
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form method="POST" action="{% url 'form_handler' object.pk '0' %}">
+                                    {% csrf_token %}
+                                    {{ requestform.reasons }}
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" id="reasons-button" class="ok-btn" data-bs-dismiss="modal">OK</button>
+                                <button type="button" class="cancel-btn" data-bs-dismiss="modal">CANCEL</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COMPLETE BUTTON -->
+                {% if reportstatus == 'Bounty in Process' %}
+                <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#staticBackdropRight">Complete</button>
+                <div class="modal fade" id="staticBackdropRight" data-bs-backdrop="static"
+                    data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h1 class="modal-title fs-5" id="staticBackdropLabel">Complete</h1>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form method="POST" action="{% url 'form_handler' object.pk '1' %}">
+                                    {% csrf_token %}
+                                    {{ completeform.completereasons }}
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" id="complete-button" class="ok-btn" data-bs-dismiss="modal">OK</button>
+                                <button type="button" class="cancel-btn" data-bs-dismiss="modal">CANCEL</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% elif reportstatus == 'Not Valid' %}
+                <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#staticBackdropRight">Delete</button>
+                <div class="modal fade" id="staticBackdropRight" data-bs-backdrop="static"
+                    data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h1 class="modal-title fs-5" id="staticBackdropLabel">Not Valid</h1>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p>Report ID #{{object.report_id}} will be deleted. This action is not reversible, are you sure?</p>
+                            </div>
+                            <div class="modal-footer">
+                                <a href="{% url 'report_delete' object.pk %}">
+                                    <button type="button" id="complete-button" class="ok-btn" data-bs-dismiss="modal">OK</button>
+                                </a>
+                                <button type="button" class="cancel-btn" data-bs-dismiss="modal">CANCEL</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MOVE BUTTON -->
+                {% elif reportstatus == 'Need to Review' or reportstatus == 'In Review' or reportstatus == 'Fixing' or reportstatus == 'Fixing (Retest)' %}
+                <button class="update-btn" data-bs-toggle="modal" type="button" data-bs-target="#staticBackdropRight">Move</button>
+                <div class="modal fade" id="staticBackdropRight" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h1 class="modal-title fs-5" id="staticBackdropLabel">Are You Sure?</h1>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            
+                            <div class="modal-body">
+                                {% if reportstatus == 'Need to Review' %}
+                                    <p>Report ID #{{object.report_id}} will be moved to </p>
+                                    <h6 style="color: red;">IN REVIEW</h6>
+                                {% elif reportstatus == 'In Review' %}
+                                    <p>Report ID #{{object.report_id}} will be moved to </p>
+                                    <h6 style="color: red;">FIXING</h6>
+                                {% elif reportstatus == 'Fixing' %}
+                                    <p>Report ID #{{object.report_id}} will be moved to </p>
+                                    <h6 style="color: red;">FIXING (RETEST)</h6>
+                                {% elif reportstatus == 'Fixing (Retest)' %}
+                                    <p>Report ID #{{object.report_id}} will be moved to </p>
+                                    <h6 style="color: red;">BOUNTY PREPARATION</h6>
+                                {% endif %}
+                            </div>
+
+                            <div class="modal-footer">        
+                                <a href="{% url 'report_updatestatus' object.pk %}">
+                                <button type="button" class="ok-btn" data-bs-dismiss="modal">OK</button>
+                                </a>
+                                <button type="button" class="cancel-btn" data-bs-dismiss="modal">CANCEL</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            {% endif %}
+            </div>
+        
+        </main>
+</div>
+        </div>
+    </section>
+    </div>
+
+    <!-- scripts -->
+    <script src="{% static '/script/sidebar.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
+        crossorigin="anonymous"></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.3/js/bootstrap.min.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.2/dragula.min.js'></script>
+
+</body>
+
+
+{% endblock content %}

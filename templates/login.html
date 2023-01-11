@@ -1,0 +1,70 @@
+{%load crispy_forms_tags %} 
+{% load static %}
+{% block content %}      
+
+<!-- <div class="container py-5">
+  <h1>Login</h1>
+  <form method="POST">
+    {% csrf_token %}
+    {{ login_form | crispy }}
+    <button class="btn btn-primary" type="submit">Login</button>
+    <a href="{% url 'password_reset' %}">I forgot my password</a>
+  </form>
+</div>
+
+    {% for message in messages %}
+    <div class="{{ message.tags }}">
+    {% if 'safe' in message.tags %}
+    <p>{{ message|safe }}</p>
+    {% else %}
+    <p>{{ message }}</p>
+    {% endif %}
+    </div>
+    {% endfor %} -->
+{% endblock content %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Gerobug Login</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Nunito:600,700,900" rel="stylesheet">
+    <link rel="stylesheet" href='{% static "/css/login.css" %}'>
+
+</head>
+
+<body id="body">
+    <div class="container">
+        <div id="login-card" class="card">
+            <div class="card-body">
+                <h2 class="text-center">Login</h2>
+                <br>
+                <form method="POST" action="" id="form-login">
+                  {% csrf_token %}
+                    {{ login_form }}
+                    <br>
+                    
+                    <div id="action-btn">
+                        <button type="submit" id="button" class="btn btn-primary deep-purple btn-block ">Submit</button>
+                        <a href="{% url 'password_reset' %}">Forgot Password</a>
+                    </div>
+                    
+                    <br>
+
+                </form>
+            </div>
+
+        </div>
+    </div>
+            
+
+</body>
+
+</html>
