@@ -1,4 +1,6 @@
 # Gerobug
+![gerobugLogo](https://raw.githubusercontent.com/gerobug/gerobug-docs-images/main/logo.png)
+
 Open source private (self-managed) bug bounty platform.
 
 Are you a company, planning to have your own bug bounty program, with minimum budget? __We got you!__
