@@ -38,6 +38,7 @@ def write_mail(code, payload, Destination):
         body = body.replace("~SEVERITY~", str(payload[4]))   #SEVERITY
 
         # BUILD EMAIL MESSAGE
+        mailbox     = MailBox.objects.get(mailbox_id=1)
         message = MIMEMultipart("alternative")
         message["From"] = mailbox.email
         message["To"] = Destination
