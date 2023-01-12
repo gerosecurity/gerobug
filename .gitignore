@@ -1,0 +1,6 @@
+*/*_pycache*
+*/.DS*
+*/*migrations*
+clear_caches.sh
+flush*
+db.sqlite3
