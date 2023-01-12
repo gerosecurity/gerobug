@@ -39,7 +39,7 @@ def write_mail(code, payload, Destination):
 
         # BUILD EMAIL MESSAGE
         message = MIMEMultipart("alternative")
-        message["From"] = EMAIL
+        message["From"] = mailbox.email
         message["To"] = Destination
         message["Subject"] = subject
         message_body = MIMEText(body, "html")
