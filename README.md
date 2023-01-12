@@ -61,11 +61,13 @@ Yeah we have it too
 
 ## TODO
 - [ ] Implement Global Dynamic Variables (Email, URL)
+- [ ] Add Email Template Setting
 - [ ] Add Support for Other Mailboxes (Outlook, Apple, etc.)
 - [ ] Add Integrated CVSS/OWASP Risk Calculator
 - [ ] Add Forced Prompt to Change Default Password and Setup Mailbox
 - [ ] Add RBAC for Admin Users
-- [ ] Add More Settings for Admin (Email Templates, Webhooks, etc.)
+- [ ] Add More Settings for Admin (Slack Webhooks)
+- [ ] Add Flow Control (Custom Status, Add / Remove Status)
 - [ ] Improve Duplicate Detection Algorithm
 - [ ] Improve Backend Performance and Efficiency
 - [ ] Improve Logging Module
