@@ -24,7 +24,7 @@ However, creating your own independently run platform will take time and effort.
 * Python 3.8
 
 
-## Deployment
+## Deployment and Usage
 To deploy gerobug:
 1. Clone this repository
 2. Run this: 
@@ -32,6 +32,8 @@ To deploy gerobug:
 sudo docker-compose up --build --force-recreate -d
 ```
 3. By default Gerobug will listen on port 6320
+
+You can read the detailed documentation here
 
 
 ## Main Features
@@ -62,6 +64,7 @@ Yeah we have it too
 
 
 ## TODO
+- [ ] Improve Notifications and Confirmations (Mailbox Active/Invalid, Email Sent to Bug Hunter, Current Mailbox, etc.)
 - [ ] Implement Global Dynamic Variables (Email, URL)
 - [ ] Add Email Template Setting
 - [ ] Add Support for Other Mailboxes (Outlook, Apple, etc.)
