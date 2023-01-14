@@ -64,6 +64,7 @@ Yeah we have it too
 
 
 ## TODO
+- [ ] Feature for Bug Hunter to Check All His/Her Report Status (Overview)
 - [ ] Improve Notifications and Confirmations (Mailbox Active/Invalid, Email Sent to Bug Hunter, Current Mailbox, etc.)
 - [ ] Implement Global Dynamic Variables (Email, URL)
 - [ ] Add Email Template Setting
