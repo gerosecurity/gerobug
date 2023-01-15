@@ -35,7 +35,7 @@ sudo docker-compose up --build --force-recreate -d
 
 You can read the __detailed documentation [here](https://bit.ly/GerobugDocumentation)__ 
 <br>
-If you need to see the UML diagrams, you can see them [here] (https://drive.google.com/drive/folders/1eYKZLc_nQY2bv_Byak60WVrMSbaHTeUM?usp=sharing)__
+If you need to see the UML diagrams, you can see them [here](https://drive.google.com/drive/folders/1eYKZLc_nQY2bv_Byak60WVrMSbaHTeUM?usp=sharing)__
 
 ## Main Features
 - Homepage<br>
