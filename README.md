@@ -32,6 +32,7 @@ To deploy gerobug:
 sudo docker-compose up --build --force-recreate -d
 ```
 3. By default Gerobug will listen on port 6320
+4. Setup Mailbox and Change Admin Password
 
 You can read the __detailed documentation [here](https://bit.ly/GerobugDocumentation)__ 
 <br>
