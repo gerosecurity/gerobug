@@ -33,8 +33,8 @@ sudo docker-compose up --build --force-recreate -d
 ```
 3. By default Gerobug will listen on port 6320
 
-You can read the __detailed documentation [here](https://drive.google.com/drive/folders/1ItV0L3K58hvOXD2Uyzheb6bsdG_nnKIy)__
-
+You can read the __detailed documentation [here](https://bit.ly/GerobugDocumentation)__
+If you need to see the UML diagrams, you can see them [here] (https://drive.google.com/drive/folders/1eYKZLc_nQY2bv_Byak60WVrMSbaHTeUM?usp=sharing)__
 
 ## Main Features
 - Homepage<br>
