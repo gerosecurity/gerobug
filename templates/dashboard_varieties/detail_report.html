@@ -116,7 +116,7 @@
                     {% elif object.report_severity < 9 %} 
                     <div class="severity-type" id="high">High</div>
 
-                    {% elif object.report_severity > 9 %}
+                    {% elif object.report_severity >= 9 %}
                     <div class="severity-type" id="critical">Critical</div>
 
                     {% else %}
