@@ -52,15 +52,7 @@ class RenderDashboardAdmin(LoginRequiredMixin,ListView):
         
         return context
 
-
-class CreateNewReports(CreateView):
-    model = BugReport
-    template_name = "dashboard_varieties/create_report_dashboard.html"
-    fields = ["hunter_email","submission_date","report_summary","proof_of_concept","status"] #AMBIL DARI GEROPARSER
-    def get_success_url(self):
-        return reverse('dashboard')
-
-
+    
 class ReportDetails(LoginRequiredMixin,DetailView):
     login_url = '/login/'
     redirect_field_name = 'login'
