@@ -8,7 +8,7 @@ Are you a company, planning to have your own bug bounty program, with minimum bu
 We are aware that some organizations have had difficulty establishing their own bug bounty program. <br>
 If you know what you're doing, using a third-party managed platform usually comes with a hefty price tag and increased security concerns.
 <br>
-However, creating your own independently run platform will take time and effort.
+In the other hand, creating your own independently run platform will take time and effort to build and maintain it.
 
 
 ## Why Gerobug?
