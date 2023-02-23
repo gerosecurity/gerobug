@@ -4,7 +4,6 @@ from .views import LogoutForm, ReportFiles, ReportStatusView, ReportUpdateStatus
 urlpatterns = [
     path("", RenderDashboardAdmin.as_view(), name="dashboard"),
     
-    path("report/new/", CreateNewReports.as_view(), name="report_new"),
     path("report-detail/<str:pk>", ReportDetails.as_view(), name="report_detail"),
     path("report-detail/<str:pk>/edit/", ReportUpdate.as_view(), name="report_edit"),
     path("report-detail/<str:pk>/delete/", ReportDelete.as_view(), name="report_delete"),
