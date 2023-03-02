@@ -246,6 +246,10 @@ def AdminSetting(request):
         
     return render(request,'setting.html',{'form': AdminSettingForm(), 'mailbox': MailboxForm(), 'account': AccountForm()})
 
+@login_required
+def OWASPCalculator(request):
+    
+    return render(request,'owasp-calculator.html')
 
 def rulescontext(request,):
     staticrules = StaticRules.objects.get(pk=1)

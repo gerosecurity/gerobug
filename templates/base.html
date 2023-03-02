@@ -89,6 +89,16 @@
                             <li><a class="link_name" href="{% url 'setting' %}">Setting</a></li>
                         </ul>
                     </li>
+
+                    <li>
+                        <a href="{% url 'calculator' %}">
+                            <i class='bx bx-cog'></i>
+                            <span class="link_name">OWASP Calculator</span>
+                        </a>
+                        <ul class="sub-menu blank">
+                            <li><a class="link_name" href="{% url 'calculator' %}">OWASP Calculator</a></li>
+                        </ul>
+                    </li>
     
                 </ul>
                 <a class="btn btn-light" href="{% url 'logout' %}" role="button">Logout</a>
