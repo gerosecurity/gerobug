@@ -136,11 +136,20 @@
                           <td> : </td>
                           <td>{{object.report_attack}}</td>
                         </tr>
+
                         <tr>
                             <td>Affected Endpoint</td>
                             <td> : </td>
                             <td>{{object.report_endpoint}}</td>
-                          </tr>
+                        </tr>
+
+                        <tr>
+                            <td>Severity String</td>
+                            <td> : </td>
+                            <td>
+                                <a href="{% url 'calculator' %}?vector={{object.report_severitystring}}" >{{object.report_severitystring}}</a>
+                            </td>
+                        </tr>
                        
                       </table>
 
@@ -204,6 +213,7 @@
                     <h6>Bug Hunter</h6>
                     <input type="number" id="severity-point" step="0.1" min="0.0" max="10.0"
                     placeholder="{{object.hunter_email}}" disabled="disabled"></input>
+
                     <h6>Severity</h6>
                     <input type="number" id="severity-point" step="0.1" min="0.0" max="10.0"
                         placeholder="{{object.report_severity}}" disabled="disabled"></input>
@@ -224,7 +234,7 @@
                                         aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
-                                    <p>Please fill out the severity and the reviewer information in order to update the current bug report.</p>
+                                    <p>Update Report Severity and Reviewer?</p>
                                 </div>
                                 <div class="modal-footer">
                                     <a href="{% url 'report_edit' object.pk %}">
