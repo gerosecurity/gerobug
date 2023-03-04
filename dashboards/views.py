@@ -73,7 +73,7 @@ class ReportUpdate(LoginRequiredMixin,UpdateView):
     redirect_field_name = 'login'
     model = BugReport
     template_name = "dashboard_varieties/edit_report.html"
-    fields = ["report_severity","report_reviewer"] #Only status field is allowed to be edited
+    fields = ["report_severity","report_severitystring","report_reviewer"] #Only status field is allowed to be edited
     
     def get_success_url(self):
         def trigger_geromailer(report):
