@@ -21,7 +21,7 @@ class BugReport(models.Model):
     report_attack = models.CharField(max_length=50, default='NO ATTACK TYPE')
     report_summary = models.TextField()
     report_severity = models.FloatField(default=0, verbose_name="Report Severity")
-    report_severitystring = models.CharField(default="-", max_length=100, verbose_name="Severity String")
+    report_severitystring = models.CharField(default="", max_length=100, verbose_name="Severity String")
     report_status = models.IntegerField(default=1)
     report_duplicate = models.IntegerField(default=0)
     report_permission = models.IntegerField(default=0) # 4 (Update) 2 (Appeal) 1 (NDA) --> UAN --> Similar to RWX System
