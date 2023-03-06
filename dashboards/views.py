@@ -248,8 +248,11 @@ def AdminSetting(request):
 
 @login_required
 def OWASPCalculator(request):
-    
     return render(request,'owasp-calculator.html')
+
+@login_required
+def ManageRoles(request):
+    return render(request,'manage.html')
 
 def rulescontext(request,):
     staticrules = StaticRules.objects.get(pk=1)

@@ -100,6 +100,15 @@
                         </ul>
                     </li>
     
+                    <li>
+                        <a href="{% url 'manage' %}">
+                            <i class='bx bx-cog'></i>
+                            <span class="link_name">Manage Roles</span>
+                        </a>
+                        <ul class="sub-menu blank">
+                            <li><a class="link_name" href="{% url 'manage' %}">Manage Roles</a></li>
+                        </ul>
+                    </li>
                 </ul>
                 <a class="btn btn-light" href="{% url 'logout' %}" role="button">Logout</a>
             </div>
