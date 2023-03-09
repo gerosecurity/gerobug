@@ -2,7 +2,6 @@ import requests
 import json
 
 
-
 def notify_slack(title, hunter):
     webhook = "https://hooks.slack.com/services/xxx/xxx/xxx" # SLACK WEBHOOK
     payload = {

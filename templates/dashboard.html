@@ -2,7 +2,7 @@
 {% load static %}
 {% block content %}
 
-{% if user.is_superuser %}
+{% if user.is_authenticated %}
 
 <head>
     <meta charset="UTF-8">
