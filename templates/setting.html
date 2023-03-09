@@ -28,6 +28,34 @@
 </head>
 
 <body>
+    <script>
+        $(document).ready(function() {
+        var userIdToDelete;
+  
+        $("i.material-icons").click(function() {
+        // Store the UserID to delete after the delete icon is clicked
+         userIdToDelete = $(this).attr("id").split("-")[2];
+            });
+        
+        $("#delete-user").click(function(){
+        var patched = "{% url 'reviewer_handler' 0 %}".replace('0', userIdToDelete);
+        $.ajax({
+            url: patched,
+            type: "POST",
+            data: {
+                "user_id": userIdToDelete,
+                "csrfmiddlewaretoken": "{{ csrf_token }}"
+            },
+            success: function(data) {
+                console.log(data);
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+            });
+        });
+    </script>
     <section class="home-section">
         <header>
             <div class="home-content">
@@ -197,18 +225,20 @@
                                         </tr>
                                       </thead>
                                       <tbody>
+                                        {% for user in users %}
                                         <tr>
-                                          <td>Lorem Ipsum</td>
-                                          <td>lorem123@gmail.com</td>
-                                          <!-- <td>erkjfrekfmerwkfmk</td> -->
+                                          <td>{{ user.username }}</td>
+                                          <td>{{ user.email }}</td>
                                           <td>
-                                            <!-- <a href="#editUserModal" class="edit" data-toggle="modal"><i class="material-icons" data-toggle="tooltip" title="Edit">&#xE254;</i></a> -->
-                                            <a href="#deleteUserModal" class="delete" data-toggle="modal"><i class="material-icons" data-toggle="tooltip" title="Delete">&#xE872;</i></a>
+                                            <!-- <a href="#editUserModal" class="edit" data-toggle="modal"><i id="edit-user-{{ user.id }}" class="material-icons" data-toggle="tooltip" title="Edit">&#xE254;</i></a> -->
+                                            <a href="#deleteUserModal" class="delete" data-toggle="modal"><i id="delete-user-{{ user.id }}" class="material-icons" data-toggle="tooltip" title="Delete">&#xE872;</i></a>
                                           </td>
                                         </tr>
+                                        {% endfor %}
                                       </tbody>
                                     </table>
                                   </div>
+
 
                                   <div id="deleteUserModal" class="modal fade">
                                     <div class="modal-dialog">
@@ -224,12 +254,34 @@
                                                 </div>
                                                 <div class="modal-footer">
                                                     <input type="button" class="btn btn-default" data-dismiss="modal" value="Cancel">
-                                                    <input type="submit" class="btn btn-danger" value="Delete">
+                                                    <input type="submit" class="btn btn-danger" id="delete-user" value="Delete">
                                                 </div>
                                             </form>
                                         </div>
                                     </div>
                                 </div>
+
+                                <div id="addUserModal" class="modal fade">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <form method="POST">
+                                                <div class="modal-header">						
+                                                    <h4 class="modal-title">Add Reviewers</h4>
+                                                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    {% csrf_token %}					
+                                                    {{ reviewer.as_p }}
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <input type="button" class="btn btn-default" data-dismiss="modal" value="Cancel">
+                                                    <input type="submit" class="btn btn-danger" id="add-user" value="Add">
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
                     </div>

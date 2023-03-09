@@ -20,7 +20,7 @@ from dashboards.views import halloffame,rulescontext
 
 urlpatterns = [
     path('accounts/', include('django.contrib.auth.urls')),
-    # path('admin/', admin.site.urls),
+    path('admin/', admin.site.urls),
     path('login/', include("prerequisites.urls"),name="login"),
     path('', rulescontext,name="rules"),
     path("submit/",TemplateView.as_view(template_name="submit.html"),name="submit"),

@@ -12,7 +12,9 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 from geromail.thread import RunGeromailThread
-from dashboards.models import ReportStatus, StaticRules
+from dashboards.models import BugReport, BugHunter, ReportStatus, StaticRules
+from django.contrib.auth.models import Group, Permission
+from django.core.exceptions import ObjectDoesNotExist
 from prerequisites.models import MailBox
 from dashboards.rulestemplate import *
 
@@ -66,6 +68,28 @@ def init_mailbox_db():
     else:
         print("[LOG] Mailbox already exists")
 
+# INIT GROUP REVIEWER CREATION
+def init_group():
+    perm_list = Permission.objects.all()
+    permissions = {}
+    for perm in perm_list:
+        permissions[perm.codename] = perm
+    try:
+        checker = Group.objects.get(name="Reviewer")
+    except ObjectDoesNotExist:
+        g_reviewer = Group.objects.create(name="Reviewer")
+        g_reviewer.permissions.add(permissions['view_group'])
+        g_reviewer.permissions.add(permissions['view_user'])
+        g_reviewer.permissions.add(permissions['view_contenttype'])
+        g_reviewer.permissions.add(permissions['view_bughunter'])
+        g_reviewer.permissions.add(permissions['change_bugreport'])
+        g_reviewer.permissions.add(permissions['view_bugreport'])
+        g_reviewer.permissions.add(permissions['delete_bugreport'])
+        g_reviewer.permissions.add(permissions['view_reportstatus'])
+        g_reviewer.permissions.add(permissions['view_staticrules'])
+        g_reviewer.permissions.add(permissions['view_session'])
+    except:
+        print("[LOG] Group Reviewer shall be created successfully. Visit the Admin Site!")
 
 init_status_db(0, "Not Valid")
 init_status_db(1, "Need to Review")
@@ -75,6 +99,7 @@ init_status_db(4, "Fixing (Retest)")
 init_status_db(5, "Bounty Calculation")
 init_status_db(6, "Bounty in Process")
 init_status_db(7, "Completed")
+init_group()
 init_rules_db()
 init_mailbox_db()
 

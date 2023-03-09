@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required,user_passes_test
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.views.generic.edit import FormMixin
 from django.db.models.query_utils import Q
 from django.contrib.auth import logout
@@ -17,7 +17,7 @@ from django.db.models import Sum
 from django.http import FileResponse
 from .models import BugHunter, BugReport, ReportStatus, StaticRules
 from prerequisites.models import MailBox
-from .forms import Requestform, AdminSettingForm, CompleteRequestform, MailboxForm, AccountForm
+from .forms import Requestform, AdminSettingForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm
 from geromail import geromailer, gerofilter, geroparser
 from sys import platform
 from gerobug.settings import MEDIA_ROOT
@@ -207,8 +207,23 @@ def ReportFiles(request, id):
 
 
 @login_required
+@user_passes_test(lambda u: u.is_superuser)
 def AdminSetting(request):
+    users = User.objects.filter(is_superuser=False)
     if request.method == "POST":
+        reviewer = ReviewerForm(request.POST)
+        if reviewer.is_valid():
+            groupreviewer = Group.objects.get(name='Reviewer')
+            reviewername = reviewer.cleaned_data.get('reviewername')
+            revieweremail = reviewer.cleaned_data.get('reviewer_email')
+            reviewerpassword = "G3r0bUg_@dM!n_1337yipPie13579246810121337" #default pw, change since this is temp
+            revieweraccount = User.objects.create(username=reviewername,email=revieweremail)
+            revieweraccount.set_password(reviewerpassword)
+            revieweraccount.groups.add(groupreviewer)
+            revieweraccount.save()
+            
+            print("[LOG] Reviewer is created successfully")
+            return redirect('setting')
         mailbox = MailboxForm(request.POST)
         if mailbox.is_valid():
             mailbox_account = MailBox.objects.get(mailbox_id=1)
@@ -244,7 +259,18 @@ def AdminSetting(request):
 
             return redirect('dashboard')
         
-    return render(request,'setting.html',{'form': AdminSettingForm(), 'mailbox': MailboxForm(), 'account': AccountForm()})
+    return render(request,'setting.html',{'form': AdminSettingForm(), 'mailbox': MailboxForm(), 'account': AccountForm(),'reviewer': ReviewerForm(),'users':users})
+
+@login_required
+def ReviewerDelete(request,id):
+    if request.method == "POST":
+        try:
+            if User.objects.filter(id=id).count() != 0:
+                User.objects.filter(id=id).delete()
+        except Exception as e:
+            print("[LOG] ", e)
+            return redirect('dashboard')
+        return redirect('setting')
 
 @login_required
 def OWASPCalculator(request):
