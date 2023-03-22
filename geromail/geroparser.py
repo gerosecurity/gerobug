@@ -52,7 +52,7 @@ def saveuser(email, name, score):
 
 
 # INSERT DATA TO BUGREPORT MODEL
-def savedata(id, email, date, title, atk_type, endpoint, summary):
+def savereport(id, email, date, title, atk_type, endpoint, summary):
     newreport = BugReport()
     
     newreport.report_id = id
@@ -63,7 +63,6 @@ def savedata(id, email, date, title, atk_type, endpoint, summary):
     newreport.report_endpoint = endpoint
     newreport.report_summary = summary
     newreport.report_status = 1
-    newreport.report_flag = 'No Flag'
 
     newreport.save()
 
@@ -155,7 +154,7 @@ def read_mail():
                                     code = 404
                                 else:
                                     saveuser(hunter_email, hunter_name, 0)
-                                    savedata(report_id, hunter_email, email_date, report_title, atk_type, report_endpoint, report_summary)
+                                    savereport(report_id, hunter_email, email_date, report_title, atk_type, report_endpoint, report_summary)
                                     
                                     gerofilter.check_duplicate(report_id)
                                     geronotify.notify_slack(report_title, hunter_email)
