@@ -18,10 +18,11 @@ from gerobug.settings import MEDIA_ROOT
 
 
 # GMAIL IMAP CONFIG
-EMAIL       = ""
-PWD         = ""
-IMAP_SERVER = "imap.gmail.com"
-IMAP_PORT   = 993
+EMAIL           = ""
+PWD             = ""
+MAILBOX_READY   = False
+IMAP_SERVER     = "imap.gmail.com"
+IMAP_PORT       = 993
 
 
 # GENERATE REPORT ID
@@ -420,22 +421,45 @@ def company_action(id, note, code):
 
 # RUN GEROMAIL MODULES
 def run():
-    global EMAIL, PWD
-    mailbox_ready = False
-
-    # WAIT UNTIL MAILBOX READY
-    while not mailbox_ready:
-        mailbox = MailBox.objects.get(mailbox_id=1)
-        if mailbox.email == "" or mailbox.password == "":
-            print("Waiting for Mailbox Setup...")
-            time.sleep(10)
-        else:
-            mailbox_ready = True
+    global EMAIL, PWD, MAILBOX_READY
+    MAILBOX_READY = False
+    error_count = 0
     
     while True:
-        mailbox = MailBox.objects.get(mailbox_id=1)
-        EMAIL       = mailbox.email
-        PWD         = mailbox.password
+        # LIMIT ERRORS TO AVOID BLACKLISTED BY MAIL SERVER
+        if error_count >= 3:
+            print("[LOG] Error Limit Reached!")
+            mailbox = MailBox.objects.get(mailbox_id=1)
+            mailbox.email = ""
+            mailbox.password = ""
+            mailbox.save()
+
+        # WAIT UNTIL MAILBOX READY
+        while not MAILBOX_READY:
+            mailbox = MailBox.objects.get(mailbox_id=1)
+            if mailbox.email == "" or mailbox.password == "":
+                print("Waiting for Mailbox Setup...")
+                time.sleep(5)
+            else:
+                MAILBOX_READY = True
         
-        read_mail()
-        time.sleep(10)
+        # ONLY RUN WHILE MAILBOX READY
+        while MAILBOX_READY:
+            mailbox = MailBox.objects.get(mailbox_id=1)
+            EMAIL       = mailbox.email
+            PWD         = mailbox.password
+
+            # TEST LOGIN
+            mail = imaplib.IMAP4_SSL(IMAP_SERVER)
+            try:
+                mail.login(EMAIL,PWD)
+
+            except Exception as e:
+                error_count+=1
+                print("[ERROR] Failed to Login =",e,"(",str(error_count),")")
+                MAILBOX_READY = False
+                time.sleep(5)
+                break
+
+            read_mail()
+            time.sleep(10)
