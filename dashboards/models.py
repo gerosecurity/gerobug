@@ -35,6 +35,7 @@ class BugReport(models.Model):
     def get_absolute_url(self):
         return reverse('report_detail', kwargs={'pk':self.report_id})
 
+
 class BugReportUpdate(models.Model):
     update_id = models.CharField(max_length=15,primary_key=True,validators=[alphanumeric])
     report_id = models.CharField(max_length=15)
@@ -45,14 +46,14 @@ class BugReportUpdate(models.Model):
         return self.update_id
 
 
-class BugReportAmend(models.Model):
-    amend_id = models.CharField(max_length=15,primary_key=True,validators=[alphanumeric])
+class BugReportAppeal(models.Model):
+    appeal_id = models.CharField(max_length=15,primary_key=True,validators=[alphanumeric])
     report_id = models.CharField(max_length=15)
-    amend_datetime = models.DateTimeField()
-    amend_summary = models.TextField()
+    appeal_datetime = models.DateTimeField()
+    appeal_summary = models.TextField()
 
     def __str__(self):
-        return self.amend_id
+        return self.appeal_id
 
 
 class BugReportNDA(models.Model):

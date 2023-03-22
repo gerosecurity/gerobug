@@ -15,7 +15,7 @@ from django.views.generic import (
 from django.urls import reverse, reverse_lazy
 from django.db.models import Sum
 from django.http import FileResponse
-from .models import BugHunter, BugReport, BugReportUpdate, BugReportAmend, BugReportNDA, ReportStatus, StaticRules
+from .models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, ReportStatus, StaticRules
 from prerequisites.models import MailBox
 from .forms import Requestform, AdminSettingForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm
 from geromail import geromailer, gerofilter, geroparser

@@ -12,7 +12,7 @@ from . import gerosecure
 from . import gerofilter
 from . import geromailer
 from . import geronotify
-from dashboards.models import BugHunter, BugReport
+from dashboards.models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA
 from prerequisites.models import MailBox
 from gerobug.settings import MEDIA_ROOT
 
