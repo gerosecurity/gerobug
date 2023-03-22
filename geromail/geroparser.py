@@ -180,7 +180,7 @@ def read_mail():
                                 email_body = str(email_body)
 
                                 print('Body : ' + email_body + '\n')
-                                atk_type, report_endpoint, report_summary = gerofilter.parse_body(email_body.replace('\n', ' '))
+                                atk_type, report_endpoint, report_summary = gerofilter.parse_body(email_body)
                                 
                                 # VALIDATE REPORT
                                 if (len(report_title) < 3) or (atk_type == '') or (report_endpoint == '') or (len(report_summary) < 10):

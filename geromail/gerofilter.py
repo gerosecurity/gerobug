@@ -152,21 +152,21 @@ def validate_attachment(msg, id, FILEPATH):
 def parse_body(body):
     endpoint = '' 
     summary = ''
-    
-    try:
-        rtype = re.search('TYPE=\[(.+?)\]', body)
-        if rtype != None:
-            rtype = rtype.group(1)
-        else:
-            rtype = ''
 
-        endpoint = re.search('ENDPOINT=\[(.+?)\]', body)
+    try:
+        type = re.search('TYPE=(.*)(\n)', body)
+        if type != None:
+            type = type.group(1)
+        else:
+            type = ''
+
+        endpoint = re.search('ENDPOINT=(.*)(\n)', body)
         if endpoint != None:
             endpoint = endpoint.group(1)
         else:
             endpoint = ''
 
-        summary = re.search('SUMMARY=(.*)', body)
+        summary = re.search('SUMMARY=(.*)', body.replace('\n', ' '))
         if summary != None:
             summary = summary.group(1)
         else:
@@ -175,7 +175,7 @@ def parse_body(body):
     except Exception as e:
         print(str(e))
 
-    return rtype, endpoint, summary
+    return type, endpoint, summary
 
 
 # CLASSIFY ACTION BY EMAIL SUBJECT
@@ -183,7 +183,10 @@ def classify_action(email, subject):
     try:
         if(re.search(r'^SUBMIT_', subject)):
             title = subject[7 : ]
-            return 201, title
+            if len(title)<=50:
+                return 201, title
+            else:
+                return 404, " "
 
         elif(re.search(r'^CHECK_', subject)):
             id = subject[6 : ]
