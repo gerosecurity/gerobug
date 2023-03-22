@@ -2,7 +2,7 @@ import re
 import os
 import PyPDF2
 
-from dashboards.models import BugReport, BugHunter
+from dashboards.models import BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, BugHunter
 
 
 
