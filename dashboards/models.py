@@ -44,6 +44,9 @@ class BugReportUpdate(models.Model):
 
     def __str__(self):
         return self.update_id
+    
+    def get_absolute_url(self):
+        return reverse('update_detail', kwargs={'pk':self.update_id})
 
 
 class BugReportAppeal(models.Model):
@@ -51,10 +54,13 @@ class BugReportAppeal(models.Model):
     report_id = models.CharField(max_length=15)
     appeal_datetime = models.DateTimeField()
     appeal_summary = models.TextField()
+    appeal_file = models.IntegerField(default=0)
 
     def __str__(self):
         return self.appeal_id
 
+    def get_absolute_url(self):
+        return reverse('appeal_detail', kwargs={'pk':self.appeal_id})
 
 class BugReportNDA(models.Model):
     nda_id = models.CharField(max_length=15,primary_key=True,validators=[alphanumeric])
@@ -64,7 +70,9 @@ class BugReportNDA(models.Model):
 
     def __str__(self):
         return self.nda_id
-    
+
+    def get_absolute_url(self):
+        return reverse('nda_detail', kwargs={'pk':self.nda_id})  
 
 class BugHunter(models.Model):
     hunter_email = models.EmailField()

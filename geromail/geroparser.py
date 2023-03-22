@@ -51,7 +51,7 @@ def saveuser(email, name, score):
         print("[LOG] New User registered.")
 
 
-# INSERT DATA TO BUGREPORT MODEL
+# INSERT NEW REPORT TO BUGREPORT MODEL
 def savereport(id, email, date, title, atk_type, endpoint, summary):
     newreport = BugReport()
     
@@ -65,6 +65,40 @@ def savereport(id, email, date, title, atk_type, endpoint, summary):
     newreport.report_status = 1
 
     newreport.save()
+
+
+# INSERT NEW UAN TO DATABASE
+def save_uan(type, id, report_id, date, summary, file):
+    if type == 'U':
+        newupdate = BugReportUpdate()
+        
+        newupdate.update_id = id
+        newupdate.report_id = report_id
+        newupdate.update_datetime = date
+        newupdate.update_summary = summary
+
+        newupdate.save()
+    
+    elif type == 'A':
+        newappeal = BugReportAppeal()
+        
+        newappeal.appeal_id = id
+        newappeal.report_id = report_id
+        newappeal.appeal_datetime = date
+        newappeal.appeal_summary = summary
+        newappeal.appeal_file = file
+
+        newappeal.save()
+    
+    elif type == 'N':
+        newNDA = BugReportNDA()
+        
+        newNDA.nda_id = id
+        newNDA.report_id = report_id
+        newNDA.nda_datetime = date
+        newNDA.nda_summary = summary
+
+        newNDA.save()
 
 
 # READ INBOX (UNSEEN) AND PARSE DATA
@@ -187,7 +221,6 @@ def read_mail():
 
                             # GENERATE UPDATE ID
                             update_id = str(payload[0]) + "U" + str(report.report_update)
-                            update_title = "UPDATE " + update_id
                             print('Update ID : ' + update_id)
 
                             # CHECK ATTACHMENT AND PARSE BODY
@@ -203,7 +236,7 @@ def read_mail():
                                 update_summary = str(msg_body[0]).replace('Content-Type: text/plain; charset="UTF-8"', '')
                                 print('Update Summary : ' + update_summary + '\n')
 
-                                savedata(update_id, hunter_email, email_date, update_title, '', '', update_summary)
+                                save_uan('U', update_id, str(payload[0]), email_date, update_summary, 0)
                                 print('[CODE 203] Bug Hunter Update Saved Successfully')
 
                             else:
@@ -227,7 +260,6 @@ def read_mail():
                             
                             # GENERATE APPEAL ID
                             appeal_id = str(payload[0]) + "A" + str(report.report_appeal)
-                            appeal_title = "APPEAL " + appeal_id
                             print('Appeal ID : ' + appeal_id)
                             
                             # CHECK ATTACHMENT AND PARSE BODY
@@ -235,8 +267,10 @@ def read_mail():
                             if have_attachment:
                                 msg_body = msg.get_payload()[0].get_payload()
                                 appeal_summary = msg_body[0]
+                                appeal_file = 1
                             else: 
                                 appeal_summary = msg.get_payload()[0].get_payload()
+                                appeal_file = 0
 
                             appeal_summary = str(appeal_summary).replace('Content-Type: text/plain; charset="UTF-8"', '')
                             print('Appeal Summary : ' + appeal_summary + '\n')
@@ -247,7 +281,7 @@ def read_mail():
                                 report.report_permission = report.report_permission - 2
                                 report.save()
 
-                                savedata(appeal_id, hunter_email, email_date, appeal_title, '', '', appeal_summary)
+                                save_uan('A', appeal_id, str(payload[0]), email_date, appeal_summary, appeal_file)
                                 print('[CODE 204] Bug Hunter Appeal Received Successfully')
                             
                             else: 
@@ -286,7 +320,6 @@ def read_mail():
 
                             # GENERATE NDA ID
                             nda_id = str(payload[0]) + "N" + str(report.report_nda)
-                            nda_title = "NDA_" + nda_id
                             print('NDA ID : ' + nda_id)
 
                             # CHECK ATTACHMENT AND PARSE BODY
@@ -300,7 +333,7 @@ def read_mail():
                                 nda_summary = str(msg_body[0]).replace('Content-Type: text/plain; charset="UTF-8"', '')
                                 print('NDA Summary : ' + nda_summary + '\n')
 
-                                savedata(nda_id, hunter_email, email_date, nda_title, '', '', nda_summary)
+                                save_uan('N', nda_id, str(payload[0]), email_date, nda_summary, 0)
                                 print('[CODE 206] Bug Hunter NDA Received Successfully')
                             
                             else: 

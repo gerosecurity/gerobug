@@ -2,7 +2,7 @@ import re
 import os
 import PyPDF2
 
-from dashboards.models import BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, BugHunter
+from dashboards.models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA
 
 
 
@@ -74,8 +74,17 @@ def validate_user(email, id):
 
 # VALIDATE REPORT ID
 def validate_id(id):
-    if(len(id) >= 12) & (id.isalnum()):
+    if(len(id) == 12) & (id.isalnum()):
         if BugReport.objects.filter(report_id=id).exists():
+            return True
+        else:    
+            return False
+    elif(len(id) > 12) & (id.isalnum()):
+        if BugReportUpdate.objects.filter(update_id=id).exists():
+            return True
+        elif BugReportAppeal.objects.filter(appeal_id=id).exists():
+            return True
+        elif BugReportNDA.objects.filter(nda_id=id).exists():
             return True
         else:    
             return False
