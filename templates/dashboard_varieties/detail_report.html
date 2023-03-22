@@ -173,7 +173,7 @@
                                 <div id="file-img"><i class="bi bi-file-earmark"></i></div>
                                 <a href="{% url 'report_files' object.pk %}U{{ object.report_update }}">Download (Updated)</a>
                             </div>
-                            <a href="{% url 'report_detail' object.pk %}U{{ object.report_update }}">
+                            <a href="{% url 'update_detail' object.pk %}U{{ object.report_update }}">
                                 <button type="button" class="nda-btn">View Update</button>
                             </a>
                             {% endif %}
@@ -183,7 +183,7 @@
                         <div id="nda">
                             <div id="nda-details">
                                 <h6>Hunter Data</h6>
-                                <a href="{% url 'report_detail' object.pk %}N{{ object.report_nda }}">
+                                <a href="{% url 'nda_detail' object.pk %}N{{ object.report_nda }}">
                                     <button type="button" class="nda-btn">View</button>
                                 </a>
                             </div>
@@ -199,7 +199,7 @@
                         <div id="nda">
                             <div id="nda-details">
                                 <h6>Appeals</h6>
-                                <a href="{% url 'report_detail' object.pk %}A{{ object.report_appeal }}">
+                                <a href="{% url 'appeal_detail' object.pk %}A{{ object.report_appeal }}">
                                     <button type="button" class="nda-btn">View</button>
                                 </a>
                             </div>

@@ -62,7 +62,7 @@ class ReportDetails(LoginRequiredMixin,DetailView):
 
     def get_context_data(self, **kwargs):
         context = super(ReportDetails, self).get_context_data(**kwargs)
-        context['reportstatus'] =ReportStatus.objects.filter(status_id=BugReport.objects.get(report_id=self.kwargs.get('pk')).report_status)[0].status_name
+        context['reportstatus'] = ReportStatus.objects.filter(status_id=BugReport.objects.get(report_id=self.kwargs.get('pk')).report_status)[0].status_name
         context['requestform'] = Requestform()
         context['completeform'] = CompleteRequestform()
         return context
@@ -76,13 +76,6 @@ class ReportUpdate(LoginRequiredMixin,UpdateView):
     fields = ["report_severity","report_severitystring","report_reviewer"] #Only status field is allowed to be edited
     
     def get_success_url(self):
-        def trigger_geromailer(report):
-            payload = [report.report_id, report.report_title, report.report_status, "", report.report_severity]
-            destination = report.hunter_email
-            geromailer.notify(destination, payload) #TRIGGER GEROMAILER TO SEND UPDATE NOTIFICATION
-
-        trigger = threading.Thread(target=trigger_geromailer, args=(self.object,))
-        trigger.start()
         return reverse('dashboard')
 
 
@@ -103,6 +96,45 @@ class ReportDelete(LoginRequiredMixin,DeleteView):
             shutil.rmtree(os.path.join(MEDIA_ROOT)+"/"+self.object.report_id)
         return reverse_lazy('dashboard')
 
+
+class UpdateDetails(LoginRequiredMixin,DetailView):
+    login_url = '/login/'
+    redirect_field_name = 'login'
+    model = BugReportUpdate
+    template_name = "dashboard_varieties/detail_uan.html"
+    context_object_name = "bugposts"
+
+    def get_context_data(self, **kwargs):
+        context = super(UpdateDetails, self).get_context_data(**kwargs)
+        context['uan_type'] = self.kwargs.get('pk')[12:13]
+        return context
+    
+
+class AppealDetails(LoginRequiredMixin,DetailView):
+    login_url = '/login/'
+    redirect_field_name = 'login'
+    model = BugReportAppeal
+    template_name = "dashboard_varieties/detail_uan.html"
+    context_object_name = "bugposts"
+
+    def get_context_data(self, **kwargs):
+        context = super(AppealDetails, self).get_context_data(**kwargs)
+        context['uan_type'] = self.kwargs.get('pk')[12:13]
+        return context
+    
+
+class NDADetails(LoginRequiredMixin,DetailView):
+    login_url = '/login/'
+    redirect_field_name = 'login'
+    model = BugReportNDA
+    template_name = "dashboard_varieties/detail_uan.html"
+    context_object_name = "bugposts"
+
+    def get_context_data(self, **kwargs):
+        context = super(NDADetails, self).get_context_data(**kwargs)
+        context['uan_type'] = self.kwargs.get('pk')[12:13]
+        return context
+    
 
 @login_required
 def ReportStatusView(request, id):
@@ -188,14 +220,29 @@ def FormHandler(request, id, complete):
 @login_required
 def ReportFiles(request, id):
     if gerofilter.validate_id(id):
-        report = BugReport.objects.get(report_id=id)
-        try:
-            report_name = report.report_id + ".pdf"
-            
-            # IF UPDATE OR NDA
-            if len(id) > 12:
-                id = id[:12]
+        # IF UPDATE OR NDA
+        if len(id) > 12:
+            uan_id = id
+            id = id[:12]
+            type = uan_id[12:13]
 
+            if type == 'U':
+                report = BugReportUpdate.objects.get(update_id=uan_id)
+                report_name = report.update_id + ".pdf"
+
+            elif type == 'A':
+                report = BugReportAppeal.objects.get(appeal_id=uan_id)
+                report_name = report.appeal_id + ".pdf"
+
+            elif type == 'N':
+                report = BugReportNDA.objects.get(nda_id=uan_id)
+                report_name = report.nda_id + ".pdf"
+        
+        else:
+            report = BugReport.objects.get(report_id=id)
+            report_name = report.report_id + ".pdf"
+        
+        try:
             report_file = os.path.join(MEDIA_ROOT,id,report_name)
             return FileResponse(open(report_file, 'rb'), content_type='application/pdf')
         
