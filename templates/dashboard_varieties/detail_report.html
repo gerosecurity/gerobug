@@ -86,43 +86,40 @@
             <div id="report-title">
                 <div id="title-left">
                     <h3 id="report-id">#{{object.report_id}}</h3>
-                    {% if object.report_attack != '' %}
-                        {% if object.report_status == 1 %}
-                            <div class="report-status" id="needreview">{{reportstatus}}</div>
-                        {% elif object.report_status == 2 %}
-                            <div class="report-status" id="inreview">{{reportstatus}}</div>
-                        {% elif object.report_status == 3 or object.report_status == 4 %}
-                            <div class="report-status" id="fixing">{{reportstatus}}</div>
-                        {% elif object.report_status == 5 or object.report_status == 6 %}
-                            <div class="report-status" id="calculate">{{reportstatus}}</div>
-                        {% elif object.report_status == 7 %}
-                            <div class="report-status" id="complete">{{reportstatus}}</div>
-                        {% elif object.report_status == 8 %}
-                            <div class="report-status" id="invalid">{{reportstatus}}</div>
-                        {% endif %}
+                    {% if object.report_status == 1 %}
+                        <div class="report-status" id="needreview">{{reportstatus}}</div>
+                    {% elif object.report_status == 2 %}
+                        <div class="report-status" id="inreview">{{reportstatus}}</div>
+                    {% elif object.report_status == 3 or object.report_status == 4 %}
+                        <div class="report-status" id="fixing">{{reportstatus}}</div>
+                    {% elif object.report_status == 5 or object.report_status == 6 %}
+                        <div class="report-status" id="calculate">{{reportstatus}}</div>
+                    {% elif object.report_status == 7 %}
+                        <div class="report-status" id="complete">{{reportstatus}}</div>
+                    {% elif object.report_status == 8 %}
+                        <div class="report-status" id="invalid">{{reportstatus}}</div>
+                    {% endif %}
                         
-                    {% endif %}
                 </div>
-                {% if object.report_attack != '' %}
-                    {% if object.report_severity == 0 %} 
-                    <div class="severity-type" id="none">NONE</div>
 
-                    {% elif object.report_severity < 4 %} 
-                    <div class="severity-type" id="low">Low</div>
+                {% if object.report_severity == 0 %} 
+                <div class="severity-type" id="none">NONE</div>
 
-                    {% elif object.report_severity < 7 %} 
-                    <div class="severity-type" id="medium">Medium</div>
+                {% elif object.report_severity < 4 %} 
+                <div class="severity-type" id="low">Low</div>
 
-                    {% elif object.report_severity < 9 %} 
-                    <div class="severity-type" id="high">High</div>
+                {% elif object.report_severity < 7 %} 
+                <div class="severity-type" id="medium">Medium</div>
 
-                    {% elif object.report_severity >= 9 %}
-                    <div class="severity-type" id="critical">Critical</div>
+                {% elif object.report_severity < 9 %} 
+                <div class="severity-type" id="high">High</div>
 
-                    {% else %}
-                    <div class="severity-type" id="none">NONE</div>
-                    
-                    {% endif %}
+                {% elif object.report_severity >= 9 %}
+                <div class="severity-type" id="critical">Critical</div>
+
+                {% else %}
+                <div class="severity-type" id="none">NONE</div>
+                
                 {% endif %}
             </div>
 
@@ -208,7 +205,6 @@
                     </div>
                 </div>
 
-                {% if object.report_attack != '' %}
                 <div id="right-div">
                     <h6>Bug Hunter</h6>
                     <input type="number" id="severity-point" step="0.1" min="0.0" max="10.0"
@@ -245,14 +241,12 @@
                             </div>
                         </div>
                     </div>
-                    {% endif %}
                 </div>
                 {% endif %}
             </div>
 
             <br>
             <div id="report-download">
-            {% if object.report_attack != '' %}
                 <!-- REQUEST BUTTON -->
                 {% if reportstatus == 'Need to Review' %}
                 <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#staticBackdropLeft">Mark as Invalid</button>
@@ -384,7 +378,6 @@
                     </div>
                 </div>
                 {% endif %}
-            {% endif %}
             </div>
         
         </main>
