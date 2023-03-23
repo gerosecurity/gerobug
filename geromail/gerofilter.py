@@ -43,15 +43,18 @@ def validate_permission(operation, id):
     else:
         if permission >= 4: # UPDATE
             permission = permission - 4
-            permited.append("U")
+            if report.report_update < 99:
+                permited.append("U")
 
         if permission >= 2: # APPEAL
             permission = permission - 2
-            permited.append("A")
+            if report.report_appeal < 99:
+                permited.append("A")
 
         if permission >= 1: # NDA
             permission = permission - 1
-            permited.append("N")
+            if report.report_nda < 99:
+                permited.append("N")
 
         print("[LOG] Permission =", report.report_permission, permited)
         if operation in permited:
@@ -190,6 +193,7 @@ def classify_action(email, subject):
 
         elif(re.search(r'^CHECK_', subject)):
             id = subject[6 : ]
+            id = id.replace(" ","")
             if validate_id(id):
                 if validate_user(email, id):
                     return 202, id
@@ -200,6 +204,7 @@ def classify_action(email, subject):
 
         elif(re.search(r'^UPDATE_', subject)):
             id = subject[7 : ]
+            id = id.replace(" ","")
             if validate_id(id):
                 if validate_user(email, id):
                     if validate_permission("U", id):
@@ -213,6 +218,7 @@ def classify_action(email, subject):
 
         elif(re.search(r'^APPEAL_', subject)):
             id = subject[7 : ]
+            id = id.replace(" ","")
             if validate_id(id):
                 if validate_user(email, id):
                     if validate_permission("A", id):
@@ -229,6 +235,7 @@ def classify_action(email, subject):
 
         elif(re.search(r'^AGREE_', subject)):
             id = subject[6 : ]
+            id = id.replace(" ","")
             if validate_id(id):
                 if validate_user(email, id):
                     if validate_permission("A", id):
