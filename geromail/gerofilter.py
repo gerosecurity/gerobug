@@ -2,7 +2,7 @@ import re
 import os
 import PyPDF2
 
-from dashboards.models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA
+from dashboards.models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, ReportStatus
 
 
 
@@ -266,7 +266,21 @@ def classify_action(email, subject):
                 return 207, str(hunter.hunter_scores)
             else:
                 return 403
-                
+        
+        elif(re.search(r'^STATUS_OVERVIEW$', subject)):
+            if BugHunter.objects.filter(hunter_email=email).exists():
+                if BugReport.objects.filter(hunter_email=email).exists():
+                    reports = []
+                    for report in BugReport.objects.filter(hunter_email=email):
+                        status = ReportStatus.objects.get(status_id=report.report_status)
+                        status = status.status_name
+                        x = "<tr><td>&ensp;"+report.report_id+"&ensp;</td><td>&ensp;"+report.report_title+"&ensp;</td><td>&ensp;"+status+"&ensp;</td></tr>"
+                        reports.append(x)
+                    
+                    return 208, reports
+            else:
+                return 403
+            
         else:
             return 404, " "
 

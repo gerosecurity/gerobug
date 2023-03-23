@@ -351,6 +351,13 @@ def read_mail():
                             payload[3] = payload[0]
                             print("[CODE 207] Bug Hunter Check Score Successfully")
 
+                        # HUNTER CHECK ALL STATUS
+                        elif(code == 208):
+                            payload[3] = str(payload[0]).replace('[','').replace(']','').replace("'",'').replace(',','\n')
+                            payload[0] = str(len(payload[0]))
+                            print('[LOG] Hunter Reports (',payload[0],'):\n' + payload[3])
+                            print("[CODE 208] Bug Hunter Check All Status Successfully")
+
                         # INVALID REPORT ID
                         elif(code == 405):
                             print('[ERROR 405] Report ID not valid')
