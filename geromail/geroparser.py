@@ -18,10 +18,11 @@ from gerobug.settings import MEDIA_ROOT
 
 
 # GMAIL IMAP CONFIG
-EMAIL       = ""
-PWD         = ""
-IMAP_SERVER = "imap.gmail.com"
-IMAP_PORT   = 993
+EMAIL           = ""
+PWD             = ""
+MAILBOX_READY   = False
+IMAP_SERVER     = "imap.gmail.com"
+IMAP_PORT       = 993
 
 
 # GENERATE REPORT ID
@@ -180,7 +181,7 @@ def read_mail():
                                 email_body = str(email_body)
 
                                 print('Body : ' + email_body + '\n')
-                                atk_type, report_endpoint, report_summary = gerofilter.parse_body(email_body.replace('\n', ' '))
+                                atk_type, report_endpoint, report_summary = gerofilter.parse_body(email_body)
                                 
                                 # VALIDATE REPORT
                                 if (len(report_title) < 3) or (atk_type == '') or (report_endpoint == '') or (len(report_summary) < 10):
@@ -350,6 +351,13 @@ def read_mail():
                             payload[3] = payload[0]
                             print("[CODE 207] Bug Hunter Check Score Successfully")
 
+                        # HUNTER CHECK ALL STATUS
+                        elif(code == 208):
+                            payload[3] = str(payload[0]).replace('[','').replace(']','').replace("'",'').replace(',','\n')
+                            payload[0] = str(len(payload[0]))
+                            print('[LOG] Hunter Reports (',payload[0],'):\n' + payload[3])
+                            print("[CODE 208] Bug Hunter Check All Status Successfully")
+
                         # INVALID REPORT ID
                         elif(code == 405):
                             print('[ERROR 405] Report ID not valid')
@@ -420,22 +428,45 @@ def company_action(id, note, code):
 
 # RUN GEROMAIL MODULES
 def run():
-    global EMAIL, PWD
-    mailbox_ready = False
-
-    # WAIT UNTIL MAILBOX READY
-    while not mailbox_ready:
-        mailbox = MailBox.objects.get(mailbox_id=1)
-        if mailbox.email == "" or mailbox.password == "":
-            print("Waiting for Mailbox Setup...")
-            time.sleep(10)
-        else:
-            mailbox_ready = True
+    global EMAIL, PWD, MAILBOX_READY
+    MAILBOX_READY = False
+    error_count = 0
     
     while True:
-        mailbox = MailBox.objects.get(mailbox_id=1)
-        EMAIL       = mailbox.email
-        PWD         = mailbox.password
+        # LIMIT ERRORS TO AVOID BLACKLISTED BY MAIL SERVER
+        if error_count >= 3:
+            print("[LOG] Error Limit Reached!")
+            mailbox = MailBox.objects.get(mailbox_id=1)
+            mailbox.email = ""
+            mailbox.password = ""
+            mailbox.save()
+
+        # WAIT UNTIL MAILBOX READY
+        while not MAILBOX_READY:
+            mailbox = MailBox.objects.get(mailbox_id=1)
+            if mailbox.email == "" or mailbox.password == "":
+                print("Waiting for Mailbox Setup...")
+                time.sleep(5)
+            else:
+                MAILBOX_READY = True
         
-        read_mail()
-        time.sleep(10)
+        # ONLY RUN WHILE MAILBOX READY
+        while MAILBOX_READY:
+            mailbox = MailBox.objects.get(mailbox_id=1)
+            EMAIL       = mailbox.email
+            PWD         = mailbox.password
+
+            # TEST LOGIN
+            mail = imaplib.IMAP4_SSL(IMAP_SERVER)
+            try:
+                mail.login(EMAIL,PWD)
+
+            except Exception as e:
+                error_count+=1
+                print("[ERROR] Failed to Login =",e,"(",str(error_count),")")
+                MAILBOX_READY = False
+                time.sleep(5)
+                break
+
+            read_mail()
+            time.sleep(10)

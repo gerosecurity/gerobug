@@ -2,7 +2,7 @@ import re
 import os
 import PyPDF2
 
-from dashboards.models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA
+from dashboards.models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, ReportStatus
 
 
 
@@ -43,15 +43,18 @@ def validate_permission(operation, id):
     else:
         if permission >= 4: # UPDATE
             permission = permission - 4
-            permited.append("U")
+            if report.report_update < 99:
+                permited.append("U")
 
         if permission >= 2: # APPEAL
             permission = permission - 2
-            permited.append("A")
+            if report.report_appeal < 99:
+                permited.append("A")
 
         if permission >= 1: # NDA
             permission = permission - 1
-            permited.append("N")
+            if report.report_nda < 99:
+                permited.append("N")
 
         print("[LOG] Permission =", report.report_permission, permited)
         if operation in permited:
@@ -152,21 +155,21 @@ def validate_attachment(msg, id, FILEPATH):
 def parse_body(body):
     endpoint = '' 
     summary = ''
-    
-    try:
-        rtype = re.search('TYPE=\[(.+?)\]', body)
-        if rtype != None:
-            rtype = rtype.group(1)
-        else:
-            rtype = ''
 
-        endpoint = re.search('ENDPOINT=\[(.+?)\]', body)
+    try:
+        type = re.search('TYPE=(.*)(\n)', body)
+        if type != None:
+            type = type.group(1)
+        else:
+            type = ''
+
+        endpoint = re.search('ENDPOINT=(.*)(\n)', body)
         if endpoint != None:
             endpoint = endpoint.group(1)
         else:
             endpoint = ''
 
-        summary = re.search('SUMMARY=(.*)', body)
+        summary = re.search('SUMMARY=(.*)', body.replace('\n', ' '))
         if summary != None:
             summary = summary.group(1)
         else:
@@ -175,7 +178,7 @@ def parse_body(body):
     except Exception as e:
         print(str(e))
 
-    return rtype, endpoint, summary
+    return type, endpoint, summary
 
 
 # CLASSIFY ACTION BY EMAIL SUBJECT
@@ -183,10 +186,14 @@ def classify_action(email, subject):
     try:
         if(re.search(r'^SUBMIT_', subject)):
             title = subject[7 : ]
-            return 201, title
+            if len(title)<=50:
+                return 201, title
+            else:
+                return 404, " "
 
         elif(re.search(r'^CHECK_', subject)):
             id = subject[6 : ]
+            id = id.replace(' ','')
             if validate_id(id):
                 if validate_user(email, id):
                     return 202, id
@@ -197,6 +204,7 @@ def classify_action(email, subject):
 
         elif(re.search(r'^UPDATE_', subject)):
             id = subject[7 : ]
+            id = id.replace(' ','')
             if validate_id(id):
                 if validate_user(email, id):
                     if validate_permission("U", id):
@@ -210,6 +218,7 @@ def classify_action(email, subject):
 
         elif(re.search(r'^APPEAL_', subject)):
             id = subject[7 : ]
+            id = id.replace(' ','')
             if validate_id(id):
                 if validate_user(email, id):
                     if validate_permission("A", id):
@@ -226,6 +235,7 @@ def classify_action(email, subject):
 
         elif(re.search(r'^AGREE_', subject)):
             id = subject[6 : ]
+            id = id.replace(" ","")
             if validate_id(id):
                 if validate_user(email, id):
                     if validate_permission("A", id):
@@ -256,7 +266,21 @@ def classify_action(email, subject):
                 return 207, str(hunter.hunter_scores)
             else:
                 return 403
-                
+        
+        elif(re.search(r'^STATUS_OVERVIEW$', subject)):
+            if BugHunter.objects.filter(hunter_email=email).exists():
+                if BugReport.objects.filter(hunter_email=email).exists():
+                    reports = []
+                    for report in BugReport.objects.filter(hunter_email=email):
+                        status = ReportStatus.objects.get(status_id=report.report_status)
+                        status = status.status_name
+                        x = "<tr><td>&ensp;"+report.report_id+"&ensp;</td><td>&ensp;"+report.report_title+"&ensp;</td><td>&ensp;"+status+"&ensp;</td></tr>"
+                        reports.append(x)
+                    
+                    return 208, reports
+            else:
+                return 403
+            
         else:
             return 404, " "
 

@@ -41,7 +41,7 @@ class RenderDashboardAdmin(LoginRequiredMixin,ListView):
     def get_context_data(self, **kwargs):
         context = super(RenderDashboardAdmin, self).get_context_data(**kwargs)
         context['total_notvalid'] = BugReport.objects.filter(report_status=0).count()
-        context['total_unreviewed'] = BugReport.objects.filter(report_status=1).exclude(report_attack='').count()
+        context['total_unreviewed'] = BugReport.objects.filter(report_status=1).count()
         context['total_inreview'] = BugReport.objects.filter(report_status=2).count()
         context['total_fixing'] = BugReport.objects.filter(report_status=3).count()
         context['total_retest'] = BugReport.objects.filter(report_status=4).count()
