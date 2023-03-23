@@ -193,7 +193,7 @@ def classify_action(email, subject):
 
         elif(re.search(r'^CHECK_', subject)):
             id = subject[6 : ]
-            id = id.replace(" ","")
+            id = id.replace(' ','')
             if validate_id(id):
                 if validate_user(email, id):
                     return 202, id
@@ -204,7 +204,7 @@ def classify_action(email, subject):
 
         elif(re.search(r'^UPDATE_', subject)):
             id = subject[7 : ]
-            id = id.replace(" ","")
+            id = id.replace(' ','')
             if validate_id(id):
                 if validate_user(email, id):
                     if validate_permission("U", id):
@@ -218,7 +218,7 @@ def classify_action(email, subject):
 
         elif(re.search(r'^APPEAL_', subject)):
             id = subject[7 : ]
-            id = id.replace(" ","")
+            id = id.replace(' ','')
             if validate_id(id):
                 if validate_user(email, id):
                     if validate_permission("A", id):
