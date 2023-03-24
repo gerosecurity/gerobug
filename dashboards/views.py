@@ -268,17 +268,18 @@ def AdminSetting(request):
             revieweraccount.set_password(reviewerpassword)
             revieweraccount.groups.add(groupreviewer)
             revieweraccount.save()
-            
+
             print("[LOG] Reviewer is created successfully")
             return redirect('setting')
+        
         mailbox = MailboxForm(request.POST)
         if mailbox.is_valid():
             mailbox_account = MailBox.objects.get(mailbox_id=1)
             mailbox_account.email = mailbox.cleaned_data.get('mailbox_email')    
             mailbox_account.password = mailbox.cleaned_data.get('mailbox_password') 
             mailbox_account.save()
-            print("[LOG] Mailbox updated successfully")
             
+            print("[LOG] Mailbox updated successfully")
             return redirect('dashboard')
 
         account = AccountForm(request.POST)
