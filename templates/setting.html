@@ -164,11 +164,21 @@
                                 <h6>MAILBOX SETTINGS</h6>
                                 <hr>
                                 <form method="POST">
+                                    <p>
+                                        Current Mailbox: <b>{{ mailbox_name }}</b>
+
+                                        {% if mailbox_status == 0 %}
+                                        (<b style="color:red">INACTIVE</b>)
+                                        {% else %}
+                                        (<b style="color:green">ACTIVE</b>)
+                                        {% endif %}
+                                    </p>
                                     {% csrf_token %}
                                     {{ mailbox.as_p }}
 
                                     <h7>For GMAIL: Use <a href="https://support.google.com/accounts/answer/185833?hl=en" target="_blank">Google App Password</a></h7>
                                     <br><br>
+
                                     <button class="btn btn-primary" type="submit">Update</button>
                                 </form>
                             </div>

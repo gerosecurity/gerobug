@@ -257,6 +257,10 @@ def ReportFiles(request, id):
 @user_passes_test(lambda u: u.is_superuser)
 def AdminSetting(request):
     users = User.objects.filter(is_superuser=False)
+    mailbox_account = MailBox.objects.get(mailbox_id=1)
+    mailbox_status = mailbox_account.mailbox_status
+    mailbox_name = mailbox_account.email
+    
     if request.method == "POST":
         reviewer = ReviewerForm(request.POST)
         if reviewer.is_valid():
@@ -277,6 +281,7 @@ def AdminSetting(request):
             mailbox_account = MailBox.objects.get(mailbox_id=1)
             mailbox_account.email = mailbox.cleaned_data.get('mailbox_email')    
             mailbox_account.password = mailbox.cleaned_data.get('mailbox_password') 
+            mailbox_account.mailbox_status = 0
             mailbox_account.save()
             
             print("[LOG] Mailbox updated successfully")
@@ -307,7 +312,7 @@ def AdminSetting(request):
 
             return redirect('dashboard')
         
-    return render(request,'setting.html',{'form': AdminSettingForm(), 'mailbox': MailboxForm(), 'account': AccountForm(),'reviewer': ReviewerForm(),'users':users})
+    return render(request,'setting.html',{'form': AdminSettingForm(), 'mailbox': MailboxForm(), 'account': AccountForm(),'reviewer': ReviewerForm(),'users':users,'mailbox_status': mailbox_status,'mailbox_name': mailbox_name})
 
 @login_required
 def ReviewerDelete(request,id):
@@ -331,7 +336,6 @@ def ManageRoles(request):
 def rulescontext(request,):
     staticrules = StaticRules.objects.get(pk=1)
     return render(request,'rules.html',{'RDP':staticrules.RDP,'bountyterms':staticrules.bountyterms,'inscope':staticrules.inscope,'outofscope':staticrules.outofscope,'reportguidelines':staticrules.reportguidelines,'faq':staticrules.faq})
-
 
 def halloffame(request,):
     bughunters = BugHunter.objects.alias(

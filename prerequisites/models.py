@@ -6,6 +6,7 @@ class MailBox(models.Model):
     mailbox_id = models.IntegerField(default=1)
     email = models.EmailField()
     password = models.TextField(default='')
+    mailbox_status = models.IntegerField(default=0)
 
     def __str__(self):
         return self.email

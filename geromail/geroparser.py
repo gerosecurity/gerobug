@@ -439,6 +439,7 @@ def run():
             mailbox = MailBox.objects.get(mailbox_id=1)
             mailbox.email = ""
             mailbox.password = ""
+            mailbox.mailbox_status = 0
             mailbox.save()
 
         # WAIT UNTIL MAILBOX READY
@@ -457,16 +458,21 @@ def run():
             PWD         = mailbox.password
 
             # TEST LOGIN
-            mail = imaplib.IMAP4_SSL(IMAP_SERVER)
-            try:
-                mail.login(EMAIL,PWD)
+            if mailbox.mailbox_status == 0:
+                mail = imaplib.IMAP4_SSL(IMAP_SERVER)
+                try:
+                    mail.login(EMAIL,PWD)
 
-            except Exception as e:
-                error_count+=1
-                print("[ERROR] Failed to Login =",e,"(",str(error_count),")")
-                MAILBOX_READY = False
-                time.sleep(5)
-                break
+                except Exception as e:
+                    error_count+=1
+                    print("[ERROR] Failed to Login =",e,"(",str(error_count),")")
+                    MAILBOX_READY = False
+                    time.sleep(5)
+                    break
+            
+                # IF NO ERROR, SET STATUS TO ACTIVE
+                mailbox.mailbox_status = 1
+                mailbox.save()
 
             read_mail()
             time.sleep(10)
