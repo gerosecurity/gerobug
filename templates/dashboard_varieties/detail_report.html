@@ -71,6 +71,23 @@
                     },
                 });
             });
+
+            $("#move-button").click(function () {
+                $.ajax({
+                    type: 'POST',
+                    url: "{% url 'report_updatestatus' object.pk %}",
+                    data: {
+                        csrfmiddlewaretoken: '{{ csrf_token }}',
+                        id: '{{ object.pk }}'
+                    },
+                    success: function (data) {
+                        console.log(data)
+                    },
+                    error: function (error) {
+                        console.log(error)
+                    },
+                });
+            });
         });
     </script>
 
@@ -370,7 +387,7 @@
 
                             <div class="modal-footer">        
                                 <a href="{% url 'report_updatestatus' object.pk %}">
-                                <button type="button" class="ok-btn" data-bs-dismiss="modal">OK</button>
+                                <button type="button" id="move-button" class="ok-btn" data-bs-dismiss="modal">OK</button>
                                 </a>
                                 <button type="button" class="cancel-btn" data-bs-dismiss="modal">CANCEL</button>
                             </div>

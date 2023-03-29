@@ -1,6 +1,7 @@
 from tabnanny import check
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
+from django.contrib import messages
 from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm
 from django.db.models.query_utils import Q
 from django.contrib.auth.models import User
@@ -18,6 +19,7 @@ from prerequisites.models import MailBox
 def LoginForm(request):
     if request.user.is_authenticated:
         if request.user.is_superuser:
+            messages.success(request,"Login successful!")
             return redirect('dashboard')
         else:
             return redirect('rules')

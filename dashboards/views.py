@@ -4,6 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User, Group
 from django.views.generic.edit import FormMixin
 from django.db.models.query_utils import Q
+from django.contrib import messages
 from django.contrib.auth import logout
 from django.views.generic import (
     ListView,
@@ -147,13 +148,14 @@ def ReportStatusView(request, id):
 
 @login_required
 def ReportUpdateStatus(request,id):
-    if gerofilter.validate_id(id):
+    if request.method == "POST" and gerofilter.validate_id(id):
         report = BugReport.objects.get(report_id=id)
         max = ReportStatus.objects.count() - 2 # LIMITED TO "BOUNTY PROCESS"
 
         if report.report_status < max:
            report.report_status += 1
            report.save()
+        messages.success(request,"Report Status is updated!")
 
         def trigger_geromailer(report):
             payload = [report.report_id, report.report_title, report.report_status, "", report.report_severity]
@@ -203,6 +205,7 @@ def FormHandler(request, id, complete):
                 elif status == "Bounty in Process" and complete == "1":
                     code = 704 #COMPLETE
 
+                messages.success(request,"Email is successfully being processed and sent to the bug hunter with your reason.")
                 # TRIGGER COMPANY ACTION WITH THREADING
                 def trigger_company_action(report):
                     geroparser.company_action(report.report_id, reasons, code)
@@ -210,10 +213,13 @@ def FormHandler(request, id, complete):
                 if code != 0:
                     trigger = threading.Thread(target=trigger_company_action, args=(report,))
                     trigger.start()
+                
+                return redirect('dashboard')
 
         return redirect('dashboard')
 
     else:
+        messages.error(request,"Something's wrong. Please report to the Admin for checking the logs.")
         return redirect('dashboard')
 
 
@@ -270,7 +276,9 @@ def AdminSetting(request):
             revieweraccount.save()
             
             print("[LOG] Reviewer is created successfully")
+            messages.success(request,"Reviewer is created successfully!")
             return redirect('setting')
+
         mailbox = MailboxForm(request.POST)
         if mailbox.is_valid():
             mailbox_account = MailBox.objects.get(mailbox_id=1)
@@ -278,8 +286,8 @@ def AdminSetting(request):
             mailbox_account.password = mailbox.cleaned_data.get('mailbox_password') 
             mailbox_account.save()
             print("[LOG] Mailbox updated successfully")
-            
-            return redirect('dashboard')
+            messages.success(request,"Mailbox updated successfully!")
+            return redirect('setting')
 
         account = AccountForm(request.POST)
         if account.is_valid():
@@ -291,7 +299,8 @@ def AdminSetting(request):
             user.save()
             
             print("[LOG] Superuser updated successfully")
-            return redirect('dashboard')
+            messages.success(request,"Superuser is updated successfully!")
+            return redirect('setting')
 
         form = AdminSettingForm(request.POST)
         if form.is_valid():
@@ -303,8 +312,9 @@ def AdminSetting(request):
             staticrules.reportguidelines = form.cleaned_data.get('reportguidelines')
             staticrules.faq = form.cleaned_data.get('faq')
             staticrules.save()
-
-            return redirect('dashboard')
+            print("[LOG] Rules are updated successfully")
+            messages.success(request,"Rules are updated successfully!")
+            return redirect('setting')
         
     return render(request,'setting.html',{'form': AdminSettingForm(), 'mailbox': MailboxForm(), 'account': AccountForm(),'reviewer': ReviewerForm(),'users':users})
 
@@ -314,10 +324,13 @@ def ReviewerDelete(request,id):
         try:
             if User.objects.filter(id=id).count() != 0:
                 User.objects.filter(id=id).delete()
+                messages.success(request,"User is deleted successfully!")
         except Exception as e:
             print("[LOG] ", e)
-            return redirect('dashboard')
+            messages.error(request,"Something wrong. The delete operation is unsuccessful. Please report to the Admin!")
+            return redirect('setting')
         return redirect('setting')
+    return render(request,'setting.html')
 
 @login_required
 def OWASPCalculator(request):

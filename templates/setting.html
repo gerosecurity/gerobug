@@ -56,6 +56,13 @@
             });
         });
     </script>
+    <script>
+        window.setTimeout(function() {
+          $(".alert").fadeTo(500, 0).slideUp(500, function(){
+            $(this).remove();
+          });
+        }, 3000);
+      </script>
     <section class="home-section">
         <header>
             <div class="home-content">
@@ -169,6 +176,14 @@
                                     <br>
                                     <button class="btn btn-primary" type="submit">Update</button>
                                 </form>
+                                <br>
+                                {% for message in messages %}
+                                    {% if 'success' in message.tags %}
+                                    <p class="alert alert-success" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                    {% else %}
+                                    <p class="alert alert-warning" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                    {% endif %}
+                                {% endfor %}
                             </div>
                             <div class="tab-pane" id="profile">
                                 <h6>USER ACCOUNT SETTINGS</h6>
@@ -179,6 +194,14 @@
                                     <br>
                                     <button class="btn btn-primary" type="submit">Update</button>
                                 </form>
+                                <br>
+                                {% for message in messages %}
+                                    {% if 'success' in message.tags %}
+                                    <p class="alert alert-success" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                    {% else %}
+                                    <p class="alert alert-warning" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                    {% endif %}
+                                {% endfor %}
                             </div>
                             <div class="tab-pane" id="account">
                                 <h6>EDIT RULES AND GUIDELINES</h6>
@@ -189,7 +212,14 @@
                                     {{ form.as_p }}
                                     <button class="btn btn-primary" type="submit">Submit</button>
                                 </form>
-
+                                <br>
+                                {% for message in messages %}
+                                    {% if 'success' in message.tags %}
+                                    <p class="alert alert-success" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                    {% else %}
+                                    <p class="alert alert-warning" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                    {% endif %}
+                                {% endfor %}
                             </div>
                             <div class="tab-pane" id="security">
                                 <h6>EDIT EMAIL TEMPLATE</h6>
@@ -200,6 +230,14 @@
                                     {{ form.as_p }}
                                     <button class="btn btn-primary" type="submit">Submit</button>
                                 </form>
+                                <br>
+                                {% for message in messages %}
+                                    {% if 'success' in message.tags %}
+                                    <p class="alert alert-success" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                    {% else %}
+                                    <p class="alert alert-warning" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                    {% endif %}
+                                {% endfor %}
                             </div>
                             <div class="tab-pane" id="roles">
                                 <div class="top-manage">
@@ -257,6 +295,14 @@
                                                     <input type="submit" class="btn btn-danger" id="delete-user" value="Delete">
                                                 </div>
                                             </form>
+                                            <br>
+                                            {% for message in messages %}
+                                                {% if 'success' in message.tags %}
+                                                <p class="alert alert-success" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                                {% else %}
+                                                <p class="alert alert-warning" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                                {% endif %}
+                                            {% endfor %}
                                         </div>
                                     </div>
                                 </div>
@@ -278,6 +324,14 @@
                                                     <input type="submit" class="btn btn-danger" id="add-user" value="Add">
                                                 </div>
                                             </form>
+                                            <br>
+                                            {% for message in messages %}
+                                            {% if 'success' in message.tags %}
+                                            <p class="alert alert-success" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                            {% else %}
+                                            <p class="alert alert-warning" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                            {% endif %}
+                                            {% endfor %}
                                         </div>
                                     </div>
                                 </div>
