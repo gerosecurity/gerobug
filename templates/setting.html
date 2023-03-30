@@ -171,9 +171,21 @@
                                 <h6>MAILBOX SETTINGS</h6>
                                 <hr>
                                 <form method="POST">
+                                    <p>
+                                        Current Mailbox: <b>{{ mailbox_name }}</b>
+
+                                        {% if mailbox_status == 0 %}
+                                        (<b style="color:red">INACTIVE</b>)
+                                        {% else %}
+                                        (<b style="color:green">ACTIVE</b>)
+                                        {% endif %}
+                                    </p>
+
                                     {% csrf_token %}
                                     {{ mailbox.as_p }}
-                                    <br>
+
+                                    <h7>For GMAIL: Use <a href="https://support.google.com/accounts/answer/185833?hl=en" target="_blank">Google App Password</a></h7>
+                                    <br><br>
                                     <button class="btn btn-primary" type="submit">Update</button>
                                 </form>
                                 <br>
@@ -221,7 +233,7 @@
                                     {% endif %}
                                 {% endfor %}
                             </div>
-                            <div class="tab-pane" id="security">
+                            <!-- <div class="tab-pane" id="security">
                                 <h6>EDIT EMAIL TEMPLATE</h6>
                                 <hr>
                                 <form method="POST" id="ckeditor-form">
@@ -238,7 +250,7 @@
                                     <p class="alert alert-warning" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
                                     {% endif %}
                                 {% endfor %}
-                            </div>
+                            </div> -->
                             <div class="tab-pane" id="roles">
                                 <div class="top-manage">
                                     <h6>MANAGE USERS</h6>
