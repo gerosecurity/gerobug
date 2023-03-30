@@ -233,7 +233,9 @@
 
                     <label for="fname">Reviewer</label>
                     <input type="text" id="fname" name="fname" placeholder="{{object.report_reviewer}}"
-                        disabled="disabled"></input><br><br>
+                        disabled="disabled"></input>
+                    
+                    <br>
                     
                     <!-- UPDATE BUTTON -->
                     {% if reportstatus == 'Need to Review' or reportstatus == 'In Review' or reportstatus == 'Fixing' or reportstatus == 'Fixing (Retest)' or reportstatus == 'Bounty Calculation'%}
@@ -258,11 +260,10 @@
                             </div>
                         </div>
                     </div>
+                    {% endif %}
                 </div>
-                {% endif %}
             </div>
 
-            <br>
             <div id="report-download">
                 <!-- REQUEST BUTTON -->
                 {% if reportstatus == 'Need to Review' %}
@@ -275,10 +276,11 @@
                 <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#staticBackdropLeft">Request NDA</button>
                 {% endif %}
 
-                 <!-- REQUEST BUTTON MODAL -->
+                <!-- REQUEST BUTTON MODAL -->
                 <div class="modal fade" id="staticBackdropLeft" data-bs-backdrop="static"
                     data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel"
                     aria-hidden="true">
+                    {% if reportstatus != 'Not Valid' %}
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content">
                             <div class="modal-header">
@@ -305,6 +307,7 @@
                             </div>
                         </div>
                     </div>
+                    {% endif %}
                 </div>
 
                 <!-- COMPLETE BUTTON -->
@@ -396,12 +399,9 @@
                 </div>
                 {% endif %}
             </div>
-        
         </main>
-</div>
         </div>
     </section>
-    </div>
 
     <!-- scripts -->
     <script src="{% static '/script/sidebar.js' %}"></script>
