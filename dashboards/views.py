@@ -362,6 +362,13 @@ def rulescontext(request,):
     staticrules = StaticRules.objects.get(pk=1)
     return render(request,'rules.html',{'RDP':staticrules.RDP,'bountyterms':staticrules.bountyterms,'inscope':staticrules.inscope,'outofscope':staticrules.outofscope,'reportguidelines':staticrules.reportguidelines,'faq':staticrules.faq})
 
+def emailcontext(request,):
+    if MailBox.objects.filter(mailbox_id=1).exists():
+        email = MailBox.objects.filter(mailbox_id=1)[0].email
+        template = "Submit your email to <strong>"+ email +"</strong> using the templates below..."
+    else:
+        template = "Currently the company hasn't set their email yet. Please contact the admin/ wait for the mailbox setup."
+    return render(request, 'submit.html',{'template':template})
 
 def halloffame(request,):
     bughunters = BugHunter.objects.alias(
