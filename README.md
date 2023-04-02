@@ -1,5 +1,5 @@
 # Gerobug
-![gerobugLogo](https://raw.githubusercontent.com/gerobug/gerobug-docs-images/main/logo.png)
+![gerobugLogo](https://raw.githubusercontent.com/gerobug/gerobug-docs-images/main/LOGO.png)
 
 Open source private (self-managed) bug bounty platform.
 
