@@ -270,18 +270,31 @@ def AdminSetting(request):
     if request.method == "POST":
         reviewer = ReviewerForm(request.POST)
         if reviewer.is_valid():
-            groupreviewer = Group.objects.get(name='Reviewer')
-            reviewername = reviewer.cleaned_data.get('reviewername')
-            revieweremail = reviewer.cleaned_data.get('reviewer_email')
-            reviewerpassword = "G3r0bUg_@dM!n_1337yipPie13579246810121337" #default pw, change since this is temp
-            revieweraccount = User.objects.create(username=reviewername,email=revieweremail)
-            revieweraccount.set_password(reviewerpassword)
-            revieweraccount.groups.add(groupreviewer)
-            revieweraccount.save()
-            
-            print("[LOG] Reviewer is created successfully")
-            messages.success(request,"Reviewer is created successfully!")
-            return redirect('setting')
+            try:
+                groupreviewer = Group.objects.get(name='Reviewer')
+                reviewername = reviewer.cleaned_data.get('reviewername')
+                revieweremail = reviewer.cleaned_data.get('reviewer_email')
+                if User.objects.filter(Q(username__exact=reviewername)).count() > 0:
+                    messages.error(request,"Username is already used. Please try another username!")
+                    print("[LOG] Username is duplicated!")
+                    return redirect("setting")
+                elif User.objects.filter(Q(email__exact=revieweremail)).count() > 0:
+                    messages.error(request,"Email is already used. Please try another email!")
+                    print("[LOG] Email is duplicated!")
+                    return redirect("setting")
+                else:
+                    reviewerpassword = "G3r0bUg_@dM!n_1337yipPie13579246810121337" #default pw, change since this is temp
+                    revieweraccount = User.objects.create(username=reviewername,email=revieweremail)
+                    revieweraccount.set_password(reviewerpassword)
+                    revieweraccount.groups.add(groupreviewer)
+                    revieweraccount.save()
+                    print("[LOG] Reviewer is created successfully")
+                    messages.success(request,"Reviewer is created successfully!")
+                    return redirect('setting')
+            except Exception as e:
+                print("[LOG] "+ e)
+                messages.error(request,"Something's wrong. Perhaps your username/email is already used. Please specify another one!")
+                return redirect("setting")
 
         mailbox = MailboxForm(request.POST)
         if mailbox.is_valid():
