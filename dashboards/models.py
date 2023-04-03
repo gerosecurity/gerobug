@@ -36,6 +36,44 @@ class BugReport(models.Model):
         return reverse('report_detail', kwargs={'pk':self.report_id})
 
 
+class BugReportUpdate(models.Model):
+    update_id = models.CharField(max_length=15,primary_key=True,validators=[alphanumeric])
+    report_id = models.CharField(max_length=15)
+    update_datetime = models.DateTimeField()
+    update_summary = models.TextField()
+
+    def __str__(self):
+        return self.update_id
+    
+    def get_absolute_url(self):
+        return reverse('update_detail', kwargs={'pk':self.update_id})
+
+
+class BugReportAppeal(models.Model):
+    appeal_id = models.CharField(max_length=15,primary_key=True,validators=[alphanumeric])
+    report_id = models.CharField(max_length=15)
+    appeal_datetime = models.DateTimeField()
+    appeal_summary = models.TextField()
+    appeal_file = models.IntegerField(default=0)
+
+    def __str__(self):
+        return self.appeal_id
+
+    def get_absolute_url(self):
+        return reverse('appeal_detail', kwargs={'pk':self.appeal_id})
+
+class BugReportNDA(models.Model):
+    nda_id = models.CharField(max_length=15,primary_key=True,validators=[alphanumeric])
+    report_id = models.CharField(max_length=15)
+    nda_datetime = models.DateTimeField()
+    nda_summary = models.TextField()
+
+    def __str__(self):
+        return self.nda_id
+
+    def get_absolute_url(self):
+        return reverse('nda_detail', kwargs={'pk':self.nda_id})  
+
 class BugHunter(models.Model):
     hunter_email = models.EmailField()
     hunter_username = models.CharField(max_length=30)

@@ -36,7 +36,7 @@
 
     <main>
         <h1>How To Submit</h1>
-        <p>Submit your email to <strong>gerobug.id@gmail.com</strong> using the templates below...</p>
+        <p>{{ template|safe }}</p>
 
         <div class="accordion" id="accordionPanelsStayOpenExample">
             <div class="accordion-item">
@@ -52,9 +52,9 @@
                     <div class="accordion-body">
                         Subject: SUBMIT_<b>Report Title</b> <br>
                         Body: <br><b>
-                        TYPE=[Bug Type] <br>
-                        ENDPOINT=[Affected Endpoint] <br>
-                        SUMMARY=Summary<br><br></b>
+                        TYPE= Bug Type <br>
+                        ENDPOINT= Affected Endpoint <br>
+                        SUMMARY= Summary<br><br></b>
                         Attachment: <b>*PDF Report File*</b>
                         (<a href="{% static 'sample/Template_Report.pdf' %}">Report Template</a>)<br>
 
@@ -76,6 +76,25 @@
                     aria-labelledby="panelsStayOpen-headingTwo">
                     <div class="accordion-body">
                         Subject: CHECK_<b>Report ID</b> <br>
+
+                        <br>
+                        Sample:<br>
+                        <img src="{% static 'sample/check.png' %}" width="35%">
+                    </div>
+                </div>
+            </div>
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="panelsStayOpen-headingTwo1">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#panelsStayOpen-collapseTwo1" aria-expanded="false"
+                        aria-controls="panelsStayOpen-collapseTwo1">
+                        Check All Report Status (Overview)
+                    </button>
+                </h2>
+                <div id="panelsStayOpen-collapseTwo1" class="accordion-collapse collapse"
+                    aria-labelledby="panelsStayOpen-headingTwo1">
+                    <div class="accordion-body">
+                        Subject: STATUS_OVERVIEW<br>
 
                         <br>
                         Sample:<br>

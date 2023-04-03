@@ -30,12 +30,12 @@ def write_mail(code, payload, Destination):
                 status = status.status_name
 
         # REPLACE WILD CARDS
-        subject = subject.replace("~ID~", payload[0])   #REPORT ID
-        body = body.replace("~ID~", payload[0])         #REPORT ID
-        body = body.replace("~TITLE~", payload[1])      #REPORT TITLE
-        body = body.replace("~STATUS~", status)         #REPORT STATUS
-        body = body.replace("~NOTE~", payload[3])       #REASON / NOTE
-        body = body.replace("~SEVERITY~", str(payload[4]))   #SEVERITY
+        subject = subject.replace("~ID~", payload[0])       #REPORT ID
+        body = body.replace("~ID~", payload[0])             #REPORT ID
+        body = body.replace("~TITLE~", payload[1])          #REPORT TITLE
+        body = body.replace("~STATUS~", status)             #REPORT STATUS
+        body = body.replace("~NOTE~", payload[3])           #REASON / NOTE
+        body = body.replace("~SEVERITY~", str(payload[4]))  #SEVERITY
 
         # BUILD EMAIL MESSAGE
         mailbox     = MailBox.objects.get(mailbox_id=1)

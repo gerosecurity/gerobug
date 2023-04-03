@@ -71,6 +71,23 @@
                     },
                 });
             });
+
+            $("#move-button").click(function () {
+                $.ajax({
+                    type: 'POST',
+                    url: "{% url 'report_updatestatus' object.pk %}",
+                    data: {
+                        csrfmiddlewaretoken: '{{ csrf_token }}',
+                        id: '{{ object.pk }}'
+                    },
+                    success: function (data) {
+                        console.log(data)
+                    },
+                    error: function (error) {
+                        console.log(error)
+                    },
+                });
+            });
         });
     </script>
 
@@ -86,43 +103,40 @@
             <div id="report-title">
                 <div id="title-left">
                     <h3 id="report-id">#{{object.report_id}}</h3>
-                    {% if object.report_attack != '' %}
-                        {% if object.report_status == 1 %}
-                            <div class="report-status" id="needreview">{{reportstatus}}</div>
-                        {% elif object.report_status == 2 %}
-                            <div class="report-status" id="inreview">{{reportstatus}}</div>
-                        {% elif object.report_status == 3 or object.report_status == 4 %}
-                            <div class="report-status" id="fixing">{{reportstatus}}</div>
-                        {% elif object.report_status == 5 or object.report_status == 6 %}
-                            <div class="report-status" id="calculate">{{reportstatus}}</div>
-                        {% elif object.report_status == 7 %}
-                            <div class="report-status" id="complete">{{reportstatus}}</div>
-                        {% elif object.report_status == 8 %}
-                            <div class="report-status" id="invalid">{{reportstatus}}</div>
-                        {% endif %}
+                    {% if object.report_status == 1 %}
+                        <div class="report-status" id="needreview">{{reportstatus}}</div>
+                    {% elif object.report_status == 2 %}
+                        <div class="report-status" id="inreview">{{reportstatus}}</div>
+                    {% elif object.report_status == 3 or object.report_status == 4 %}
+                        <div class="report-status" id="fixing">{{reportstatus}}</div>
+                    {% elif object.report_status == 5 or object.report_status == 6 %}
+                        <div class="report-status" id="calculate">{{reportstatus}}</div>
+                    {% elif object.report_status == 7 %}
+                        <div class="report-status" id="complete">{{reportstatus}}</div>
+                    {% elif object.report_status == 8 %}
+                        <div class="report-status" id="invalid">{{reportstatus}}</div>
+                    {% endif %}
                         
-                    {% endif %}
                 </div>
-                {% if object.report_attack != '' %}
-                    {% if object.report_severity == 0 %} 
-                    <div class="severity-type" id="none">NONE</div>
 
-                    {% elif object.report_severity < 4 %} 
-                    <div class="severity-type" id="low">Low</div>
+                {% if object.report_severity == 0 %} 
+                <div class="severity-type" id="none">NONE</div>
 
-                    {% elif object.report_severity < 7 %} 
-                    <div class="severity-type" id="medium">Medium</div>
+                {% elif object.report_severity < 4 %} 
+                <div class="severity-type" id="low">Low</div>
 
-                    {% elif object.report_severity < 9 %} 
-                    <div class="severity-type" id="high">High</div>
+                {% elif object.report_severity < 7 %} 
+                <div class="severity-type" id="medium">Medium</div>
 
-                    {% elif object.report_severity >= 9 %}
-                    <div class="severity-type" id="critical">Critical</div>
+                {% elif object.report_severity < 9 %} 
+                <div class="severity-type" id="high">High</div>
 
-                    {% else %}
-                    <div class="severity-type" id="none">NONE</div>
-                    
-                    {% endif %}
+                {% elif object.report_severity >= 9 %}
+                <div class="severity-type" id="critical">Critical</div>
+
+                {% else %}
+                <div class="severity-type" id="none">NONE</div>
+                
                 {% endif %}
             </div>
 
@@ -173,7 +187,7 @@
                                 <div id="file-img"><i class="bi bi-file-earmark"></i></div>
                                 <a href="{% url 'report_files' object.pk %}U{{ object.report_update }}">Download (Updated)</a>
                             </div>
-                            <a href="{% url 'report_detail' object.pk %}U{{ object.report_update }}">
+                            <a href="{% url 'update_detail' object.pk %}U{{ object.report_update }}">
                                 <button type="button" class="nda-btn">View Update</button>
                             </a>
                             {% endif %}
@@ -183,7 +197,7 @@
                         <div id="nda">
                             <div id="nda-details">
                                 <h6>Hunter Data</h6>
-                                <a href="{% url 'report_detail' object.pk %}N{{ object.report_nda }}">
+                                <a href="{% url 'nda_detail' object.pk %}N{{ object.report_nda }}">
                                     <button type="button" class="nda-btn">View</button>
                                 </a>
                             </div>
@@ -199,7 +213,7 @@
                         <div id="nda">
                             <div id="nda-details">
                                 <h6>Appeals</h6>
-                                <a href="{% url 'report_detail' object.pk %}A{{ object.report_appeal }}">
+                                <a href="{% url 'appeal_detail' object.pk %}A{{ object.report_appeal }}">
                                     <button type="button" class="nda-btn">View</button>
                                 </a>
                             </div>
@@ -208,7 +222,6 @@
                     </div>
                 </div>
 
-                {% if object.report_attack != '' %}
                 <div id="right-div">
                     <h6>Bug Hunter</h6>
                     <input type="number" id="severity-point" step="0.1" min="0.0" max="10.0"
@@ -220,7 +233,9 @@
 
                     <label for="fname">Reviewer</label>
                     <input type="text" id="fname" name="fname" placeholder="{{object.report_reviewer}}"
-                        disabled="disabled"></input><br><br>
+                        disabled="disabled"></input>
+                    
+                    <br>
                     
                     <!-- UPDATE BUTTON -->
                     {% if reportstatus == 'Need to Review' or reportstatus == 'In Review' or reportstatus == 'Fixing' or reportstatus == 'Fixing (Retest)' or reportstatus == 'Bounty Calculation'%}
@@ -247,12 +262,9 @@
                     </div>
                     {% endif %}
                 </div>
-                {% endif %}
             </div>
 
-            <br>
             <div id="report-download">
-            {% if object.report_attack != '' %}
                 <!-- REQUEST BUTTON -->
                 {% if reportstatus == 'Need to Review' %}
                 <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#staticBackdropLeft">Mark as Invalid</button>
@@ -264,10 +276,11 @@
                 <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#staticBackdropLeft">Request NDA</button>
                 {% endif %}
 
-                 <!-- REQUEST BUTTON MODAL -->
+                <!-- REQUEST BUTTON MODAL -->
                 <div class="modal fade" id="staticBackdropLeft" data-bs-backdrop="static"
                     data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel"
                     aria-hidden="true">
+                    {% if reportstatus != 'Not Valid' %}
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content">
                             <div class="modal-header">
@@ -294,6 +307,7 @@
                             </div>
                         </div>
                     </div>
+                    {% endif %}
                 </div>
 
                 <!-- COMPLETE BUTTON -->
@@ -376,7 +390,7 @@
 
                             <div class="modal-footer">        
                                 <a href="{% url 'report_updatestatus' object.pk %}">
-                                <button type="button" class="ok-btn" data-bs-dismiss="modal">OK</button>
+                                <button type="button" id="move-button" class="ok-btn" data-bs-dismiss="modal">OK</button>
                                 </a>
                                 <button type="button" class="cancel-btn" data-bs-dismiss="modal">CANCEL</button>
                             </div>
@@ -384,14 +398,10 @@
                     </div>
                 </div>
                 {% endif %}
-            {% endif %}
             </div>
-        
         </main>
-</div>
         </div>
     </section>
-    </div>
 
     <!-- scripts -->
     <script src="{% static '/script/sidebar.js' %}"></script>

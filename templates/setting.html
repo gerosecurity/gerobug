@@ -56,6 +56,13 @@
             });
         });
     </script>
+    <script>
+        window.setTimeout(function() {
+          $(".alert").fadeTo(500, 0).slideUp(500, function(){
+            $(this).remove();
+          });
+        }, 3000);
+      </script>
     <section class="home-section">
         <header>
             <div class="home-content">
@@ -96,13 +103,13 @@
                                         </path>
                                     </svg> Edit Rules and Guidelines
                                 </a>
-                                <a href="#security" data-toggle="tab" class="nav-item nav-link has-icon nav-link-faded">
+                                <!-- <a href="#security" data-toggle="tab" class="nav-item nav-link has-icon nav-link-faded">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                         stroke-linejoin="round" class="feather feather-shield mr-2">
                                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                                     </svg> Edit Email Template
-                                </a>
+                                </a> -->
                                 <a href="#roles" data-toggle="tab" class="nav-item nav-link has-icon nav-link-faded">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-person-fill-gear" viewBox="0 0 16 16">
                                         <path d="M11 5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm-9 8c0 1 1 1 1 1h5.256A4.493 4.493 0 0 1 8 12.5a4.49 4.49 0 0 1 1.544-3.393C9.077 9.038 8.564 9 8 9c-5 0-6 3-6 4Zm9.886-3.54c.18-.613 1.048-.613 1.229 0l.043.148a.64.64 0 0 0 .921.382l.136-.074c.561-.306 1.175.308.87.869l-.075.136a.64.64 0 0 0 .382.92l.149.045c.612.18.612 1.048 0 1.229l-.15.043a.64.64 0 0 0-.38.921l.074.136c.305.561-.309 1.175-.87.87l-.136-.075a.64.64 0 0 0-.92.382l-.045.149c-.18.612-1.048.612-1.229 0l-.043-.15a.64.64 0 0 0-.921-.38l-.136.074c-.561.305-1.175-.309-.87-.87l.075-.136a.64.64 0 0 0-.382-.92l-.148-.045c-.613-.18-.613-1.048 0-1.229l.148-.043a.64.64 0 0 0 .382-.921l-.074-.136c-.306-.561.308-1.175.869-.87l.136.075a.64.64 0 0 0 .92-.382l.045-.148ZM14 12.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0Z"/>
@@ -164,11 +171,31 @@
                                 <h6>MAILBOX SETTINGS</h6>
                                 <hr>
                                 <form method="POST">
+                                    <p>
+                                        Current Mailbox: <b>{{ mailbox_name }}</b>
+
+                                        {% if mailbox_status == 0 %}
+                                        (<b style="color:red">INACTIVE</b>)
+                                        {% else %}
+                                        (<b style="color:green">ACTIVE</b>)
+                                        {% endif %}
+                                    </p>
+
                                     {% csrf_token %}
                                     {{ mailbox.as_p }}
-                                    <br>
+
+                                    <h7>For GMAIL: Use <a href="https://support.google.com/accounts/answer/185833?hl=en" target="_blank">Google App Password</a></h7>
+                                    <br><br>
                                     <button class="btn btn-primary" type="submit">Update</button>
                                 </form>
+                                <br>
+                                {% for message in messages %}
+                                    {% if 'success' in message.tags %}
+                                    <p class="alert alert-success" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                    {% else %}
+                                    <p class="alert alert-warning" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                    {% endif %}
+                                {% endfor %}
                             </div>
                             <div class="tab-pane" id="profile">
                                 <h6>USER ACCOUNT SETTINGS</h6>
@@ -179,6 +206,14 @@
                                     <br>
                                     <button class="btn btn-primary" type="submit">Update</button>
                                 </form>
+                                <br>
+                                {% for message in messages %}
+                                    {% if 'success' in message.tags %}
+                                    <p class="alert alert-success" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                    {% else %}
+                                    <p class="alert alert-warning" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                    {% endif %}
+                                {% endfor %}
                             </div>
                             <div class="tab-pane" id="account">
                                 <h6>EDIT RULES AND GUIDELINES</h6>
@@ -189,9 +224,16 @@
                                     {{ form.as_p }}
                                     <button class="btn btn-primary" type="submit">Submit</button>
                                 </form>
-
+                                <br>
+                                {% for message in messages %}
+                                    {% if 'success' in message.tags %}
+                                    <p class="alert alert-success" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                    {% else %}
+                                    <p class="alert alert-warning" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                    {% endif %}
+                                {% endfor %}
                             </div>
-                            <div class="tab-pane" id="security">
+                            <!-- <div class="tab-pane" id="security">
                                 <h6>EDIT EMAIL TEMPLATE</h6>
                                 <hr>
                                 <form method="POST" id="ckeditor-form">
@@ -200,12 +242,17 @@
                                     {{ form.as_p }}
                                     <button class="btn btn-primary" type="submit">Submit</button>
                                 </form>
-                            </div>
+                                <br>
+                                {% for message in messages %}
+                                    {% if 'success' in message.tags %}
+                                    <p class="alert alert-success" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                    {% else %}
+                                    <p class="alert alert-warning" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                    {% endif %}
+                                {% endfor %}
+                            </div> -->
                             <div class="tab-pane" id="roles">
-                                <div class="top-manage">
-                                    <h6>MANAGE USERS</h6>
-                                </div>
-                                
+                                <h6>MANAGE USERS</h6>
                                 <hr>
                                 <div class="table-wrapper">
                                     <div class="table-title">
@@ -257,6 +304,14 @@
                                                     <input type="submit" class="btn btn-danger" id="delete-user" value="Delete">
                                                 </div>
                                             </form>
+                                            <br>
+                                            {% for message in messages %}
+                                                {% if 'success' in message.tags %}
+                                                <p class="alert alert-success" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                                {% else %}
+                                                <p class="alert alert-warning" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                                {% endif %}
+                                            {% endfor %}
                                         </div>
                                     </div>
                                 </div>
@@ -278,6 +333,14 @@
                                                     <input type="submit" class="btn btn-danger" id="add-user" value="Add">
                                                 </div>
                                             </form>
+                                            <br>
+                                            {% for message in messages %}
+                                            {% if 'success' in message.tags %}
+                                            <p class="alert alert-success" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                            {% else %}
+                                            <p class="alert alert-warning" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                            {% endif %}
+                                            {% endfor %}
                                         </div>
                                     </div>
                                 </div>

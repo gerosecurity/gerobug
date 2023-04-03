@@ -4,6 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User, Group
 from django.views.generic.edit import FormMixin
 from django.db.models.query_utils import Q
+from django.contrib import messages
 from django.contrib.auth import logout
 from django.views.generic import (
     ListView,
@@ -15,7 +16,7 @@ from django.views.generic import (
 from django.urls import reverse, reverse_lazy
 from django.db.models import Sum
 from django.http import FileResponse
-from .models import BugHunter, BugReport, ReportStatus, StaticRules
+from .models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, ReportStatus, StaticRules
 from prerequisites.models import MailBox
 from .forms import Requestform, AdminSettingForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm
 from geromail import geromailer, gerofilter, geroparser
@@ -41,7 +42,7 @@ class RenderDashboardAdmin(LoginRequiredMixin,ListView):
     def get_context_data(self, **kwargs):
         context = super(RenderDashboardAdmin, self).get_context_data(**kwargs)
         context['total_notvalid'] = BugReport.objects.filter(report_status=0).count()
-        context['total_unreviewed'] = BugReport.objects.filter(report_status=1).exclude(report_attack='').count()
+        context['total_unreviewed'] = BugReport.objects.filter(report_status=1).count()
         context['total_inreview'] = BugReport.objects.filter(report_status=2).count()
         context['total_fixing'] = BugReport.objects.filter(report_status=3).count()
         context['total_retest'] = BugReport.objects.filter(report_status=4).count()
@@ -62,7 +63,7 @@ class ReportDetails(LoginRequiredMixin,DetailView):
 
     def get_context_data(self, **kwargs):
         context = super(ReportDetails, self).get_context_data(**kwargs)
-        context['reportstatus'] =ReportStatus.objects.filter(status_id=BugReport.objects.get(report_id=self.kwargs.get('pk')).report_status)[0].status_name
+        context['reportstatus'] = ReportStatus.objects.filter(status_id=BugReport.objects.get(report_id=self.kwargs.get('pk')).report_status)[0].status_name
         context['requestform'] = Requestform()
         context['completeform'] = CompleteRequestform()
         return context
@@ -76,13 +77,6 @@ class ReportUpdate(LoginRequiredMixin,UpdateView):
     fields = ["report_severity","report_severitystring","report_reviewer"] #Only status field is allowed to be edited
     
     def get_success_url(self):
-        def trigger_geromailer(report):
-            payload = [report.report_id, report.report_title, report.report_status, "", report.report_severity]
-            destination = report.hunter_email
-            geromailer.notify(destination, payload) #TRIGGER GEROMAILER TO SEND UPDATE NOTIFICATION
-
-        trigger = threading.Thread(target=trigger_geromailer, args=(self.object,))
-        trigger.start()
         return reverse('dashboard')
 
 
@@ -104,6 +98,45 @@ class ReportDelete(LoginRequiredMixin,DeleteView):
         return reverse_lazy('dashboard')
 
 
+class UpdateDetails(LoginRequiredMixin,DetailView):
+    login_url = '/login/'
+    redirect_field_name = 'login'
+    model = BugReportUpdate
+    template_name = "dashboard_varieties/detail_uan.html"
+    context_object_name = "bugposts"
+
+    def get_context_data(self, **kwargs):
+        context = super(UpdateDetails, self).get_context_data(**kwargs)
+        context['uan_type'] = self.kwargs.get('pk')[12:13]
+        return context
+    
+
+class AppealDetails(LoginRequiredMixin,DetailView):
+    login_url = '/login/'
+    redirect_field_name = 'login'
+    model = BugReportAppeal
+    template_name = "dashboard_varieties/detail_uan.html"
+    context_object_name = "bugposts"
+
+    def get_context_data(self, **kwargs):
+        context = super(AppealDetails, self).get_context_data(**kwargs)
+        context['uan_type'] = self.kwargs.get('pk')[12:13]
+        return context
+    
+
+class NDADetails(LoginRequiredMixin,DetailView):
+    login_url = '/login/'
+    redirect_field_name = 'login'
+    model = BugReportNDA
+    template_name = "dashboard_varieties/detail_uan.html"
+    context_object_name = "bugposts"
+
+    def get_context_data(self, **kwargs):
+        context = super(NDADetails, self).get_context_data(**kwargs)
+        context['uan_type'] = self.kwargs.get('pk')[12:13]
+        return context
+    
+
 @login_required
 def ReportStatusView(request, id):
     report = BugReport.objects.filter(report_status=id).values()
@@ -115,13 +148,14 @@ def ReportStatusView(request, id):
 
 @login_required
 def ReportUpdateStatus(request,id):
-    if gerofilter.validate_id(id):
+    if request.method == "POST" and gerofilter.validate_id(id):
         report = BugReport.objects.get(report_id=id)
         max = ReportStatus.objects.count() - 2 # LIMITED TO "BOUNTY PROCESS"
 
         if report.report_status < max:
            report.report_status += 1
            report.save()
+        messages.success(request,"Report Status is updated!")
 
         def trigger_geromailer(report):
             payload = [report.report_id, report.report_title, report.report_status, "", report.report_severity]
@@ -171,6 +205,7 @@ def FormHandler(request, id, complete):
                 elif status == "Bounty in Process" and complete == "1":
                     code = 704 #COMPLETE
 
+                messages.success(request,"Email is successfully being processed and sent to the bug hunter with your reason.")
                 # TRIGGER COMPANY ACTION WITH THREADING
                 def trigger_company_action(report):
                     geroparser.company_action(report.report_id, reasons, code)
@@ -178,24 +213,42 @@ def FormHandler(request, id, complete):
                 if code != 0:
                     trigger = threading.Thread(target=trigger_company_action, args=(report,))
                     trigger.start()
+                
+                return redirect('dashboard')
 
         return redirect('dashboard')
 
     else:
+        messages.error(request,"Something's wrong. Please report to the Admin for checking the logs.")
         return redirect('dashboard')
 
 
 @login_required
 def ReportFiles(request, id):
     if gerofilter.validate_id(id):
-        report = BugReport.objects.get(report_id=id)
-        try:
-            report_name = report.report_id + ".pdf"
-            
-            # IF UPDATE OR NDA
-            if len(id) > 12:
-                id = id[:12]
+        # IF UPDATE OR NDA
+        if len(id) > 12:
+            uan_id = id
+            id = id[:12]
+            type = uan_id[12:13]
 
+            if type == 'U':
+                report = BugReportUpdate.objects.get(update_id=uan_id)
+                report_name = report.update_id + ".pdf"
+
+            elif type == 'A':
+                report = BugReportAppeal.objects.get(appeal_id=uan_id)
+                report_name = report.appeal_id + ".pdf"
+
+            elif type == 'N':
+                report = BugReportNDA.objects.get(nda_id=uan_id)
+                report_name = report.nda_id + ".pdf"
+        
+        else:
+            report = BugReport.objects.get(report_id=id)
+            report_name = report.report_id + ".pdf"
+        
+        try:
             report_file = os.path.join(MEDIA_ROOT,id,report_name)
             return FileResponse(open(report_file, 'rb'), content_type='application/pdf')
         
@@ -210,29 +263,49 @@ def ReportFiles(request, id):
 @user_passes_test(lambda u: u.is_superuser)
 def AdminSetting(request):
     users = User.objects.filter(is_superuser=False)
+    mailbox_account = MailBox.objects.get(mailbox_id=1)
+    mailbox_status = mailbox_account.mailbox_status
+    mailbox_name = mailbox_account.email
+
     if request.method == "POST":
         reviewer = ReviewerForm(request.POST)
         if reviewer.is_valid():
-            groupreviewer = Group.objects.get(name='Reviewer')
-            reviewername = reviewer.cleaned_data.get('reviewername')
-            revieweremail = reviewer.cleaned_data.get('reviewer_email')
-            reviewerpassword = "G3r0bUg_@dM!n_1337yipPie13579246810121337" #default pw, change since this is temp
-            revieweraccount = User.objects.create(username=reviewername,email=revieweremail)
-            revieweraccount.set_password(reviewerpassword)
-            revieweraccount.groups.add(groupreviewer)
-            revieweraccount.save()
-            
-            print("[LOG] Reviewer is created successfully")
-            return redirect('setting')
+            try:
+                groupreviewer = Group.objects.get(name='Reviewer')
+                reviewername = reviewer.cleaned_data.get('reviewername')
+                revieweremail = reviewer.cleaned_data.get('reviewer_email')
+                if User.objects.filter(Q(username__exact=reviewername)).count() > 0:
+                    messages.error(request,"Username is already used. Please try another username!")
+                    print("[LOG] Username is duplicated!")
+                    return redirect("setting")
+                elif User.objects.filter(Q(email__exact=revieweremail)).count() > 0:
+                    messages.error(request,"Email is already used. Please try another email!")
+                    print("[LOG] Email is duplicated!")
+                    return redirect("setting")
+                else:
+                    reviewerpassword = "G3r0bUg_@dM!n_1337yipPie13579246810121337" #default pw, change since this is temp
+                    revieweraccount = User.objects.create(username=reviewername,email=revieweremail)
+                    revieweraccount.set_password(reviewerpassword)
+                    revieweraccount.groups.add(groupreviewer)
+                    revieweraccount.save()
+                    print("[LOG] Reviewer is created successfully")
+                    messages.success(request,"Reviewer is created successfully!")
+                    return redirect('setting')
+            except Exception as e:
+                print("[LOG] "+ e)
+                messages.error(request,"Something's wrong. Perhaps your username/email is already used. Please specify another one!")
+                return redirect("setting")
+
         mailbox = MailboxForm(request.POST)
         if mailbox.is_valid():
             mailbox_account = MailBox.objects.get(mailbox_id=1)
             mailbox_account.email = mailbox.cleaned_data.get('mailbox_email')    
             mailbox_account.password = mailbox.cleaned_data.get('mailbox_password') 
+            mailbox_account.mailbox_status = 0
             mailbox_account.save()
             print("[LOG] Mailbox updated successfully")
-            
-            return redirect('dashboard')
+            messages.success(request,"Mailbox updated successfully!")
+            return redirect('setting')
 
         account = AccountForm(request.POST)
         if account.is_valid():
@@ -244,7 +317,8 @@ def AdminSetting(request):
             user.save()
             
             print("[LOG] Superuser updated successfully")
-            return redirect('dashboard')
+            messages.success(request,"Superuser is updated successfully!")
+            return redirect('setting')
 
         form = AdminSettingForm(request.POST)
         if form.is_valid():
@@ -256,10 +330,11 @@ def AdminSetting(request):
             staticrules.reportguidelines = form.cleaned_data.get('reportguidelines')
             staticrules.faq = form.cleaned_data.get('faq')
             staticrules.save()
-
-            return redirect('dashboard')
+            print("[LOG] Rules are updated successfully")
+            messages.success(request,"Rules are updated successfully!")
+            return redirect('setting')
         
-    return render(request,'setting.html',{'form': AdminSettingForm(), 'mailbox': MailboxForm(), 'account': AccountForm(),'reviewer': ReviewerForm(),'users':users})
+    return render(request,'setting.html',{'form': AdminSettingForm(), 'mailbox': MailboxForm(), 'account': AccountForm(),'reviewer': ReviewerForm(),'users':users,'mailbox_status': mailbox_status,'mailbox_name': mailbox_name})
 
 @login_required
 def ReviewerDelete(request,id):
@@ -267,10 +342,13 @@ def ReviewerDelete(request,id):
         try:
             if User.objects.filter(id=id).count() != 0:
                 User.objects.filter(id=id).delete()
+                messages.success(request,"User is deleted successfully!")
         except Exception as e:
             print("[LOG] ", e)
-            return redirect('dashboard')
+            messages.error(request,"Something wrong. The delete operation is unsuccessful. Please report to the Admin!")
+            return redirect('setting')
         return redirect('setting')
+    return render(request,'setting.html')
 
 @login_required
 def OWASPCalculator(request):
@@ -284,6 +362,13 @@ def rulescontext(request,):
     staticrules = StaticRules.objects.get(pk=1)
     return render(request,'rules.html',{'RDP':staticrules.RDP,'bountyterms':staticrules.bountyterms,'inscope':staticrules.inscope,'outofscope':staticrules.outofscope,'reportguidelines':staticrules.reportguidelines,'faq':staticrules.faq})
 
+def emailcontext(request,):
+    if MailBox.objects.filter(mailbox_id=1).exists():
+        email = MailBox.objects.filter(mailbox_id=1)[0].email
+        template = "Submit your email to <strong>"+ email +"</strong> using the templates below..."
+    else:
+        template = "Currently the company hasn't set their email yet. Please contact the admin/ wait for the mailbox setup."
+    return render(request, 'submit.html',{'template':template})
 
 def halloffame(request,):
     bughunters = BugHunter.objects.alias(
