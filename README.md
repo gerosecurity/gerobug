@@ -67,17 +67,14 @@ We can generate certificate of appreciations for bug hunters so you don't have t
 Yeah we have it too
 
 
-## TODO
-- [ ] Feature for Bug Hunter to Check All His/Her Report Status (Overview)
-- [ ] Improve Notifications and Confirmations (Mailbox Active/Invalid, Email Sent to Bug Hunter, Current Mailbox, etc.)
-- [ ] Implement Global Dynamic Variables (Email, URL)
-- [ ] Add Email Template Setting
+## ON GOING IMPROVEMENTS
 - [ ] Add Support for Other Mailboxes (Outlook, Apple, etc.)
-- [ ] Add Integrated CVSS/OWASP Risk Calculator
 - [ ] Add Forced Prompt to Change Default Password and Setup Mailbox
-- [ ] Add RBAC for Admin Users
+- [ ] Add Email Template Setting
 - [ ] Add More Settings for Admin (Slack Webhooks)
 - [ ] Add Flow Control (Custom Status, Add / Remove Status)
+- [ ] Improve RBAC for Admin Users
+- [ ] Improve Notifications and Confirmations (Mailbox Active/Invalid, Email Sent to Bug Hunter, Current Mailbox, etc.)
 - [ ] Improve Duplicate Detection Algorithm
 - [ ] Improve Backend Performance and Efficiency
 - [ ] Improve Logging Module
