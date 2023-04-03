@@ -108,6 +108,7 @@ class UpdateDetails(LoginRequiredMixin,DetailView):
     def get_context_data(self, **kwargs):
         context = super(UpdateDetails, self).get_context_data(**kwargs)
         context['uan_type'] = self.kwargs.get('pk')[12:13]
+        context['report_title'] = BugReport.objects.get(report_id=self.kwargs.get('pk')[:12]).report_title
         return context
     
 
@@ -121,6 +122,7 @@ class AppealDetails(LoginRequiredMixin,DetailView):
     def get_context_data(self, **kwargs):
         context = super(AppealDetails, self).get_context_data(**kwargs)
         context['uan_type'] = self.kwargs.get('pk')[12:13]
+        context['report_title'] = BugReport.objects.get(report_id=self.kwargs.get('pk')[:12]).report_title
         return context
     
 
@@ -134,6 +136,7 @@ class NDADetails(LoginRequiredMixin,DetailView):
     def get_context_data(self, **kwargs):
         context = super(NDADetails, self).get_context_data(**kwargs)
         context['uan_type'] = self.kwargs.get('pk')[12:13]
+        context['report_title'] = BugReport.objects.get(report_id=self.kwargs.get('pk')[:12]).report_title
         return context
     
 

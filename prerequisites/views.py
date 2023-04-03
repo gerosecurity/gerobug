@@ -53,24 +53,27 @@ def PasswordReset(request):
                     c = {
                         "email": user.email,
                         "domain": "127.0.0.1:7331", #temporary, needs to be updated
-                        "site_name":"Gerobug",
+                        "site_name": "Gerobug",
                         "uid": urlsafe_base64_encode(force_bytes(user.pk)),
-                        "user":user,
+                        "user": user,
                         "token": default_token_generator.make_token(user),
-                        "protocol":"http" #next time, use HTTPS is a must!
+                        "protocol": "http" #next time, use HTTPS is a must!
                     }
                     email = render_to_string(body, c)
                     try:
                         mailbox = MailBox.objects.get(mailbox_id=1)
+                        EMAIL_USE_TLS = True
                         EMAIL_HOST_USER = mailbox.email
                         EMAIL_HOST_PASSWORD = mailbox.password
                         
-                        send_mail(subject, email, email, [user.email], fail_silently=False)
+                        send_mail(subject, email, EMAIL_HOST_USER, [user.email], fail_silently=False, auth_user=EMAIL_HOST_USER, auth_password=EMAIL_HOST_PASSWORD)
+
                     except BadHeaderError:
                         return HttpResponse('Invalid header found.')
+
                     return redirect("/login/password_reset/sent")
             else:
-                messages.error(request,"Wrong email!")
+                messages.error(request,"Email does not exists!")
     password_resets = PasswordResetForm()
     return render(request=request, template_name="password_reset_forms/password_reset.html", context={"password_reset_form":password_resets})
 
