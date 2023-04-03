@@ -1,4 +1,6 @@
 # Gerobug
+![djangoTest](https://github.com/gerobug/gerobug/actions/workflows/django.yml/badge.svg)
+
 ![gerobugLogo](https://raw.githubusercontent.com/gerobug/gerobug-docs-images/main/logo.png)
 
 Open source private (self-managed) bug bounty platform.
