@@ -31,30 +31,17 @@ def notify_slack(title, hunter):
     return requests.post(webhook, json.dumps(payload))
 
 def notify_telegram(title, hunter):
+    # webhook = "https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={CHAT_ID}"
     webhook = Webhook.objects.get(webhook_service="TELEGRAM").webhook_handle # TELEGRAM WEBHOOK
-    payload = {
-        "blocks": [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "\n*:warning: NEW REPORT RECEIVED :warning:*"
-                }
-            },
-            {
-                "type": "divider"
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "Title = *"+title+"*\nReporter = *"+hunter+"*"
-                }
-            }
-        ]
-    }
+    message = "\n\
+    *🚨 NEW REPORT RECEIVED 🚨*\n\
+    =========================\n\
+    Title           = *"+title+"*\n\
+    Reporter    = *"+hunter+"*"
 
-    return requests.post(webhook, json.dumps(payload))
+    webhook = webhook+"&parse_mode=Markdown&text="+message
+
+    return requests.get(webhook)
 
 def notify(title, hunter):
     if Webhook.objects.filter(webhook_service="SLACK").exists():
