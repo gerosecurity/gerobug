@@ -58,7 +58,6 @@ def notify_telegram(title, hunter):
 
 def notify(title, hunter):
     if Webhook.objects.filter(webhook_service="SLACK").exists():
-        print("SLACK !")
         notify_slack(title, hunter)
 
     if Webhook.objects.filter(webhook_service="TELEGRAM").exists():
