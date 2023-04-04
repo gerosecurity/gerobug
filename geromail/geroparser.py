@@ -192,7 +192,7 @@ def read_mail():
                                     savereport(report_id, hunter_email, email_date, report_title, atk_type, report_endpoint, report_summary)
                                     
                                     gerofilter.check_duplicate(report_id)
-                                    geronotify.notify_slack(report_title, hunter_email)
+                                    geronotify.notify(report_title, hunter_email)
                                     
                                     print('[CODE 201] Bug Hunter Report Saved Successfully')
 

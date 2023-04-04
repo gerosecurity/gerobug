@@ -17,8 +17,8 @@ from django.urls import reverse, reverse_lazy
 from django.db.models import Sum
 from django.http import FileResponse
 from .models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, ReportStatus, StaticRules
-from prerequisites.models import MailBox
-from .forms import Requestform, AdminSettingForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm
+from prerequisites.models import MailBox, Webhook
+from .forms import Requestform, AdminSettingForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm, WebhookForm
 from geromail import geromailer, gerofilter, geroparser
 from sys import platform
 from gerobug.settings import MEDIA_ROOT
@@ -274,6 +274,7 @@ def AdminSetting(request):
     mailbox_account = MailBox.objects.get(mailbox_id=1)
     mailbox_status = mailbox_account.mailbox_status
     mailbox_name = mailbox_account.email
+    notifications = Webhook.objects.all()
 
     if request.method == "POST":
         reviewer = ReviewerForm(request.POST)
@@ -342,7 +343,27 @@ def AdminSetting(request):
             messages.success(request,"Rules are updated successfully!")
             return redirect('setting')
         
-    return render(request,'setting.html',{'form': AdminSettingForm(), 'mailbox': MailboxForm(), 'account': AccountForm(),'reviewer': ReviewerForm(),'users':users,'mailbox_status': mailbox_status,'mailbox_name': mailbox_name})
+        webhook = WebhookForm(request.POST)
+        if webhook.is_valid():
+            try:
+                service = webhook.cleaned_data.get('webhook_service')
+                handle = webhook.cleaned_data.get('webhook_handle')
+                if Webhook.objects.filter(Q(webhook_service=service)).count() > 0:
+                    messages.error(request,"Notification Channel already exists.")
+                    print("[LOG] Duplicate Notification Channel")
+                    return redirect("setting")
+                else:
+                    new_webhook = Webhook.objects.create(webhook_service=service,webhook_handle=handle)
+                    new_webhook.save()
+                    print("[LOG] Notification Channel Saved Successfully")
+                    messages.success(request,"Notification Channel Saved Successfully")
+                    return redirect('setting')
+            except Exception as e:
+                print("[LOG] "+ e)
+                messages.error(request,"Something's wrong...")
+                return redirect("setting")
+
+    return render(request,'setting.html',{'form': AdminSettingForm(), 'mailbox': MailboxForm(), 'account': AccountForm(),'reviewer': ReviewerForm(),'webhooks': WebhookForm(),'users':users,'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications})
 
 @login_required
 def ReviewerDelete(request,id):
