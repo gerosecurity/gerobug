@@ -294,7 +294,7 @@ message_701 = """\
                 Add a <b>Summary</b> of the update in the email body (text only)<br>
                 Do not forget to attach a <b>PDF File</b><br>
                 
-                <br>For more information about email format, you may refer to ~URL~<br>
+                <br>For more information about email format, you may refer to our guideline page<br>
                 
                 <br><br>
                 We look forward to hearing from you<br>
@@ -328,7 +328,7 @@ message_702 = """\
                 <b>You have a limit of <b>3 times</b> to submit any complaint, otherwise we will consider that you agreed and process the bounty</b>
                 <br>
                 
-                <br>For more information about email format, you may refer to ~URL~<br>
+                <br>For more information about email format, you may refer to our guideline page<br>
 
                 <br><br>
                 We look forward to hearing from you<br>
@@ -355,7 +355,7 @@ message_703 = """\
                 Add the requested information in the email body (text only)<br>
                 Do not forget to attach the <b>signed NDA</b><br>
                 
-                <br>For more information about email format, you may refer to ~URL~<br>
+                <br>For more information about email format, you may refer to our guideline page<br>
 
                 <br><br>
                 We look forward to hearing from you<br>

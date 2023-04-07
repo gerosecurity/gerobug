@@ -10,6 +10,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes
 from django.core.mail import send_mail, BadHeaderError
 from django.http import HttpResponse
+from django.urls import reverse
 from django.contrib import messages
 from django.template.loader import render_to_string
 from gerobug.settings import EMAIL_HOST_USER, EMAIL_HOST_PASSWORD
@@ -50,14 +51,15 @@ def PasswordReset(request):
                 for user in check_email:
                     subject = "Gerobug Password Reset"
                     body = "password_reset_forms/email_template.txt"
+                    url = request.build_absolute_uri(reverse('rules'))
+                    domain = url[:len(url)-1]
                     c = {
                         "email": user.email,
-                        "domain": "127.0.0.1:7331", #temporary, needs to be updated
+                        "domain": domain,
                         "site_name": "Gerobug",
                         "uid": urlsafe_base64_encode(force_bytes(user.pk)),
                         "user": user,
                         "token": default_token_generator.make_token(user),
-                        "protocol": "http" #next time, use HTTPS is a must!
                     }
                     email = render_to_string(body, c)
                     try:
