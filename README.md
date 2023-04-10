@@ -60,7 +60,7 @@ Manage reports easily using a kanban model.
 - Report Filtering and Flagging<br>
 Reports from Bug Hunter will be filtered and flagged if there are duplicate indication.
 
-- OWASP Risk Calculatort<br>
+- OWASP Risk Calculator<br>
 Gerobug has an integrated OWASP Risk Calculator to support the bug review process.
 
 - Email Blacklisting<br>
