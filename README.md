@@ -51,14 +51,20 @@ Bug Hunter will submit their findings by email, which Gerobug will parse, filter
 Bug Hunter's inquiries will be automatically replied and notified if there any updates on their report.<br>
 Company will also be notified via Slack if there any new report.
 
+- User Management<br>
+Gerobug has a simple Role-based user management.
+
 - Report Management<br>
 Manage reports easily using a kanban model.
 
 - Report Filtering and Flagging<br>
 Reports from Bug Hunter will be filtered and flagged if there are duplicate indication.
 
+- OWASP Risk Calculatort<br>
+Gerobug has an integrated OWASP Risk Calculator to support the bug review process.
+
 - Email Blacklisting<br>
-Gerobug can temporarily block and release emails that conducted spam activity
+Gerobug can temporarily block and release emails that conducted spam activity.
 
 - Auto Generate Certificate<br>
 We can generate certificate of appreciations for bug hunters so you don't have to ;)
