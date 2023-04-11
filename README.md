@@ -49,7 +49,7 @@ Bug Hunter will submit their findings by email, which Gerobug will parse, filter
 
 - Auto Reply and Notification<br>
 Bug Hunter's inquiries will be automatically replied and notified if there any updates on their report.<br>
-Company will also be notified via Slack if there any new report.
+Company will also be notified via Slack/Telegram if there any new report.
 
 - User Management<br>
 Gerobug has a simple Role-based user management.
