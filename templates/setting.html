@@ -33,27 +33,41 @@
 <body>
     <script>
         $(document).ready(function() {
-        var userIdToDelete;
+        var attributeToDelete;
   
         $("i.material-icons").click(function() {
-        // Store the UserID to delete after the delete icon is clicked
-         userIdToDelete = $(this).attr("id").split("-")[2];
+        // Store the attribute to delete after the delete icon is clicked
+        attributeToDelete = $(this).attr("id").split("-")[2];
             });
         
         $("#delete-user").click(function(){
-        var patched = "{% url 'reviewer_handler' 0 %}".replace('0', userIdToDelete);
+        var patched = "{% url 'reviewer_handler' 0 %}".replace('0', attributeToDelete);
         $.ajax({
             url: patched,
             type: "POST",
             data: {
-                "user_id": userIdToDelete,
+                "user_id": attributeToDelete,
                 "csrfmiddlewaretoken": "{{ csrf_token }}"
             },
             success: function(data) {
-                console.log(data);
             },
             error: function(error) {
-                console.log(error);
+            }
+        });
+            });
+
+        $("#delete-webhook").click(function(){
+        var patched = "{% url 'notification_handler' 0 %}".replace('0', attributeToDelete);
+        $.ajax({
+            url: patched,
+            type: "POST",
+            data: {
+                "service": attributeToDelete,
+                "csrfmiddlewaretoken": "{{ csrf_token }}"
+            },
+            success: function(data) {
+            },
+            error: function(error) {
             }
         });
             });
@@ -441,7 +455,7 @@
                                                 </div>
                                                 <div class="modal-footer">
                                                     <input type="button" class="btn btn-default" data-dismiss="modal" value="Cancel">
-                                                    <input type="submit" class="btn btn-danger" id="add-user" value="Add">
+                                                    <input type="submit" class="btn btn-danger" id="add-notif" value="Add">
                                                 </div>
                                             </form>
                                             <br>
