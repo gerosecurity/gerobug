@@ -123,6 +123,32 @@ message_207 = """\
         </body></html>
         """
 
+subject_208 = "Report Status Overview"
+message_208 = """\
+        <html><body>
+            <p>
+                Hi there,<br>
+                Currently you have <b>~ID~</b> reports submitted to our system.
+                <br>
+                Here are the details:
+                <br><br>
+                
+                <table border="1">
+                <tr>
+                    <th>Report ID</th>
+                    <th>Title</th>
+                    <th>Status</th>
+                </tr>
+                ~NOTE~
+                </table>
+                
+                <br><br>
+
+                Best regards,<br>
+                Gerobug Bounty System
+            </p>
+        </body></html>
+        """
 
 # ERROR TEMPLATES FOR GEROBUG
 subject_403 = "This email are not Authorized!"
@@ -268,7 +294,7 @@ message_701 = """\
                 Add a <b>Summary</b> of the update in the email body (text only)<br>
                 Do not forget to attach a <b>PDF File</b><br>
                 
-                <br>For more information about email format, you may refer to ~URL~<br>
+                <br>For more information about email format, you may refer to our guideline page<br>
                 
                 <br><br>
                 We look forward to hearing from you<br>
@@ -302,7 +328,7 @@ message_702 = """\
                 <b>You have a limit of <b>3 times</b> to submit any complaint, otherwise we will consider that you agreed and process the bounty</b>
                 <br>
                 
-                <br>For more information about email format, you may refer to ~URL~<br>
+                <br>For more information about email format, you may refer to our guideline page<br>
 
                 <br><br>
                 We look forward to hearing from you<br>
@@ -329,7 +355,7 @@ message_703 = """\
                 Add the requested information in the email body (text only)<br>
                 Do not forget to attach the <b>signed NDA</b><br>
                 
-                <br>For more information about email format, you may refer to ~URL~<br>
+                <br>For more information about email format, you may refer to our guideline page<br>
 
                 <br><br>
                 We look forward to hearing from you<br>
@@ -372,6 +398,7 @@ subjectlist = {
     205: subject_205,   # AGREE SUCCESS (ID)
     206: subject_206,   # NDA SUCCESS (ID)
     207: subject_207,   # CHECK SCORE (NOTE)
+    208: subject_208,   # CHECK ALL STATUS (ID, NOTE)
 
     300: subject_300,   # INVALID NOTIFICATION (TITLE, ID, STATUS, NOTE)
     301: subject_301,   # STATUS UPDATE NOTIFICATION (TITLE, ID, STATUS)
@@ -395,6 +422,7 @@ messagelist = {
     205: message_205,
     206: message_206,
     207: message_207,
+    208: message_208,
 
     300: message_300,
     301: message_301,

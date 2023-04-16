@@ -9,6 +9,8 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <link rel="shortcut icon" href='{% static "favicon.ico" %}' type="image/x-icon">
+    <link rel="icon" href='{% static "favicon.ico" %}' type="image/x-icon">
     <!-- style -->
     <link rel="stylesheet" href='{% static "/css/sidebar.css" %}'>
     <link rel="stylesheet" href='{% static "/css/dashboard.css" %}'>
@@ -24,6 +26,13 @@
 </head>
 
 <body>
+  <script>
+    window.setTimeout(function() {
+      $(".alert").fadeTo(500, 0).slideUp(500, function(){
+        $(this).remove();
+      });
+    }, 1500);
+  </script>
     <section class="home-section">
         <header>
           <div class="home-content">
@@ -33,6 +42,13 @@
         </header>
   
         <main>
+          {% for message in messages %}
+                {% if 'success' in message.tags %}
+                <p class="alert alert-success" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                {% else %}
+                <p class="alert alert-warning" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                {% endif %}
+            {% endfor %}
           <a href="{% url 'report_status' 1%}" style="text-decoration:none">
           <div class="notification">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bell"

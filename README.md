@@ -49,7 +49,10 @@ Bug Hunter will submit their findings by email, which Gerobug will parse, filter
 
 - Auto Reply and Notification<br>
 Bug Hunter's inquiries will be automatically replied and notified if there any updates on their report.<br>
-Company will also be notified via Slack if there any new report.
+Company will also be notified via Slack/Telegram if there any new report.
+
+- User Management<br>
+Gerobug has a simple Role-based user management.
 
 - Report Management<br>
 Manage reports easily using a kanban model.
@@ -57,8 +60,11 @@ Manage reports easily using a kanban model.
 - Report Filtering and Flagging<br>
 Reports from Bug Hunter will be filtered and flagged if there are duplicate indication.
 
+- OWASP Risk Calculator<br>
+Gerobug has an integrated OWASP Risk Calculator to support the bug review process.
+
 - Email Blacklisting<br>
-Gerobug can temporarily block and release emails that conducted spam activity
+Gerobug can temporarily block and release emails that conducted spam activity.
 
 - Auto Generate Certificate<br>
 We can generate certificate of appreciations for bug hunters so you don't have to ;)
@@ -67,17 +73,14 @@ We can generate certificate of appreciations for bug hunters so you don't have t
 Yeah we have it too
 
 
-## TODO
-- [ ] Feature for Bug Hunter to Check All His/Her Report Status (Overview)
-- [ ] Improve Notifications and Confirmations (Mailbox Active/Invalid, Email Sent to Bug Hunter, Current Mailbox, etc.)
-- [ ] Implement Global Dynamic Variables (Email, URL)
-- [ ] Add Email Template Setting
+## ON GOING IMPROVEMENTS
 - [ ] Add Support for Other Mailboxes (Outlook, Apple, etc.)
-- [ ] Add Integrated CVSS/OWASP Risk Calculator
 - [ ] Add Forced Prompt to Change Default Password and Setup Mailbox
-- [ ] Add RBAC for Admin Users
+- [ ] Add Email Template Setting
 - [ ] Add More Settings for Admin (Slack Webhooks)
 - [ ] Add Flow Control (Custom Status, Add / Remove Status)
+- [ ] Improve RBAC for Admin Users
+- [ ] Improve Notifications and Confirmations (Mailbox Active/Invalid, Email Sent to Bug Hunter, Current Mailbox, etc.)
 - [ ] Improve Duplicate Detection Algorithm
 - [ ] Improve Backend Performance and Efficiency
 - [ ] Improve Logging Module

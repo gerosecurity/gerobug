@@ -16,14 +16,14 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.views.generic.base import TemplateView
-from dashboards.views import halloffame,rulescontext
+from dashboards.views import halloffame,rulescontext,emailcontext
 
 urlpatterns = [
     path('accounts/', include('django.contrib.auth.urls')),
     path('admin/', admin.site.urls),
     path('login/', include("prerequisites.urls"),name="login"),
     path('', rulescontext,name="rules"),
-    path("submit/",TemplateView.as_view(template_name="submit.html"),name="submit"),
+    path("submit/",emailcontext,name="submit"),
     path("halloffame/",halloffame,name="halloffame"),
     path('dashboard/', include("dashboards.urls"),name="dashboard"),
 ]

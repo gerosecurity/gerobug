@@ -3,7 +3,7 @@ from random import choices
 from unittest.util import _MAX_LENGTH
 from django.db import models
 from django.urls import reverse
-from django.core.validators import RegexValidator
+from django.core.validators import RegexValidator, MaxValueValidator, MinValueValidator, MinLengthValidator
 from ckeditor.fields import RichTextField
 from .rulestemplate import *
 
@@ -20,8 +20,8 @@ class BugReport(models.Model):
     report_endpoint = models.CharField(max_length=50, default='NO ENDPOINT')
     report_attack = models.CharField(max_length=50, default='NO ATTACK TYPE')
     report_summary = models.TextField()
-    report_severity = models.FloatField(default=0, verbose_name="Report Severity")
-    report_severitystring = models.CharField(default="", max_length=100, verbose_name="Severity String")
+    report_severity = models.FloatField(default=0, verbose_name="Report Severity", validators=[MinValueValidator(0.0), MaxValueValidator(10.0)])
+    report_severitystring = models.CharField(default="", max_length=95, verbose_name="Severity String", validators=[MinLengthValidator(79), RegexValidator(regex='^\(SL:[0-9]\/M:[0-9]\/O:[0-9]\/S:[0-9]\/ED:[0-9]\/EE:[0-9]\/A:[0-9]\/ID:[0-9]\/LC:[0-9]\/LI:[0-9]\/LAV:[0-9]\/LAC:[0-9]\/FD:[0-9]\/RD:[0-9]\/NC:[0-9]\/PV:[0-9]\)$',message='Use OWASP Risk Rating Vector Format')])
     report_status = models.IntegerField(default=1)
     report_duplicate = models.IntegerField(default=0)
     report_permission = models.IntegerField(default=0) # 4 (Update) 2 (Appeal) 1 (NDA) --> UAN --> Similar to RWX System
@@ -35,6 +35,44 @@ class BugReport(models.Model):
     def get_absolute_url(self):
         return reverse('report_detail', kwargs={'pk':self.report_id})
 
+
+class BugReportUpdate(models.Model):
+    update_id = models.CharField(max_length=15,primary_key=True,validators=[alphanumeric])
+    report_id = models.CharField(max_length=15)
+    update_datetime = models.DateTimeField()
+    update_summary = models.TextField()
+
+    def __str__(self):
+        return self.update_id
+    
+    def get_absolute_url(self):
+        return reverse('update_detail', kwargs={'pk':self.update_id})
+
+
+class BugReportAppeal(models.Model):
+    appeal_id = models.CharField(max_length=15,primary_key=True,validators=[alphanumeric])
+    report_id = models.CharField(max_length=15)
+    appeal_datetime = models.DateTimeField()
+    appeal_summary = models.TextField()
+    appeal_file = models.IntegerField(default=0)
+
+    def __str__(self):
+        return self.appeal_id
+
+    def get_absolute_url(self):
+        return reverse('appeal_detail', kwargs={'pk':self.appeal_id})
+
+class BugReportNDA(models.Model):
+    nda_id = models.CharField(max_length=15,primary_key=True,validators=[alphanumeric])
+    report_id = models.CharField(max_length=15)
+    nda_datetime = models.DateTimeField()
+    nda_summary = models.TextField()
+
+    def __str__(self):
+        return self.nda_id
+
+    def get_absolute_url(self):
+        return reverse('nda_detail', kwargs={'pk':self.nda_id})  
 
 class BugHunter(models.Model):
     hunter_email = models.EmailField()
