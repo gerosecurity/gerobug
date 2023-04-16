@@ -208,14 +208,17 @@
                                         (<b style="color:green">ACTIVE</b>)
                                         {% endif %}
                                     </p>
+                                    
 
                                     {% csrf_token %}
                                     {{ mailbox.as_p }}
-
+                                    
+                                    <h7>For GMAIL: <a href="https://support.google.com/accounts/answer/185833?hl=en" target="_blank">Google App Password</a></h7>
+                                    <br><br>
+                                    
                                     <button class="btn btn-primary" type="submit">Update</button>
                                 </form>
-                                <br>
-                                <h7>For GMAIL: <a href="https://support.google.com/accounts/answer/185833?hl=en" target="_blank">Google App Password</a></h7>
+                                
 
                                 <br>
                                 {% for message in messages %}
