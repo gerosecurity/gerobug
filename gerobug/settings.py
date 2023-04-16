@@ -163,5 +163,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'report_files')
 CKEDITOR_CONFIGS = {
     "default": {
         "removePlugins": "image,link",
+        "allowedContent": "p b li u",
     }
 }

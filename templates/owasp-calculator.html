@@ -7,6 +7,8 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <link rel="shortcut icon" href='{% static "favicon.ico" %}' type="image/x-icon">
+  <link rel="icon" href='{% static "favicon.ico" %}' type="image/x-icon">
   <!-- style -->
   <link rel="stylesheet" href='{% static "/css/sidebar.css" %}'>
   <link rel="stylesheet" href='{% static "/css/owasp-calc.css" %}'>
@@ -309,7 +311,7 @@
         <!-- CREDITS -->
         <section>
           <div>
-            <b>VECTOR: </b><a id="score"
+            <b>VECTOR (SEVERITY STRING): </b><a id="score"
               href="https://javierolmedo.github.io/OWASP-Calculator/?vector=(SL:1/M:1/O:0/S:2/ED:1/EE:1/A:1/ID:2/LC:2/LI:1/LAV:1/LAC:1/FD:1/RD:1/NC:2/PV:3)"
               target="_blank">(SL:1/M:1/O:0/S:2/ED:1/EE:1/A:1/ID:2/LC:2/LI:1/LAV:1/LAC:1/FD:1/RD:1/NC:2/PV:3)</a>
             <br><br>
@@ -327,9 +329,9 @@
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title" id="exampleModalLongTitle">How is Severity Risk caculated?</h5>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <!-- <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                 <span aria-hidden="true">&times;</span>
-              </button>
+              </button> -->
             </div>
             <div class="modal-body">
               <div class="row">

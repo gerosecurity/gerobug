@@ -12,16 +12,17 @@ from . import gerosecure
 from . import gerofilter
 from . import geromailer
 from . import geronotify
-from dashboards.models import BugHunter, BugReport
+from dashboards.models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA
 from prerequisites.models import MailBox
 from gerobug.settings import MEDIA_ROOT
 
 
 # GMAIL IMAP CONFIG
-EMAIL       = ""
-PWD         = ""
-IMAP_SERVER = "imap.gmail.com"
-IMAP_PORT   = 993
+EMAIL           = ""
+PWD             = ""
+MAILBOX_READY   = False
+IMAP_SERVER     = "imap.gmail.com"
+IMAP_PORT       = 993
 
 
 # GENERATE REPORT ID
@@ -51,8 +52,8 @@ def saveuser(email, name, score):
         print("[LOG] New User registered.")
 
 
-# INSERT DATA TO BUGREPORT MODEL
-def savedata(id, email, date, title, atk_type, endpoint, summary):
+# INSERT NEW REPORT TO BUGREPORT MODEL
+def savereport(id, email, date, title, atk_type, endpoint, summary):
     newreport = BugReport()
     
     newreport.report_id = id
@@ -63,9 +64,42 @@ def savedata(id, email, date, title, atk_type, endpoint, summary):
     newreport.report_endpoint = endpoint
     newreport.report_summary = summary
     newreport.report_status = 1
-    newreport.report_flag = 'No Flag'
 
     newreport.save()
+
+
+# INSERT NEW UAN TO DATABASE
+def save_uan(type, id, report_id, date, summary, file):
+    if type == 'U':
+        newupdate = BugReportUpdate()
+        
+        newupdate.update_id = id
+        newupdate.report_id = report_id
+        newupdate.update_datetime = date
+        newupdate.update_summary = summary
+
+        newupdate.save()
+    
+    elif type == 'A':
+        newappeal = BugReportAppeal()
+        
+        newappeal.appeal_id = id
+        newappeal.report_id = report_id
+        newappeal.appeal_datetime = date
+        newappeal.appeal_summary = summary
+        newappeal.appeal_file = file
+
+        newappeal.save()
+    
+    elif type == 'N':
+        newNDA = BugReportNDA()
+        
+        newNDA.nda_id = id
+        newNDA.report_id = report_id
+        newNDA.nda_datetime = date
+        newNDA.nda_summary = summary
+
+        newNDA.save()
 
 
 # READ INBOX (UNSEEN) AND PARSE DATA
@@ -147,7 +181,7 @@ def read_mail():
                                 email_body = str(email_body)
 
                                 print('Body : ' + email_body + '\n')
-                                atk_type, report_endpoint, report_summary = gerofilter.parse_body(email_body.replace('\n', ' '))
+                                atk_type, report_endpoint, report_summary = gerofilter.parse_body(email_body)
                                 
                                 # VALIDATE REPORT
                                 if (len(report_title) < 3) or (atk_type == '') or (report_endpoint == '') or (len(report_summary) < 10):
@@ -155,10 +189,10 @@ def read_mail():
                                     code = 404
                                 else:
                                     saveuser(hunter_email, hunter_name, 0)
-                                    savedata(report_id, hunter_email, email_date, report_title, atk_type, report_endpoint, report_summary)
+                                    savereport(report_id, hunter_email, email_date, report_title, atk_type, report_endpoint, report_summary)
                                     
                                     gerofilter.check_duplicate(report_id)
-                                    geronotify.notify_slack(report_title, hunter_email)
+                                    geronotify.notify(report_title, hunter_email)
                                     
                                     print('[CODE 201] Bug Hunter Report Saved Successfully')
 
@@ -188,7 +222,6 @@ def read_mail():
 
                             # GENERATE UPDATE ID
                             update_id = str(payload[0]) + "U" + str(report.report_update)
-                            update_title = "UPDATE " + update_id
                             print('Update ID : ' + update_id)
 
                             # CHECK ATTACHMENT AND PARSE BODY
@@ -204,7 +237,7 @@ def read_mail():
                                 update_summary = str(msg_body[0]).replace('Content-Type: text/plain; charset="UTF-8"', '')
                                 print('Update Summary : ' + update_summary + '\n')
 
-                                savedata(update_id, hunter_email, email_date, update_title, '', '', update_summary)
+                                save_uan('U', update_id, str(payload[0]), email_date, update_summary, 0)
                                 print('[CODE 203] Bug Hunter Update Saved Successfully')
 
                             else:
@@ -228,7 +261,6 @@ def read_mail():
                             
                             # GENERATE APPEAL ID
                             appeal_id = str(payload[0]) + "A" + str(report.report_appeal)
-                            appeal_title = "APPEAL " + appeal_id
                             print('Appeal ID : ' + appeal_id)
                             
                             # CHECK ATTACHMENT AND PARSE BODY
@@ -236,8 +268,10 @@ def read_mail():
                             if have_attachment:
                                 msg_body = msg.get_payload()[0].get_payload()
                                 appeal_summary = msg_body[0]
+                                appeal_file = 1
                             else: 
                                 appeal_summary = msg.get_payload()[0].get_payload()
+                                appeal_file = 0
 
                             appeal_summary = str(appeal_summary).replace('Content-Type: text/plain; charset="UTF-8"', '')
                             print('Appeal Summary : ' + appeal_summary + '\n')
@@ -248,7 +282,7 @@ def read_mail():
                                 report.report_permission = report.report_permission - 2
                                 report.save()
 
-                                savedata(appeal_id, hunter_email, email_date, appeal_title, '', '', appeal_summary)
+                                save_uan('A', appeal_id, str(payload[0]), email_date, appeal_summary, appeal_file)
                                 print('[CODE 204] Bug Hunter Appeal Received Successfully')
                             
                             else: 
@@ -287,7 +321,6 @@ def read_mail():
 
                             # GENERATE NDA ID
                             nda_id = str(payload[0]) + "N" + str(report.report_nda)
-                            nda_title = "NDA_" + nda_id
                             print('NDA ID : ' + nda_id)
 
                             # CHECK ATTACHMENT AND PARSE BODY
@@ -301,7 +334,7 @@ def read_mail():
                                 nda_summary = str(msg_body[0]).replace('Content-Type: text/plain; charset="UTF-8"', '')
                                 print('NDA Summary : ' + nda_summary + '\n')
 
-                                savedata(nda_id, hunter_email, email_date, nda_title, '', '', nda_summary)
+                                save_uan('N', nda_id, str(payload[0]), email_date, nda_summary, 0)
                                 print('[CODE 206] Bug Hunter NDA Received Successfully')
                             
                             else: 
@@ -317,6 +350,13 @@ def read_mail():
                             print('[LOG] Hunter Score: ' + payload[0])
                             payload[3] = payload[0]
                             print("[CODE 207] Bug Hunter Check Score Successfully")
+
+                        # HUNTER CHECK ALL STATUS
+                        elif(code == 208):
+                            payload[3] = str(payload[0]).replace('[','').replace(']','').replace("'",'').replace(',','\n')
+                            payload[0] = str(len(payload[0]))
+                            print('[LOG] Hunter Reports (',payload[0],'):\n' + payload[3])
+                            print("[CODE 208] Bug Hunter Check All Status Successfully")
 
                         # INVALID REPORT ID
                         elif(code == 405):
@@ -388,22 +428,51 @@ def company_action(id, note, code):
 
 # RUN GEROMAIL MODULES
 def run():
-    global EMAIL, PWD
-    mailbox_ready = False
-
-    # WAIT UNTIL MAILBOX READY
-    while not mailbox_ready:
-        mailbox = MailBox.objects.get(mailbox_id=1)
-        if mailbox.email == "" or mailbox.password == "":
-            print("Waiting for Mailbox Setup...")
-            time.sleep(10)
-        else:
-            mailbox_ready = True
+    global EMAIL, PWD, MAILBOX_READY
+    MAILBOX_READY = False
+    error_count = 0
     
     while True:
-        mailbox = MailBox.objects.get(mailbox_id=1)
-        EMAIL       = mailbox.email
-        PWD         = mailbox.password
+        # LIMIT ERRORS TO AVOID BLACKLISTED BY MAIL SERVER
+        if error_count >= 3:
+            print("[LOG] Error Limit Reached!")
+            mailbox = MailBox.objects.get(mailbox_id=1)
+            mailbox.email = ""
+            mailbox.password = ""
+            mailbox.mailbox_status = 0
+            mailbox.save()
+
+        # WAIT UNTIL MAILBOX READY
+        while not MAILBOX_READY:
+            mailbox = MailBox.objects.get(mailbox_id=1)
+            if mailbox.email == "" or mailbox.password == "":
+                print("Waiting for Mailbox Setup...")
+                time.sleep(5)
+            else:
+                MAILBOX_READY = True
         
-        read_mail()
-        time.sleep(10)
+        # ONLY RUN WHILE MAILBOX READY
+        while MAILBOX_READY:
+            mailbox = MailBox.objects.get(mailbox_id=1)
+            EMAIL       = mailbox.email
+            PWD         = mailbox.password
+
+            # TEST LOGIN
+            if mailbox.mailbox_status == 0:
+                mail = imaplib.IMAP4_SSL(IMAP_SERVER)
+                try:
+                    mail.login(EMAIL,PWD)
+
+                except Exception as e:
+                    error_count+=1
+                    print("[ERROR] Failed to Login =",e,"(",str(error_count),")")
+                    MAILBOX_READY = False
+                    time.sleep(5)
+                    break
+            
+                # IF NO ERROR, SET STATUS TO ACTIVE
+                mailbox.mailbox_status = 1
+                mailbox.save()
+
+            read_mail()
+            time.sleep(10)
