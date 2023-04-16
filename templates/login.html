@@ -21,7 +21,6 @@
     {% endif %}
     </div>
     {% endfor %} -->
-{% endblock content %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -52,6 +51,13 @@
                   {% csrf_token %}
                     {{ login_form }}
                     <br>
+                    {% for message in messages %}
+                    {% if 'success' in message.tags %}
+                        <p class="alert alert-success" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                    {% else %}
+                        <p class="alert alert-warning" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                    {% endif %}
+                    {% endfor %}
                     
                     <div id="action-btn">
                         <button type="submit" id="button" class="btn btn-primary deep-purple btn-block ">Submit</button>
@@ -70,3 +76,4 @@
 </body>
 
 </html>
+{% endblock content %}

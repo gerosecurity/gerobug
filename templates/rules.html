@@ -22,6 +22,7 @@
     <!-- bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/gh/jitbit/HtmlSanitizer@master/HtmlSanitizer.js"></script>
 </head>
 
 <body>
@@ -56,9 +57,13 @@
                 <div data-bs-spy="scroll" data-bs-target="#simple-list-example" data-bs-offset="0"
                     data-bs-smooth-scroll="true" class="scrollspy-example" tabindex="0">
                     <h4 id="1">Responsible Disclosure Policy</h4>
-
+                    {% block RDP %}
+                    {% if RDP %}
                     {{ RDP|safe }}
- 
+                    {% else %}
+                    
+                    {% endif %}
+                    {% endblock RDP %}
                     <h4 id="2">Bounty Terms</h4>
                     {% block bountyterms %}
                     {% if bountyterms %}

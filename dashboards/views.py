@@ -2,13 +2,11 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required,user_passes_test
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User, Group
-from django.views.generic.edit import FormMixin
 from django.db.models.query_utils import Q
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.views.generic import (
     ListView,
-    CreateView,
     UpdateView,
     DeleteView,
     DetailView
@@ -16,6 +14,7 @@ from django.views.generic import (
 from django.urls import reverse, reverse_lazy
 from django.db.models import Sum
 from django.http import FileResponse
+from django.middleware.csrf import get_token
 from .models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, ReportStatus, StaticRules
 from prerequisites.models import MailBox, Webhook
 from .forms import Requestform, AdminSettingForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm, WebhookForm
@@ -372,6 +371,22 @@ def ReviewerDelete(request,id):
             if User.objects.filter(id=id).count() != 0:
                 User.objects.filter(id=id).delete()
                 messages.success(request,"User is deleted successfully!")
+                return redirect('setting')
+        except Exception as e:
+            print("[LOG] ", e)
+            messages.error(request,"Something wrong. The delete operation is unsuccessful. Please report to the Admin!")
+            return redirect('setting')
+        return redirect('setting')
+    return render(request,'setting.html')
+
+@login_required
+def NotificationDelete(request,service):
+    if request.method == "POST":
+        try:
+            if Webhook.objects.filter(webhook_service=service).count() != 0:
+                Webhook.objects.filter(webhook_service=service).delete()
+                messages.success(request,"Notification Media is deleted successfully!")
+                return redirect('setting')
         except Exception as e:
             print("[LOG] ", e)
             messages.error(request,"Something wrong. The delete operation is unsuccessful. Please report to the Admin!")
