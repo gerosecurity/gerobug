@@ -19,11 +19,12 @@ from django.views.generic.base import TemplateView
 from dashboards.views import halloffame,rulescontext,emailcontext
 
 urlpatterns = [
-    path('accounts/', include('django.contrib.auth.urls')),
-    path('admin/', admin.site.urls),
-    path('login/', include("prerequisites.urls"),name="login"),
     path('', rulescontext,name="rules"),
     path("submit/",emailcontext,name="submit"),
     path("halloffame/",halloffame,name="halloffame"),
+    path('login/', include("prerequisites.urls"),name="login"),
     path('dashboard/', include("dashboards.urls"),name="dashboard"),
+    
+    #path('accounts/', include('django.contrib.auth.urls')),
+    #path('admin/', admin.site.urls),
 ]
