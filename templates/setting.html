@@ -135,7 +135,7 @@
                                 <a href="#notification" data-toggle="tab" class="nav-item nav-link has-icon nav-link-faded">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-bell-fill" viewBox="0 0 16 16">
                                         <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2zm.995-14.901a1 1 0 1 0-1.99 0A5.002 5.002 0 0 0 3 6c0 1.098-.5 6-2 7h14c-1.5-1-2-5.902-2-7 0-2.42-1.72-4.44-4.005-4.901z"/>
-                                      </svg> Notification
+                                      </svg> Notification Channels
                                 </a>
                             </nav>
                         </div>
@@ -212,10 +212,11 @@
                                     {% csrf_token %}
                                     {{ mailbox.as_p }}
 
-                                    <h7>For GMAIL: Use <a href="https://support.google.com/accounts/answer/185833?hl=en" target="_blank">Google App Password</a></h7>
-                                    <br><br>
                                     <button class="btn btn-primary" type="submit">Update</button>
                                 </form>
+                                <br>
+                                <h7>For GMAIL: <a href="https://support.google.com/accounts/answer/185833?hl=en" target="_blank">Google App Password</a></h7>
+
                                 <br>
                                 {% for message in messages %}
                                     {% if 'success' in message.tags %}
@@ -383,7 +384,7 @@
                                     <div class="table-title">
                                       <div class="row">
                                         <div class="col">
-                                          <a href="#addNotificationModal" class="btn btn-success" data-toggle="modal"><i class="bi bi-person-fill-add"></i> Add New Notification</a>
+                                          <a href="#addNotificationModal" class="btn btn-success" data-toggle="modal"><i class="bi bi-bell-fill"></i> Add New Notification</a>
                                         </div>
                                       </div>
                                     </div>
@@ -410,7 +411,6 @@
                                       </tbody>
                                     </table>
                                   </div>
-
 
                                   <div id="deleteNotificationModal" class="modal fade">
                                     <div class="modal-dialog">

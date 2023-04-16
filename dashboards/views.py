@@ -340,7 +340,7 @@ def AdminSetting(request):
             staticrules.save()
             print("[LOG] Rules are updated successfully")
             messages.success(request,"Rules are updated successfully!")
-            return redirect('setting')
+            return render(request,'setting.html',{'form': form, 'mailbox': MailboxForm(), 'account': AccountForm(),'reviewer': ReviewerForm(),'webhooks': WebhookForm(),'users':users,'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications})
         
         webhook = WebhookForm(request.POST)
         if webhook.is_valid():
