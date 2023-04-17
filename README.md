@@ -30,6 +30,9 @@ In the other hand, creating your own independently run platform will take time a
 ## Deployment and Usage
 To deploy gerobug:
 1. Clone this repository
+```bash
+git clone https://github.com/gerobug/gerobug
+```
 2. Run this: 
 ```bash
 sudo docker-compose up --build --force-recreate -d
