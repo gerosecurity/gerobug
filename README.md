@@ -1,6 +1,5 @@
 ![djangoTest](https://github.com/gerobug/gerobug/actions/workflows/django.yml/badge.svg)
 
-
 # Gerobug
 ![gerobugLogo](https://raw.githubusercontent.com/gerobug/gerobug-docs-images/main/logo.png)
 
