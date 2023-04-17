@@ -133,3 +133,10 @@ element.style {
 	flex-wrap: wrap;
 	justify-content: flex-end;
 }
+
+.elipsis{
+    white-space: nowrap;
+    width: 500px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

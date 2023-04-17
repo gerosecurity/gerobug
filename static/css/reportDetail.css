@@ -27,7 +27,7 @@ main {
 }
 
 #left-div{
-    width: 800px;
+    width: 100%;
     /* direction:ltr; */
 }
 
@@ -35,19 +35,9 @@ h4{
     max-width: 800px;
 }
 
-#right-div{
-    min-width: 250px;
-   background-color: #FFE0E0;
-   border-radius: 20px;
-   height: 320px;
-   padding: 20px;
-   display: flex;
-   flex-direction: column;
-   flex-wrap: nowrap;
-   justify-content: center;
-   align-items: center;
-   align-content: center;
-   /* direction:ltr; */
+h6{
+    text-decoration: none;
+    color: rgb(6, 6, 163);
 }
 
 #report-id {
@@ -60,7 +50,7 @@ h4{
 
 #report-summary {
     height: 180px;
-    width: 800px;
+    width: 100%;
     border: 1px solid #ccc;
     overflow: auto;
     margin-bottom: 20px;
