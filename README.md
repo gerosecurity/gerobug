@@ -1,5 +1,5 @@
 ![djangoTest](https://github.com/gerobug/gerobug/actions/workflows/django.yml/badge.svg)
-
+![Black Hat Arsenal](https://raw.githubusercontent.com/toolswatch/badges/master/arsenal/asia/2022.svg?sanitize=true)
 
 # Gerobug
 ![gerobugLogo](https://raw.githubusercontent.com/gerobug/gerobug-docs-images/main/logo.png)
