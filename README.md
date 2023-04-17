@@ -3,29 +3,30 @@
 # Gerobug
 ![gerobugLogo](https://raw.githubusercontent.com/gerobug/gerobug-docs-images/main/logo.png)
 
-Open source private (self-managed) bug bounty platform.
+__Open source private (Self-managed) bug bounty platform.__
 
-Are you a company, planning to have your own bug bounty program, with minimum budget? __We got you!__
+Are you a company, planning to have your own bug bounty program, with minimum budget? 🤔<br>
 
-We are aware that some organizations have had difficulty establishing their own bug bounty program. <br>
-If you know what you're doing, using a third-party managed platform usually comes with a hefty price tag and increased security concerns.
-<br>
-In the other hand, creating your own independently run platform will take time and effort to build and maintain it.
+__WE GOT YOU! 🫵__
+
+We are aware that some organizations have had difficulty establishing their own bug bounty program. 😰<br>
+Using a third-party managed platform usually comes with a hefty price tag and security risks. 🙊 _(If you know, you know...)_<br>
+In the other hand, creating your own self-managed platform will take time and effort to build and maintain it. 😓
 
 <br>
 
 ## Why Gerobug?
-- __Easy:__ Have your bug bounty program running with just single line of command
-- __Secure:__ Gerobug use email parser to receive reports to minimize security risks
-- __Open Source:__ It is FREE.
+- __EASY        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:__ Have your bug bounty program running with just single line of command 😏
+- __SECURE      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:__ Gerobug use email parser to receive reports to minimize security risks 🦾
+- __OPEN SOURCE &nbsp;&nbsp;&nbsp;&nbsp;:__ It is FREE. 🤩
 
 <br>
 
 ## Requirements
 * Gmail Email with <a href="https://support.google.com/accounts/answer/185833">App password</a> implemented
-* Docker
-* Docker-compose
-* Python 3.8
+* Docker (Latest)
+* Docker-compose (Latest)
+* Python 3.8 or above
 
 <br>
 
@@ -86,7 +87,7 @@ Yeah we have it too
 <br>
 
 ## NOTE
-Currently we are not accepting any bug issues for __Gerobug v1.1__, since we're still actively maintain and improving its features and capabilities. But we are open to any feedbacks and suggestions. Thank you for your understanding.
+Currently we are not accepting any bug issues for __Gerobug v1.1__, since we're still actively maintain and improving its features and capabilities. But we are open to any feedbacks and suggestions. Thank you for your understanding. 🙏
 
 <br>
 
@@ -105,7 +106,7 @@ Currently we are not accepting any bug issues for __Gerobug v1.1__, since we're 
 - [ ] Improve Duplicate Detection Algorithm
 - [ ] Improve Logging Module
 - [ ] Improve Backend Performance and Efficiency
-- [ ] And many more...
+- [ ] And many more... 🥵
 
 <br>
 
@@ -117,5 +118,5 @@ Currently we are not accepting any bug issues for __Gerobug v1.1__, since we're 
 <br>
 
 ## Feedback
-If you have any feedback, please reach out to us at gerobug.id@gmail.com
+If you have any feedback, please reach out to us at __gerobug.id@gmail.com__ 🫶
 
