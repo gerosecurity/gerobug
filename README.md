@@ -81,7 +81,7 @@ Yeah we have it too
 - [ ] Add Support for Other Mailboxes (Outlook, Apple, etc.)
 - [ ] Add Forced Prompt to Change Default Password and Setup Mailbox
 - [ ] Add Email Template Setting
-- [ ] Add More Settings for Admin (Slack Webhooks)
+- [ ] Add More Settings for Admin
 - [ ] Add Flow Control (Custom Status, Add / Remove Status)
 - [ ] Improve RBAC for Admin Users
 - [ ] Improve Notifications and Confirmations (Mailbox Active/Invalid, Email Sent to Bug Hunter, Current Mailbox, etc.)
