@@ -1,4 +1,5 @@
 ![djangoTest](https://github.com/gerobug/gerobug/actions/workflows/django.yml/badge.svg)
+![Black Hat Arsenal](https://raw.githubusercontent.com/toolswatch/badges/master/arsenal/asia/2022.svg?sanitize=true)
 
 # Gerobug
 ![gerobugLogo](https://raw.githubusercontent.com/gerobug/gerobug-docs-images/main/logo.png)
@@ -29,6 +30,9 @@ In the other hand, creating your own independently run platform will take time a
 ## Deployment and Usage
 To deploy gerobug:
 1. Clone this repository
+```bash
+git clone https://github.com/gerobug/gerobug
+```
 2. Run this: 
 ```bash
 sudo docker-compose up --build --force-recreate -d
@@ -77,6 +81,7 @@ Yeah we have it too
 - [ ] Add Support for Other Mailboxes (Outlook, Apple, etc.)
 - [ ] Add Forced Prompt to Change Default Password and Setup Mailbox
 - [ ] Add Email Template Setting
+- [ ] Add More Settings for Admin
 - [ ] Add Flow Control (Custom Status, Add / Remove Status)
 - [ ] Improve RBAC for Admin Users
 - [ ] Improve Notifications and Confirmations (Mailbox Active/Invalid, Email Sent to Bug Hunter, Current Mailbox, etc.)
