@@ -1,5 +1,4 @@
 ![djangoTest](https://github.com/gerobug/gerobug/actions/workflows/django.yml/badge.svg)
-![Black Hat Arsenal](https://raw.githubusercontent.com/toolswatch/badges/master/arsenal/asia/2022.svg?sanitize=true)
 
 # Gerobug
 ![gerobugLogo](https://raw.githubusercontent.com/gerobug/gerobug-docs-images/main/logo.png)
@@ -13,12 +12,14 @@ If you know what you're doing, using a third-party managed platform usually come
 <br>
 In the other hand, creating your own independently run platform will take time and effort to build and maintain it.
 
+<br>
 
 ## Why Gerobug?
 - __Easy:__ Have your bug bounty program running with just single line of command
 - __Secure:__ Gerobug use email parser to receive reports to minimize security risks
 - __Open Source:__ It is FREE.
 
+<br>
 
 ## Requirements
 * Gmail Email with <a href="https://support.google.com/accounts/answer/185833">App password</a> implemented
@@ -26,8 +27,10 @@ In the other hand, creating your own independently run platform will take time a
 * Docker-compose
 * Python 3.8
 
+<br>
 
 ## Deployment and Usage
+__[This Version is Not Ready for Production Yet, We Will Update it ASAP]__<br><br>
 To deploy gerobug:
 1. Clone this repository
 ```bash
@@ -44,6 +47,8 @@ You can read the __detailed documentation [here](https://bit.ly/GerobugDocumenta
 <br>
 If you need to see the UML diagrams, you can see them __[here](https://drive.google.com/drive/folders/1eYKZLc_nQY2bv_Byak60WVrMSbaHTeUM)__
 
+<br>
+
 ## Main Features
 - Homepage<br>
 This should be the only page accessible by public, which contains Rules and Guidelines for your bug bounty program.
@@ -51,8 +56,10 @@ This should be the only page accessible by public, which contains Rules and Guid
 - Email Parser<br>
 Bug Hunter will submit their findings by email, which Gerobug will parse, filter, and show them on dashboard.
 
-- Auto Reply and Notification<br>
-Bug Hunter's inquiries will be automatically replied and notified if there any updates on their report.<br>
+- Auto Reply and Notification for Bug Hunters<br>
+Bug Hunter's inquiries will be automatically replied and notified if there any updates on their report.
+
+- Notification Channel<br>
 Company will also be notified via Slack/Telegram if there any new report.
 
 - User Management<br>
@@ -76,27 +83,38 @@ We can generate certificate of appreciations for bug hunters so you don't have t
 - Hall of Fame / Wall of fame / Leaderboard<br>
 Yeah we have it too
 
+<br>
+
+## NOTE
+Currently we are not accepting any bug issues for __Gerobug v1.1__, since we're still actively maintain and improving its features and capabilities. But we are open to any feedbacks and suggestions. Thank you for your understanding.
+
+<br>
 
 ## ON GOING IMPROVEMENTS
-- [ ] Add Support for Other Mailboxes (Outlook, Apple, etc.)
+- [ ] Completely Seperate "Rules & Guidelines" Page from Dashboard and DB (Air Gap)
+- [ ] Add Capability to Edit Report and NDA Template on Admin Setting
+- [ ] Add Capability to Edit Certificate Template on Admin Setting
 - [ ] Add Forced Prompt to Change Default Password and Setup Mailbox
-- [ ] Add Email Template Setting
-- [ ] Add More Settings for Admin
+- [ ] Add Capability to Edit Email Template on Admin Setting
+- [ ] Add Support for Other Mailboxes (Outlook, Apple, etc.)
 - [ ] Add Flow Control (Custom Status, Add / Remove Status)
-- [ ] Improve RBAC for Admin Users
-- [ ] Improve Notifications and Confirmations (Mailbox Active/Invalid, Email Sent to Bug Hunter, Current Mailbox, etc.)
+- [ ] Auto Calculate Severity String to Number Format
+- [ ] Improve Dockerization
+- [ ] Improve RBAC for Reviewer Users (Assign and Link Reports)
+- [ ] Improve Notifications and Confirmations on Successful Actions 
 - [ ] Improve Duplicate Detection Algorithm
-- [ ] Improve Backend Performance and Efficiency
 - [ ] Improve Logging Module
-- [ ] Split Homepage and Dashboard Endpoint
-- [ ] Split Dashboard and Parser (API)
+- [ ] Improve Backend Performance and Efficiency
+- [ ] And many more...
 
+<br>
 
 ## Authors
 - [@VGR6479](https://github.com/VGR6479)
 - [@as3ng](https://github.com/as3ng)
 - [@jessicaggan](https://github.com/jessicaggan)
 
+<br>
 
 ## Feedback
 If you have any feedback, please reach out to us at gerobug.id@gmail.com
