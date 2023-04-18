@@ -324,8 +324,8 @@ def AdminSetting(request):
             user.set_password(account.cleaned_data.get('user_password'))
             user.save()
             
-            print("[LOG] Superuser updated successfully")
-            messages.success(request,"Superuser is updated successfully!")
+            print("[LOG] "+username+" Updated successfully")
+            messages.success(request,"User "+username+" updated successfully!")
             return redirect('setting')
 
         form = AdminSettingForm(request.POST)
