@@ -42,14 +42,14 @@
         </header>
 
         <main>
-            <h3>Update Report Status</h3>
+            <h3>Update Report Severity</h3>
             <br>
             <form action="" method="POST">
                 {% csrf_token %}
                 {{ form.as_p }}
                 <br><br><br>
                 <!-- <button class="update-btn" data-bs-toggle="modal" type="button">Update Status</button> -->
-                <input type="submit" class="update-btn" value="Update Status">
+                <input type="submit" class="update-btn" value="Update">
                 </form>
                 <br><br>
                 <a id="score" href="{% url 'calculator' %}" target="_blank">OWASP RISK CALCULATOR</a>
