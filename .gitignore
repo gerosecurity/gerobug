@@ -1,5 +1,6 @@
 */*_pycache*
 */.DS*
+.DS*
 */*migrations*
 clear_caches.sh
 flush*
