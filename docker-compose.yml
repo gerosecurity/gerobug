@@ -16,7 +16,7 @@ services:
   db:
     image: 'postgres:latest'
     ports:
-      - "5432:5432"
+      - "localhost:5432:5432"
     env_file:
       - ./secrets/db_secret.env
     environment:
