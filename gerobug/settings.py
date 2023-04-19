@@ -88,8 +88,9 @@ WSGI_APPLICATION = 'gerobug.wsgi.application'
 # GET DB SECRET
 f = open("db_secret.env", "r")
 db_secret = f.read()
-print("DB Secret = "+db_secret)
 f.close()
+db_secret = db_secret.replace("POSTGRES_PASSWORD=",'')
+db_secret = db_secret.replace('"','')
 
 DATABASES = {
     'default': {
