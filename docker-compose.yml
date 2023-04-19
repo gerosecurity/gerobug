@@ -17,7 +17,7 @@ services:
       - "6320:6320"
     command: python manage.py runserver 0.0.0.0:6320 --insecure
     env_file:
-      - ./secrets/gerobug_secret.env
+      - ./gerobug_dashboard/secrets/gerobug_secret.env
     environment:
       PYTHONUNBUFFERED: 1
     restart: unless-stopped
@@ -29,7 +29,7 @@ services:
     ports:
       - "5432:5432"
     env_file:
-      - ./secrets/db_secret.env
+      - ./gerobug_dashboard/secrets/db_secret.env
     environment:
       POSTGRES_DB: "gerobug_db"
       POSTGRES_USER: "gerobug"
