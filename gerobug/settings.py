@@ -86,8 +86,9 @@ WSGI_APPLICATION = 'gerobug.wsgi.application'
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
 # GET DB SECRET
-f = open(BASE_DIR+"/db_secret.env", "r")
+f = open("db_secret.env", "r")
 db_secret = f.read()
+print("DB Secret = "db_secret)
 f.close()
 
 DATABASES = {
