@@ -31,7 +31,7 @@ while ! python manage.py migrate prerequisites 2>&1; do
    sleep 3
 done
 
-echo "Creating Superuser "geromin" with password="$DOCKER_SUPERUSER_PASSWORD
+echo "Creating Superuser "geromin" with password="$DJANGO_SUPERUSER_PASSWORD
 python manage.py createsuperuser --noinput --username "geromin" --email "geromin@localhost"
 
 python manage.py collectstatic --noinput
