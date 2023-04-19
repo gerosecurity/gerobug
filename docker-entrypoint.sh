@@ -26,12 +26,10 @@ while ! python manage.py migrate prerequisites 2>&1; do
    sleep 3
 done
 
-python manage.py collectstatic --noinput
-
-pwd
-echo "ADMIN PASSWORD =" $DJANGO_SUPERUSER_PASSWORD
-
+python manage.py migrate
 python manage.py createsuperuser --noinput --username "geromin" --email "geromin@localhost"
+
+python manage.py collectstatic --noinput
 
 echo "Django docker is fully configured successfully."
 
