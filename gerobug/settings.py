@@ -88,7 +88,7 @@ WSGI_APPLICATION = 'gerobug.wsgi.application'
 # GET DB SECRET
 f = open("db_secret.env", "r")
 db_secret = f.read()
-print("DB Secret = "db_secret)
+print("DB Secret = "+db_secret)
 f.close()
 
 DATABASES = {
