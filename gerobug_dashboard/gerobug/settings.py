@@ -14,6 +14,7 @@ DEBUG = False
 # READ FROM GEROBUG HOST FILE
 f = open(root_path+"/gerobug_host", "r")
 gerobug_host = f.read()
+print("GEROBUG HOST = ",gerobug_host)
 f.close()
 
 ALLOWED_HOSTS = [gerobug_host] # STATIC INTERNAL IP
