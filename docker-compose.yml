@@ -9,6 +9,7 @@ services:
     environment:
       POSTGRES_DB: "gerobug_db"
       POSTGRES_USER: "gerobug"
+      POSTGRES_HOST_AUTH_METHOD: "trust"
     volumes:
       - ./db_data/:/var/lib/postgresql/data/
     restart: unless-stopped
