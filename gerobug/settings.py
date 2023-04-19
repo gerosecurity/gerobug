@@ -98,7 +98,7 @@ DATABASES = {
         'NAME': 'gerobug_db',
         'USER': 'gerobug',
         'PASSWORD': db_secret,
-        'HOST': 'localhost',
+        'HOST': '127.0.0.1',
         'PORT': '5432',
     }
 }
