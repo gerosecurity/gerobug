@@ -1,6 +1,6 @@
 version: "3.9"
 services:
-  database:
+  db:
     image: 'postgres:latest'
     ports:
       - "5432:5432"
@@ -21,6 +21,8 @@ services:
     environment:
       PYTHONUNBUFFERED: 1
     restart: unless-stopped
+    depends_on:
+      - db
 
   # web:
   #   build: .
