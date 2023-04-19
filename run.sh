@@ -13,11 +13,11 @@ if [ ! -f ./gerobug_host ]; then
     done
     echo $IP > ./gerobug_host
 else
-    echo "Current Allowed Host:" $(cat ./gerobug_host)
-    echo "[Change to Static Internal IP]"
+    echo "Current Allowed Host: $(<./gerobug_host)"
+    echo "[* IS NOT RECOMMENDED, Change to Static Internal IP]"
     ANSWER=""
 
-    select RESULT in 'Change IP' 'Continue with * [Not Recommended]'; do
+    select RESULT in 'Change IP' 'Continue with Current Allowed Host'; do
         case $REPLY in
             [12])
                 break
