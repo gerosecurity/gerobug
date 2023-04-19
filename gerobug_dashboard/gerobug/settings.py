@@ -12,7 +12,7 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', get_random_secret_key())
 DEBUG = False
 
 # READ FROM GEROBUG HOST FILE
-f = open(root_path+"gerobug_host", "r")
+f = open(root_path+"/gerobug_host", "r")
 gerobug_host = f.read()
 f.close()
 
