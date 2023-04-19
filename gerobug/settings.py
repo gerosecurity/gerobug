@@ -86,7 +86,7 @@ WSGI_APPLICATION = 'gerobug.wsgi.application'
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
 # GET DB SECRET
-f = open("db_secret.env", "r")
+f = open("secrets/db_secret.env", "r")
 db_secret = f.read()
 f.close()
 db_secret = db_secret.replace("POSTGRES_PASSWORD=",'')
