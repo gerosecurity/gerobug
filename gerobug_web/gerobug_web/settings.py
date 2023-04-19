@@ -49,7 +49,7 @@ WSGI_APPLICATION = 'gerobug_web.wsgi.application'
 
 # GET DB SECRET
 root_path = str(BASE_DIR).replace("gerobug_dashboard",'')
-f = open(root_path+"secrets/db_secret.env", "r")
+f = open(root_path+"/secrets/db_secret.env", "r")
 db_secret = f.read()
 f.close()
 

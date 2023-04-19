@@ -68,7 +68,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'gerobug.wsgi.application'
 
 # READ FROM DB SECRET FILE
-f = open(root_path+"secrets/db_secret.env", "r")
+f = open(root_path+"/secrets/db_secret.env", "r")
 db_secret = f.read()
 f.close()
 
