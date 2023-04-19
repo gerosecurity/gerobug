@@ -85,10 +85,19 @@ WSGI_APPLICATION = 'gerobug.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
+# GET DB SECRET
+f = open("db_secret.env", "r")
+db_secret = f.read()
+f.close()
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'gerobug_db',
+        'USER': 'gerobug',
+        'PASSWORD': db_secret,
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 

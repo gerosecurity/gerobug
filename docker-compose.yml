@@ -1,9 +1,32 @@
 version: "3.9"
 services:
-  web:
+  database:
+    image: 'postgres:latest'
+    ports:
+      - "5432:5432"
+    env_file:
+      - db_secret.env
+    environment:
+      POSTGRES_DB: "gerobug_db"
+      POSTGRES_USER: "gerobug"
+    volumes:
+      - ./db_data/:/var/lib/postgresql/data/
+    restart: unless-stopped
+
+  dashboard:
     build: .
     ports:
       - "6320:6320"
     command: python manage.py runserver 0.0.0.0:6320 --insecure
     environment:
       PYTHONUNBUFFERED: 1
+    restart: unless-stopped
+
+  # web:
+  #   build: .
+  #   ports:
+  #     - "80:80"
+  #   command: python manage.py runserver 0.0.0.0:80 --insecure
+  #   environment:
+  #     PYTHONUNBUFFERED: 1
+  #   restart: unless-stopped
