@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ ! -f ./secrets/ ]; then
+if [ ! -d ./secrets ]; then
     echo '[INFO] Creating Secret Folder...'
     mkdir secrets
 fi

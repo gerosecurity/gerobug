@@ -16,6 +16,11 @@ done
 echo "Migrate the Database ..."
 
 # Wait for few minute and run db migration
+while ! python manage.py migrate 2>&1; do
+   echo "Migration is in progress status 0"
+   sleep 3
+done
+
 while ! python manage.py migrate dashboards 2>&1; do
    echo "Migration is in progress status 1"
    sleep 3
@@ -26,8 +31,10 @@ while ! python manage.py migrate prerequisites 2>&1; do
    sleep 3
 done
 
-python manage.py migrate
-python manage.py createsuperuser --noinput --username "geromin" --email "geromin@localhost"
+while ! python manage.py createsuperuser --noinput --username "geromin" --email "geromin@localhost" 2>&1; do
+   echo "Creating Superuser with Password="$DOCKER_SUPERUSER_PASSWORD
+   sleep 3
+done
 
 python manage.py collectstatic --noinput
 
