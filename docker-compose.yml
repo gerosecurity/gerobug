@@ -1,7 +1,7 @@
 version: "3.9"
 services:
   dashboard:
-    build: .
+    build: ./gerobug-dashboard
     ports:
       - "6320:6320"
     command: python manage.py runserver 0.0.0.0:6320 --insecure
