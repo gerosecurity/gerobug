@@ -17,7 +17,7 @@ gerobug_host = f.read()
 print("GEROBUG HOST = ",gerobug_host)
 f.close()
 
-ALLOWED_HOSTS = [gerobug_host] # STATIC INTERNAL IP
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', gerobug_host] # STATIC INTERNAL IP
 
 INSTALLED_APPS = [
     'django.contrib.admin',
