@@ -27,6 +27,14 @@ while ! python manage.py migrate prerequisites 2>&1; do
 done
 
 python manage.py collectstatic --noinput
+
+if [ ! -f ./gerobug_secret ]; then
+    echo '[INFO] Creating Dashboard Secret...'
+    DJANGO_SUPERUSER_PASSWORD=$(tr -dc 'A-Za-z0-9!#$%&*?@' </dev/urandom | head -c 30)
+    echo $DJANGO_SUPERUSER_PASSWORD > gerobug_secret
+    export DJANGO_SUPERUSER_PASSWORD
+fi
+
 python manage.py createsuperuser --noinput --username "geromin" --email "geromin@localhost"
 
 echo "Django docker is fully configured successfully."
