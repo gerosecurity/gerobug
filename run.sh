@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [ ! -f ./secrets/ ]; then
+    echo '[INFO] Creating Secret Folder...'
+    mkdir secrets
+fi
+
 if [ ! -f ./secrets/db_secret.env ]; then
     echo '[INFO] Creating DB Secret...'
     echo 'POSTGRES_PASSWORD="'$(tr -dc 'A-Za-z0-9!#$%&*?@' </dev/urandom | head -c 30)'"' > ./secrets/db_secret.env    
