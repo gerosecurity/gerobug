@@ -36,6 +36,6 @@ python manage.py createsuperuser --noinput --username "geromin" --email "geromin
 
 python manage.py collectstatic --noinput
 
-echo "[LOG] Django docker is fully configured successfully."
+echo "[LOG] GEROBUG-DASHBOARD is fully configured successfully."
 
 exec "$@"

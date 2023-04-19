@@ -1,7 +1,18 @@
 version: "3.9"
 services:
+  web:
+    build: ./gerobug_web
+    ports:
+      - "80:80"
+    command: python manage.py runserver 0.0.0.0:80 --insecure
+    environment:
+      PYTHONUNBUFFERED: 1
+    restart: unless-stopped
+    depends_on:
+      - dashboard
+
   dashboard:
-    build: ./gerobug-dashboard
+    build: ./gerobug_dashboard
     ports:
       - "6320:6320"
     command: python manage.py runserver 0.0.0.0:6320 --insecure

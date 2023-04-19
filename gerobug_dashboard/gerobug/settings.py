@@ -28,7 +28,7 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', get_random_secret_key())
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*'] # ADD STATIC INTERNAL IP
 
 
 # Application definition
@@ -86,9 +86,11 @@ WSGI_APPLICATION = 'gerobug.wsgi.application'
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
 # GET DB SECRET
-f = open("secrets/db_secret.env", "r")
+root_path = str(BASE_DIR).replace("gerobug_dashboard",'')
+f = open(root_path+"secrets/db_secret.env", "r")
 db_secret = f.read()
 f.close()
+
 db_secret = db_secret.replace("POSTGRES_PASSWORD=",'')
 db_secret = db_secret.replace('"','')
 
@@ -98,7 +100,8 @@ DATABASES = {
         'NAME': 'gerobug_db',
         'USER': 'gerobug',
         'PASSWORD': db_secret,
-        'HOST': 'db',
+        #'HOST': 'db',
+        'HOST': 'localhost',
         'PORT': '5432',
     }
 }
