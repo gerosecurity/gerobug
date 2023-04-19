@@ -91,7 +91,6 @@ db_secret = f.read()
 f.close()
 db_secret = db_secret.replace("POSTGRES_PASSWORD=",'')
 db_secret = db_secret.replace('"','')
-print("DB SECRET=" + db_secret)
 
 DATABASES = {
     'default': {
