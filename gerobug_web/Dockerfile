@@ -10,6 +10,8 @@ COPY . /src/
 
 WORKDIR /src
 
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir -r requirements.txt
 RUN chmod +x ./docker-entrypoint.sh
 
 ENTRYPOINT ["./docker-entrypoint.sh"]
