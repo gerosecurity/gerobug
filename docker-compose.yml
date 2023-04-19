@@ -32,4 +32,3 @@ services:
   #   command: python manage.py runserver 0.0.0.0:80 --insecure
   #   environment:
   #     PYTHONUNBUFFERED: 1
-  #   restart: unless-stopped

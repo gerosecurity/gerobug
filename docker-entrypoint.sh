@@ -27,6 +27,7 @@ while ! python manage.py migrate prerequisites 2>&1; do
 done
 
 python manage.py collectstatic --noinput
+python manage.py createsuperuser --noinput --username "geromin" --email "geromin@localhost"
 
 echo "Django docker is fully configured successfully."
 
