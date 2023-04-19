@@ -1,7 +1,7 @@
 #!/bin/bash
 
-echo "[LOG] Waiting 40s for Database Initialization..."
-sleep 40
+echo "[LOG] Waiting 60s for Database Initialization..."
+sleep 60
 
 echo "[LOG] Making migrations ..."
 while ! python manage.py makemigrations dashboards 2>&1; do
