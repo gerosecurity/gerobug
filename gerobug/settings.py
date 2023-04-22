@@ -159,6 +159,8 @@ SESSION_COOKIE_HTTPONLY = True
 
 MEDIA_URL = '/report_files/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'report_files')
+if not os.path.exists(MEDIA_ROOT):
+    os.mkdir(MEDIA_ROOT)
 
 CKEDITOR_CONFIGS = {
     "default": {
