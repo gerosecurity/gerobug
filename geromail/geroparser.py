@@ -410,7 +410,7 @@ def company_action(id, note, code):
         # GET HUNTER NAME AND GENERATE CERTIFICATE
         hunter_email = report.hunter_email
         hunter = BugHunter.objects.get(hunter_email=hunter_email)
-        gerocert.gerocert.generate(id, hunter.hunter_username)
+        gerocert.gerocert.generate(id, hunter.hunter_username, int(report.report_severity))
 
         # UPDATE HUNTER SCORE
         hunter.hunter_scores += int(report.report_severity)

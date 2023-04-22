@@ -5,7 +5,7 @@ from dashboards.models import CertificateData
 from datetime import date
 
 
-def create_cert(name: str, certificate: str):
+def create_cert(name: str, certificate: str, severity):
     CertData = CertificateData.objects.get(cert_id=1)
     signature_path = os.path.join(BASE_DIR,'gerocert','cert_signature.jpg')
     logo_path = os.path.join(BASE_DIR,'static','logo.png')
@@ -32,7 +32,15 @@ def create_cert(name: str, certificate: str):
     
     # SEVERITY
     font = ImageFont.truetype(font_path, 80)
-    severity = "CRITICAL"
+    if severity < 4:
+        severity = "LOW"
+    elif severity < 7:
+        severity = "MEDIUM"
+    elif severity < 9:
+        severity = "HIGH"
+    elif severity >= 9:
+        severity = "CRITICAL"
+    
     text_width, _ = draw.textsize(severity, font=font)
     draw.text(
         (
@@ -87,9 +95,9 @@ def create_cert(name: str, certificate: str):
     return img
 
 
-def generate(id, name):
+def generate(id, name, severity):
     TEMPLATE_CERT = os.path.join(BASE_DIR,'static/templates',"Template_Cert.jpg")
-    CERTIFICATE = create_cert(name, TEMPLATE_CERT)
+    CERTIFICATE = create_cert(name, TEMPLATE_CERT, severity)
 
     cert_name = id+"-C.jpg"
     cert_path = os.path.join(MEDIA_ROOT,id,cert_name)
@@ -97,7 +105,7 @@ def generate(id, name):
 
 def generate_sample():
     TEMPLATE_CERT = os.path.join(BASE_DIR,'static/templates',"Template_Cert.jpg")
-    CERTIFICATE = create_cert("John Doe", TEMPLATE_CERT)
+    CERTIFICATE = create_cert("John Doe", TEMPLATE_CERT, 10)
 
     sample_path = os.path.join(BASE_DIR,'static/templates',"Sample_Cert.jpg")
     CERTIFICATE.save(sample_path, format='JPEG')

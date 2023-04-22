@@ -518,7 +518,7 @@
                                 <h6>BLACKLIST RULE</h6>
                                 <hr>
                                 <p>Current Rule:</p>
-                                <p>When there are <b>{{ bl.max_counter }}</b> emails from the same address with <b>{{ bl.buffer_monitor }}</b> interval<br> That email will be blocked for <b>{{ bl.buffer_blacklist }}</b> seconds</p>
+                                <p>When there are more than <b>{{ bl.max_counter }}</b> emails from the same address with <b>{{ bl.buffer_monitor }}</b> interval<br> That email will be blocked for <b>{{ bl.buffer_blacklist }}</b> seconds</p>
                                 <form method="POST">
 
                                     {% csrf_token %}
