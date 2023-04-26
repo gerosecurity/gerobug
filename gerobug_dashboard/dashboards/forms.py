@@ -51,3 +51,27 @@ class WebhookForm(forms.Form):
     CHOICES = (('SLACK', 'Slack'),('TELEGRAM', 'Telegram'),)
     webhook_service = forms.ChoiceField(choices=CHOICES,label="Notification Channel")
     webhook_handle = forms.CharField(widget=forms.URLInput(attrs={'id':'webhook_handle', 'placeholder': 'Webhook URL', 'style': 'width: 100%;', 'class': 'form-control'}),label="Webhook URL")
+
+class BlacklistForm(forms.Form):
+    max_counter = forms.IntegerField(widget=forms.NumberInput(attrs={'id':'max_counter', 'placeholder': 'Max emails within buffer monitor', 'style': 'width: 100%;', 'class': 'form-control'}),label="Max Counter", initial=10)
+    buffer_monitor = forms.IntegerField(widget=forms.NumberInput(attrs={'id':'buffer_monitor', 'placeholder': 'Timerange for monitor (Seconds)', 'style': 'width: 100%;', 'class': 'form-control'}),label="Monitor Buffer", initial=60)
+    buffer_blacklist = forms.IntegerField(widget=forms.NumberInput(attrs={'id':'buffer_blacklist', 'placeholder': 'Blacklist duration before auto-release (Seconds)', 'style': 'width: 100%;', 'class': 'form-control'}),label="Blacklist Duration", initial=3600)
+
+class TemplateReportForm(forms.Form):
+    test = forms.HiddenInput()
+    template_report = forms.FileField(widget=forms.FileInput(attrs={'id':'template_report', 'placeholder': 'Report Template (.pdf)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.pdf'}),label="Report Template")
+
+class TemplateNDAForm(forms.Form):
+    template_nda = forms.FileField(widget=forms.FileInput(attrs={'id':'template_nda', 'placeholder': 'NDA Template (.pdf)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.pdf'}),label="NDA Template")
+
+class TemplateCertForm(forms.Form):
+    template_cert = forms.FileField(widget=forms.FileInput(attrs={'id':'template_cert', 'placeholder': 'Certificate Template (.jpg)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.jpg'}),label="Certificate Template")
+   
+class CertDataForm(forms.Form):
+    template_signature = forms.FileField(widget=forms.FileInput(attrs={'id':'template_signature', 'placeholder': 'Officer Signature (.jpg)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.jpg'}),label="Officer Signature")
+    template_name = forms.CharField(widget=forms.TextInput(attrs={'id':'template_name', 'placeholder': 'e.g. Billy Sudarsono', 'style': 'width: 100%;', 'class': 'form-control'}),label="Officer Name")
+    template_title = forms.CharField(widget=forms.TextInput(attrs={'id':'template_title', 'placeholder': 'e.g. Founder of Gerobug', 'style': 'width: 100%;', 'class': 'form-control'}),label="Officer Title")
+
+class PersonalizationForm(forms.Form):
+    company_logo = forms.FileField(widget=forms.FileInput(attrs={'id':'company_logo', 'placeholder': 'Company Logo (.png)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.png'}),label="Company Logo")
+    #company_name = forms.CharField(widget=forms.TextInput(attrs={'id':'company_name', 'placeholder': 'e.g. Gerobug Indonesia', 'style': 'width: 100%;', 'class': 'form-control'}),label="Company Name")

@@ -8,7 +8,7 @@ from email import encoders
 
 from . import mail_templates
 from dashboards.models import ReportStatus
-from gerobug.settings import MEDIA_ROOT
+from gerobug.settings import MEDIA_ROOT, BASE_DIR
 from prerequisites.models import MailBox
 
 
@@ -49,7 +49,7 @@ def write_mail(code, payload, Destination):
         # BOUNTY IN PROCESS (NDA)
         if code == 703:
             nda_filename = "Template_NDA.pdf"
-            nda_filepath = os.path.join(MEDIA_ROOT,nda_filename)
+            nda_filepath = os.path.join(BASE_DIR,"static/templates",nda_filename)
             nda_file = open(nda_filepath, 'rb')
  
             attachment = MIMEBase('application', 'octate-stream', Name=nda_filename)

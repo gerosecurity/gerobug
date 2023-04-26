@@ -29,7 +29,7 @@
     <header>
         <ul class="topnav">
           <li><div id=logo-atas>
-            <a href="{% url 'rules' %}"><img src="{% static 'logo-black.png' %}"></a>
+            <a href="{% url 'rules' %}"><img src="{% static 'logo.png' %}"></a>
           </div></li>
           <li><a class="active" href="{% url 'rules' %}">Rules & Guidelines</a></li>
           <li><a href="{% url 'halloffame' %}">Hall Of Fame</a></li>
@@ -56,6 +56,7 @@
             <div class="col-8">
                 <div data-bs-spy="scroll" data-bs-target="#simple-list-example" data-bs-offset="0"
                     data-bs-smooth-scroll="true" class="scrollspy-example" tabindex="0">
+                    <h3>[INTERNAL VIEW ONLY]</h3>
                     <h4 id="1">Responsible Disclosure Policy</h4>
                     {% block RDP %}
                     {% if RDP %}
@@ -110,7 +111,7 @@
 
     <footer>
         <div id="copyright">
-            <p>&copy; 2022 GEROBUG</p>
+            <p>&copy; {%now "Y"%} GEROBUG</p>
         </div>
     </footer>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"

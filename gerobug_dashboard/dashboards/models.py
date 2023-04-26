@@ -119,3 +119,28 @@ class Blacklist(models.Model):
 
     def __str__(self):
         return self.email
+    
+class BlacklistRule(models.Model):
+    rule_id = models.IntegerField(default=1)
+    max_counter = models.IntegerField(default=10)
+    buffer_monitor = models.IntegerField(default=60)
+    buffer_blacklist = models.IntegerField(default=3600)
+    buffer_clean = models.IntegerField(default=86400)
+
+    def __str__(self):
+        return self.rule_id
+    
+class CertificateData(models.Model):
+    cert_id = models.IntegerField(default=1)
+    officer_name = models.CharField(max_length=30)
+    officer_title = models.CharField(max_length=30)
+
+    def __str__(self):
+        return self.rule_id
+    
+# class Personalization(models.Model):
+#     pid = models.IntegerField(default=1)
+#     company_name = models.CharField(max_length=30)
+
+#     def __str__(self):
+#         return self.pid

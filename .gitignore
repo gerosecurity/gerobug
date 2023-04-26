@@ -1,9 +1,13 @@
 */*_pycache*
-*/.DS*
-*/*migrations*
 */*/*_pycache*
+
+*/.DS*
 */*/.DS*
+*/*/*/.DS*
+
+*/*migrations*
 */*/*migrations*
+
 secrets/
 clear_caches*
 flush_migrate*
