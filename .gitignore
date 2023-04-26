@@ -1,6 +1,7 @@
 */*_pycache*
 */*/*_pycache*
 
+*.DS*
 */.DS*
 */*/.DS*
 */*/*/.DS*
