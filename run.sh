@@ -12,10 +12,12 @@ echo "
 echo "================================================================================"
 echo "Gerobug Dashboard should only be accessible internally to avoid security risks"
 echo "[IT IS RECOMMENDED TO SET ALLOWED HOST USING STATIC INTERNAL IP]"
-echo "================================================================================"
+echo -e "================================================================================\n"
+
 echo "IP Address: " 
 echo $(ip addr | grep inet)
-echo "=========================="
+
+echo -e "\n=========================="
 echo "GEROBUG DASHBOARD IP SETUP"
 echo "=========================="
 
@@ -29,7 +31,7 @@ if [ ! -f ./gerobug_dashboard/gerobug_host ]; then
     echo $IP > ./gerobug_dashboard/gerobug_host
 else
     echo "Current Allowed Host: $(<./gerobug_dashboard/gerobug_host)"
-    echo "[* IS NOT RECOMMENDED, CHANGE TO STATIC INTERNAL IP]"
+    echo -e "[* IS NOT RECOMMENDED, CHANGE TO STATIC INTERNAL IP]\n"
     ANSWER=""
 
     select RESULT in 'Change IP' 'Continue with Current Allowed Host'; do
