@@ -1,8 +1,23 @@
 #!/bin/bash
 
-echo "IP Address: " $(ip addr | grep inet)
+echo "
+ ______     ______     ______     ______     ______     __  __     ______    
+/\  ___\   /\  ___\   /\  == \   /\  __ \   /\  == \   /\ \/\ \   /\  ___\   
+\ \ \__ \  \ \  __\   \ \  __<   \ \ \/\ \  \ \  __<   \ \ \_\ \  \ \ \__ \  
+ \ \_____\  \ \_____\  \ \_\ \_\  \ \_____\  \ \_____\  \ \_____\  \ \_____\ 
+  \/_____/   \/_____/   \/_/ /_/   \/_____/   \/_____/   \/_____/   \/_____/ 
+                                                                             
+"
 
-echo "=============================="
+echo "================================================================================"
+echo "Gerobug Dashboard should only be accessible internally to avoid security risks"
+echo "[IT IS RECOMMENDED TO SET ALLOWED HOST USING STATIC INTERNAL IP]"
+echo "================================================================================"
+echo "IP Address: " 
+echo $(ip addr | grep inet)
+echo "=========================="
+echo "GEROBUG DASHBOARD IP SETUP"
+echo "=========================="
 
 if [ ! -f ./gerobug_dashboard/gerobug_host ]; then
     rx='([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])'
