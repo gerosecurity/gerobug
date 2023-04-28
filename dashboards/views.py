@@ -15,13 +15,13 @@ from django.urls import reverse, reverse_lazy
 from django.db.models import Sum
 from django.http import FileResponse
 from django.middleware.csrf import get_token
-from .models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, ReportStatus, StaticRules
+from .models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, ReportStatus, StaticRules, BlacklistRule, CertificateData
 from prerequisites.models import MailBox, Webhook
-from .forms import Requestform, AdminSettingForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm, WebhookForm
+from .forms import Requestform, AdminSettingForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm, WebhookForm, BlacklistForm, TemplateReportForm, TemplateNDAForm, TemplateCertForm, CertDataForm, PersonalizationForm
 from geromail import geromailer, gerofilter, geroparser
 from sys import platform
-from gerobug.settings import MEDIA_ROOT
-import threading, os, shutil
+from gerobug.settings import MEDIA_ROOT, BASE_DIR
+import threading, os, shutil, gerocert.gerocert
 
 
 
@@ -271,6 +271,7 @@ def ReportFiles(request, id):
 def AdminSetting(request):
     users = User.objects.filter(is_superuser=False)
     mailbox_account = MailBox.objects.get(mailbox_id=1)
+    bl = BlacklistRule.objects.get(rule_id=1)
     mailbox_status = mailbox_account.mailbox_status
     mailbox_name = mailbox_account.email
     notifications = Webhook.objects.all()
@@ -340,7 +341,10 @@ def AdminSetting(request):
             staticrules.save()
             print("[LOG] Rules are updated successfully")
             messages.success(request,"Rules are updated successfully!")
-            return render(request,'setting.html',{'form': form, 'mailbox': MailboxForm(), 'account': AccountForm(),'reviewer': ReviewerForm(),'webhooks': WebhookForm(),'users':users,'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications})
+            return render(request,'setting.html',
+                          {'form': form, 'mailbox': MailboxForm(), 'account': AccountForm(),'reviewer': ReviewerForm(),'webhooks': WebhookForm(),'blacklistrule': BlacklistForm(),
+                           'templatereport': TemplateReportForm(), 'templatenda': TemplateNDAForm(), 'templatecert': TemplateCertForm(), 'certdata': CertDataForm(), 'personalization': PersonalizationForm(),
+                           'users':users,'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications,'bl':bl})
         
         webhook = WebhookForm(request.POST)
         if webhook.is_valid():
@@ -362,7 +366,96 @@ def AdminSetting(request):
                 messages.error(request,"Something's wrong...")
                 return redirect("setting")
 
-    return render(request,'setting.html',{'form': AdminSettingForm(), 'mailbox': MailboxForm(), 'account': AccountForm(),'reviewer': ReviewerForm(),'webhooks': WebhookForm(),'users':users,'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications})
+        blacklistform = BlacklistForm(request.POST)
+        if blacklistform.is_valid():
+            blacklistrule = BlacklistRule.objects.get(rule_id=1)
+            blacklistrule.max_counter = blacklistform.cleaned_data.get('max_counter')    
+            blacklistrule.buffer_monitor = blacklistform.cleaned_data.get('buffer_monitor') 
+            blacklistrule.buffer_blacklist = blacklistform.cleaned_data.get('buffer_blacklist') 
+            blacklistrule.save()
+
+            print("[LOG] Blacklist rule updated successfully")
+            messages.success(request,"Blacklist rule updated successfully!")
+            return redirect("setting")
+        
+        templatereport = TemplateReportForm(request.POST, request.FILES)
+        if templatereport.is_valid():
+            template_file = request.FILES['template_report']
+            path = os.path.join(BASE_DIR, "static/templates", "Template_Report.pdf")
+
+            with open(path, 'wb+') as destination:
+                for chunk in template_file.chunks():
+                    destination.write(chunk)
+
+            print("[LOG] Report Template updated successfully")
+            messages.success(request,"Report Template updated successfully!")
+            return redirect('setting')
+        
+        templatenda = TemplateNDAForm(request.POST, request.FILES)
+        if templatenda.is_valid():
+            template_file = request.FILES['template_nda']
+            path = os.path.join(BASE_DIR, "static/templates", "Template_NDA.pdf")
+
+            with open(path, 'wb+') as destination:
+                for chunk in template_file.chunks():
+                    destination.write(chunk)
+
+            print("[LOG] NDA Template updated successfully")
+            messages.success(request,"NDA Template updated successfully!")
+            return redirect('setting')
+        
+        templatecert = TemplateCertForm(request.POST, request.FILES)
+        if templatecert.is_valid():
+            template_file = request.FILES['template_cert']
+            path = os.path.join(BASE_DIR, "static/templates", "Template_Cert.jpg")
+
+            with open(path, 'wb+') as destination:
+                for chunk in template_file.chunks():
+                    destination.write(chunk)
+
+            gerocert.gerocert.generate_sample()
+            print("[LOG] Certificate Template updated successfully")
+            messages.success(request,"Certificate Template updated successfully!")
+            return redirect('setting')
+        
+        certificatedata = CertDataForm(request.POST, request.FILES)
+        if certificatedata.is_valid():
+            certdata = CertificateData.objects.get(cert_id=1)
+            certdata.officer_name = certificatedata.cleaned_data.get('template_name')    
+            certdata.officer_title = certificatedata.cleaned_data.get('template_title') 
+            certdata.save()
+
+            template_file = request.FILES['template_signature']
+            path = os.path.join(BASE_DIR, "gerocert", "cert_signature.jpg")
+
+            with open(path, 'wb+') as destination:
+                for chunk in template_file.chunks():
+                    destination.write(chunk)
+
+            gerocert.gerocert.generate_sample()
+            print("[LOG] Certificate Data updated successfully")
+            messages.success(request,"Certificate Data updated successfully!")
+            return redirect('setting')
+        
+        personalization = PersonalizationForm(request.POST, request.FILES)
+        if personalization.is_valid():
+            file = request.FILES['company_logo']
+            path = os.path.join(BASE_DIR, "static", "logo.png")
+
+            with open(path, 'wb+') as destination:
+                for chunk in file.chunks():
+                    destination.write(chunk)
+
+            gerocert.gerocert.generate_sample()
+            print("[LOG] Personalization updated successfully")
+            messages.success(request,"Personalization updated successfully!")
+            return redirect('setting')
+
+
+    return render(request,'setting.html',
+                  {'form': AdminSettingForm(), 'mailbox': MailboxForm(), 'account': AccountForm(),'reviewer': ReviewerForm(),'webhooks': WebhookForm(),'blacklistrule': BlacklistForm(),
+                    'templatereport': TemplateReportForm(), 'templatenda': TemplateNDAForm(), 'templatecert': TemplateCertForm(), 'certdata': CertDataForm(), 'personalization': PersonalizationForm(),
+                    'users':users,'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications,'bl':bl})
 
 @login_required
 def ReviewerDelete(request,id):

@@ -102,6 +102,9 @@
                     </li>
                 </ul>
                 <a class="btn btn-light" href="{% url 'logout' %}" role="button">Logout</a>
+                <div id="copyright">
+                    <p>&copy; {%now "Y"%} GEROBUG</p>
+                </div>
             </div>
         {% endif %}      
         {% block content %}

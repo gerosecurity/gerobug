@@ -13,6 +13,7 @@ footer{
 }
 
 #copyright{
+  padding-top: 1.5vh;
   font-weight: bold;
   font-size: 2vh;
   text-align: center;
@@ -45,8 +46,9 @@ ul.topnav li a {
   display: block;
   color: white;
   text-align: center;
-  padding: 14px 16px;
+  padding: 15px 16px;
   text-decoration: none;
+  height: 8vh;
 }
 
 ul.topnav li a:hover:not(.active) {background-color: #e8596a;}

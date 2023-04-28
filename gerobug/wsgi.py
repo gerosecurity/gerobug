@@ -8,11 +8,11 @@ https://docs.djangoproject.com/en/4.0/howto/deployment/wsgi/
 """
 
 
-import os
+import os, gerocert.gerocert
 
 from django.core.wsgi import get_wsgi_application
 from geromail.thread import RunGeromailThread
-from dashboards.models import BugReport, BugHunter, ReportStatus, StaticRules
+from dashboards.models import BugReport, BugHunter, ReportStatus, StaticRules, BlacklistRule, CertificateData
 from django.contrib.auth.models import Group, Permission
 from django.core.exceptions import ObjectDoesNotExist
 from prerequisites.models import MailBox
@@ -38,7 +38,7 @@ def init_status_db(id, name):
     else:
         print("[LOG] Status DB already exists")
 
-# INSERT RULES (TERMS, SCOPE, ETC) TO DB
+# INSERT DEFAULT RULES (TERMS, SCOPE, ETC) AND BLACKLIST RULE TO DB
 def init_rules_db():
     if  not StaticRules.objects.filter(pk=1).exists():
         staticrules = StaticRules()
@@ -54,6 +54,36 @@ def init_rules_db():
     
     else:
         print("[LOG] Rules DB already exists")
+    
+    if not BlacklistRule.objects.filter(rule_id=1).exists():
+        blacklistrule = BlacklistRule()
+        
+        blacklistrule.rule_id = 1
+        blacklistrule.max_counter = 10
+        blacklistrule.buffer_monitor = 60
+        blacklistrule.buffer_blacklist = 3600
+        blacklistrule.buffer_clean = 86400
+        blacklistrule.save()
+        print("[LOG] Init Blacklist Rules DB success")
+    
+    else:
+        print("[LOG] Blacklist Rules DB already exists")
+
+# INSERT CERTIFICATE DATA TO DB
+def init_cert_db(): 
+    if not CertificateData.objects.filter(cert_id=1).exists():
+        certdata = CertificateData()
+        
+        certdata.cert_id = 1
+        certdata.officer_name = "Billy Sudarsono"
+        certdata.officer_title = "Founder of Gerobug"
+        certdata.save()
+
+        gerocert.gerocert.generate_sample()
+        print("[LOG] Init Certificate Data success")
+    
+    else:
+        print("[LOG] Certificate Data already exists")
 
 # INIT MAILBOX
 def init_mailbox_db():
@@ -101,6 +131,7 @@ init_status_db(6, "Bounty in Process")
 init_status_db(7, "Completed")
 init_group()
 init_rules_db()
+init_cert_db()
 init_mailbox_db()
 
 print("Number of Status :", ReportStatus.objects.count())
