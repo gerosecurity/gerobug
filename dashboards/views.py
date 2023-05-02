@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required,user_passes_test
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User, Group
@@ -179,7 +179,9 @@ def ReportUpdateStatus(request,id):
 def FormHandler(request, id, complete):
     if gerofilter.validate_id(id):
         report = BugReport.objects.get(report_id=id)
+        # report = get_object_or_404(BugReport,report_id=id)
         status = ReportStatus.objects.get(status_id=report.report_status)
+        # status = get_object_or_404(ReportStatus,status_id=report.report_status)
         status = status.status_name
         if request.method == "POST":
             form = Requestform(request.POST)
@@ -241,18 +243,22 @@ def ReportFiles(request, id):
 
             if type == 'U':
                 report = BugReportUpdate.objects.get(update_id=uan_id)
+                # report = get_object_or_404(BugReportNDA,update_id=uan_id)
                 report_name = report.update_id + ".pdf"
 
             elif type == 'A':
                 report = BugReportAppeal.objects.get(appeal_id=uan_id)
+                # report = get_object_or_404(BugReportNDA,appeal_id=uan_id)
                 report_name = report.appeal_id + ".pdf"
 
             elif type == 'N':
                 report = BugReportNDA.objects.get(nda_id=uan_id)
+                # report = get_object_or_404(BugReportNDA,nda_id=uan_id)
                 report_name = report.nda_id + ".pdf"
         
         else:
             report = BugReport.objects.get(report_id=id)
+            # report = get_object_or_404(BugReport,report_id=id)
             report_name = report.report_id + ".pdf"
         
         try:

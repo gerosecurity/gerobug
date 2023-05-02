@@ -2,6 +2,7 @@ from django import forms
 from ckeditor.widgets import CKEditorWidget
 from dashboards.models import StaticRules
 from dashboards.rulestemplate import *
+from dashboards.validators import *
 
 class Requestform(forms.Form):
     reasons = forms.CharField(widget=forms.Textarea(attrs={"id":"reasons","name":"reasons","placeholder":"Write the reason here ..."}),required=True)
@@ -59,19 +60,19 @@ class BlacklistForm(forms.Form):
 
 class TemplateReportForm(forms.Form):
     test = forms.HiddenInput()
-    template_report = forms.FileField(widget=forms.FileInput(attrs={'id':'template_report', 'placeholder': 'Report Template (.pdf)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.pdf'}),label="Report Template")
+    template_report = forms.FileField(widget=forms.FileInput(attrs={'id':'template_report', 'placeholder': 'Report Template (.pdf)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.pdf'}),label="Report Template",validators=(validate_is_pdf,))
 
 class TemplateNDAForm(forms.Form):
-    template_nda = forms.FileField(widget=forms.FileInput(attrs={'id':'template_nda', 'placeholder': 'NDA Template (.pdf)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.pdf'}),label="NDA Template")
+    template_nda = forms.FileField(widget=forms.FileInput(attrs={'id':'template_nda', 'placeholder': 'NDA Template (.pdf)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.pdf'}),label="NDA Template",validators=(validate_is_pdf,))
 
 class TemplateCertForm(forms.Form):
-    template_cert = forms.FileField(widget=forms.FileInput(attrs={'id':'template_cert', 'placeholder': 'Certificate Template (.jpg)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.jpg'}),label="Certificate Template")
+    template_cert = forms.FileField(widget=forms.FileInput(attrs={'id':'template_cert', 'placeholder': 'Certificate Template (.jpg)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.jpg'}),label="Certificate Template",validators=(validate_is_image,))
    
 class CertDataForm(forms.Form):
-    template_signature = forms.FileField(widget=forms.FileInput(attrs={'id':'template_signature', 'placeholder': 'Officer Signature (.jpg)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.jpg'}),label="Officer Signature")
+    template_signature = forms.FileField(widget=forms.FileInput(attrs={'id':'template_signature', 'placeholder': 'Officer Signature (.jpg)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.jpg'}),label="Officer Signature",validators=(validate_is_image,))
     template_name = forms.CharField(widget=forms.TextInput(attrs={'id':'template_name', 'placeholder': 'e.g. Billy Sudarsono', 'style': 'width: 100%;', 'class': 'form-control'}),label="Officer Name")
     template_title = forms.CharField(widget=forms.TextInput(attrs={'id':'template_title', 'placeholder': 'e.g. Founder of Gerobug', 'style': 'width: 100%;', 'class': 'form-control'}),label="Officer Title")
 
 class PersonalizationForm(forms.Form):
-    company_logo = forms.FileField(widget=forms.FileInput(attrs={'id':'company_logo', 'placeholder': 'Company Logo (.png)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.png'}),label="Company Logo")
+    company_logo = forms.FileField(widget=forms.FileInput(attrs={'id':'company_logo', 'placeholder': 'Company Logo (.png)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.png'}),label="Company Logo",validators=(validate_is_image,))
     #company_name = forms.CharField(widget=forms.TextInput(attrs={'id':'company_name', 'placeholder': 'e.g. Gerobug Indonesia', 'style': 'width: 100%;', 'class': 'form-control'}),label="Company Name")
