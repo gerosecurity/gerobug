@@ -21,7 +21,7 @@ from .forms import Requestform, AdminSettingForm, CompleteRequestform, MailboxFo
 from geromail import geromailer, gerofilter, geroparser
 from sys import platform
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
-import threading, os, shutil
+import threading, os, shutil, gerocert.gerocert
 
 
 
