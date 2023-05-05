@@ -58,7 +58,7 @@ fi
 echo -e "\n================================"
 echo "CHECK AND INSTALL PREREQUISITES"
 echo "================================"
-apt-get install -y python3 docker docker.io docker-compose ncftp
+apt-get install -y python3 docker docker.io docker-compose
 
 
 echo -e "\n=============================="
@@ -75,12 +75,6 @@ if [ ! -f ./gerobug_dashboard/secrets/db_secret.env ]; then
     echo '[LOG] Creating New DB Secret...'
     echo 'POSTGRES_PASSWORD="'$(tr -dc 'A-Za-z0-9!#$%&*?@' </dev/urandom | head -c 30)'"' > ./gerobug_dashboard/secrets/db_secret.env 
     cp  ./gerobug_dashboard/secrets/db_secret.env ./gerobug_web/secrets/db_secret.env 
-fi
-
-if [ ! -f ./gerobug_dashboard/secrets/ftp_secret.env ]; then
-    echo '[LOG] Creating New FTP Secret...'
-    echo 'FTP_PASS="'$(tr -dc 'A-Za-z0-9!#$%&*?@' </dev/urandom | head -c 30)'"' > ./gerobug_dashboard/secrets/ftp_secret.env 
-    cp  ./gerobug_dashboard/secrets/ftp_secret.env ./gerobug_web/secrets/ftp_secret.env 
 fi
 
 if [ ! -f ./gerobug_dashboard/secrets/gerobug_secret.env ]; then

@@ -23,20 +23,6 @@ services:
     restart: unless-stopped
     depends_on:
       - ftp
-  
-  ftp:
-    env_file:
-      - ./gerobug_dashboard/secrets/ftp_secret.env
-    environment:
-      FTP_USER: "gerobug"
-    image: garethflowers/ftp-server
-    ports:
-      - '20-21:20-21/tcp'
-      - '40000-40009:40000-40009/tcp'
-    volumes:
-      - '/ftp_data:/opt/gerobug'
-    depends_on:
-      - db
 
   db:
     image: 'postgres:latest'
