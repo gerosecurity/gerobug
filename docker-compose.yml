@@ -22,7 +22,7 @@ services:
       PYTHONUNBUFFERED: 1
     restart: unless-stopped
     depends_on:
-      - ftp
+      - db
 
   db:
     image: 'postgres:latest'
