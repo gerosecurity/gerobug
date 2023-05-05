@@ -90,6 +90,8 @@ if [ ! -f ./gerobug_dashboard/secrets/gerobug_secret.env ]; then
     echo 'DJANGO_SUPERUSER_PASSWORD="'$DJANGO_SUPERUSER_PASSWORD'"' > ./gerobug_dashboard/secrets/gerobug_secret.env
 fi
 
+echo -e "\n=============================="
+echo "BUILDING GEROBUG"
 echo "=============================="
 
 docker-compose up --build --force-recreate -d
