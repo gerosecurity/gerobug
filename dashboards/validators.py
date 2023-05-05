@@ -12,6 +12,9 @@ def validate_is_pdf(file):
     ext = os.path.splitext(file.name)[1]
     if ext.lower() not in valid_file_extensions:
         raise ValidationError(custom_err)
+    filesize = file.size
+    if filesize > (20 * 1024 * 1024):
+        raise ValidationError("PDF size must be lower than 20MB")
 
 def validate_is_image(file):
     custom_err = 'Only image file is allowed.'
@@ -23,3 +26,6 @@ def validate_is_image(file):
     ext = os.path.splitext(file.name)[1]
     if ext.lower() not in valid_file_extensions:
         raise ValidationError(custom_err)
+    filesize = file.size
+    if filesize > (10 * 1024 * 1024):
+        raise ValidationError("Image file size must be lower than 10MB")
