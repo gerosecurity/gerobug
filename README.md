@@ -87,7 +87,7 @@ Yeah we have it too
 <br>
 
 ## NOTE
-Currently we are not accepting any bug issues for __Gerobug v1.1__, since we're still actively maintain and improving its features and capabilities. But we are open to any feedbacks and suggestions. Thank you for your understanding. 🙏
+Currently we are not accepting any bug issues, since we're still actively maintain and improving its features and capabilities. But we are open to any feedbacks and suggestions. Thank you for your understanding. 🙏
 
 <br>
 
