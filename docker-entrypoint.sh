@@ -1,8 +1,5 @@
 #!/bin/bash
 
-echo "Install prerequitistes ..."
-apt-get install libmagic
-
 echo "Making migrations ..."
 
 while ! python manage.py makemigrations dashboards 2>&1; do
