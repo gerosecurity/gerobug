@@ -41,6 +41,9 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
+            'libraries':{
+            'gerobug_tags': 'templatetags.gerobug_tags',
+            }
         },
     },
 ]
