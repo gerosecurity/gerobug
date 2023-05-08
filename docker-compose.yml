@@ -42,5 +42,5 @@ services:
       - ./db_data/:/var/lib/postgresql/data/
     restart: unless-stopped
   
-  volumes:
-    static-content:
+volumes:
+  static-content:
