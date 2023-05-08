@@ -10,6 +10,10 @@ echo "
 "
 
 echo "================================================================================"
+echo "Gerobug v2.0 (Microservice Architecture)"
+echo -e "================================================================================\n"
+
+echo "================================================================================"
 echo "Gerobug Dashboard should only be accessible internally to avoid security risks"
 echo "[IT IS RECOMMENDED TO SET ALLOWED HOST USING STATIC INTERNAL IP]"
 echo -e "================================================================================\n"
