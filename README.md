@@ -93,8 +93,6 @@ Currently we are not accepting any bug issues, since we're still actively mainta
 
 ## ON GOING IMPROVEMENTS
 - [ ] Completely Seperate "Rules & Guidelines" Page from Dashboard and DB (Air Gap)
-- [ ] Add Capability to Edit Report and NDA Template on Admin Setting
-- [ ] Add Capability to Edit Certificate Template on Admin Setting
 - [ ] Add Forced Prompt to Change Default Password and Setup Mailbox
 - [ ] Add Capability to Edit Email Template on Admin Setting
 - [ ] Add Support for Other Mailboxes (Outlook, Apple, etc.)
@@ -102,7 +100,7 @@ Currently we are not accepting any bug issues, since we're still actively mainta
 - [ ] Auto Calculate Severity String to Number Format
 - [ ] Improve Dockerization
 - [ ] Improve RBAC for Reviewer Users (Assign and Link Reports)
-- [ ] Improve Notifications and Confirmations on Successful Actions 
+- [ ] Improve Notifications and Confirmations on Successful Actions
 - [ ] Improve Duplicate Detection Algorithm
 - [ ] Improve Logging Module
 - [ ] Improve Backend Performance and Efficiency
