@@ -90,3 +90,10 @@ echo "BUILDING GEROBUG"
 echo "=============================="
 
 docker-compose up --build --force-recreate -d
+
+
+echo -e "\n=============================="
+echo "VIEWING GEROBUG LOG"
+echo "=============================="
+
+docker-compose logs -f
