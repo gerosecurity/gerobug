@@ -1,7 +1,10 @@
 */*_pycache*
-*/.DS*
-.DS*
 */*migrations*
+
+.DS*
+*/.DS*
+*/*/.DS*
+
+db.sqlite3
 clear_caches.sh
 flush*
-db.sqlite3
