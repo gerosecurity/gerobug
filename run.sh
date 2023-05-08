@@ -58,7 +58,7 @@ fi
 echo -e "\n================================"
 echo "CHECK AND INSTALL PREREQUISITES"
 echo "================================"
-apt-get install -y python3 docker docker.io docker-compose
+apt-get install -y python3 docker docker.io docker-compose libmagic-dev
 
 
 echo -e "\n=============================="
