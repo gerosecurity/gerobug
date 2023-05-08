@@ -7,6 +7,8 @@ services:
     command: python manage.py runserver 0.0.0.0:80 --insecure
     environment:
       PYTHONUNBUFFERED: 1
+    volumes:
+      - static-content:/src/static
     restart: unless-stopped
     depends_on:
       - dashboard
@@ -20,6 +22,8 @@ services:
       - ./gerobug_dashboard/secrets/gerobug_secret.env
     environment:
       PYTHONUNBUFFERED: 1
+    volumes:
+      - static-content:/src/static
     restart: unless-stopped
     depends_on:
       - db
@@ -37,3 +41,6 @@ services:
     volumes:
       - ./db_data/:/var/lib/postgresql/data/
     restart: unless-stopped
+  
+  volumes:
+    static-content:
