@@ -76,6 +76,9 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
+            'libraries':{
+            'gerobug_tags': 'templatetags.gerobug_tags',
+            }
         },
     },
 ]
@@ -165,6 +168,6 @@ if not os.path.exists(MEDIA_ROOT):
 CKEDITOR_CONFIGS = {
     "default": {
         "removePlugins": "image,link",
-        "allowedContent": "p b li u",
+        "allowedContent": "b i ul li p br a h1 h2 h3 h4 ol pre code strong em blockquote table thead tr td tbody th",
     }
 }

@@ -22,11 +22,21 @@ In the other hand, creating your own self-managed platform will take time and ef
 
 <br>
 
+## Bare Minimum Specification
+* Ubuntu 18.04
+* vCPU 1 Core
+* RAM 1 GB
+* HDD 10 GB
+
+<br>
+
 ## Requirements
 * Gmail Email with <a href="https://support.google.com/accounts/answer/185833">App password</a> implemented
 * Docker (Latest)
 * Docker-compose (Latest)
 * Python 3.8 or above
+
+__(You don't need to install it manually, we'll do it for you!)__
 
 <br>
 
@@ -36,13 +46,14 @@ To deploy gerobug:
 1. Clone this repository
 ```bash
 git clone https://github.com/gerobug/gerobug
+cd gerobug
 ```
-2. Run this: 
+2. Run the setup script: 
 ```bash
-sudo docker-compose up --build --force-recreate -d
+./run.sh
 ```
 3. By default Gerobug will listen on port 6320
-4. Setup Mailbox and Change Admin Password
+4. Immediately Setup Mailbox and Change Admin Password
 
 You can read the __detailed documentation [here](https://bit.ly/GerobugDocumentation)__ 
 <br>
@@ -93,8 +104,6 @@ Currently we are not accepting any bug issues, since we're still actively mainta
 
 ## ON GOING IMPROVEMENTS
 - [ ] Completely Seperate "Rules & Guidelines" Page from Dashboard and DB (Air Gap)
-- [ ] Add Capability to Edit Report and NDA Template on Admin Setting
-- [ ] Add Capability to Edit Certificate Template on Admin Setting
 - [ ] Add Forced Prompt to Change Default Password and Setup Mailbox
 - [ ] Add Capability to Edit Email Template on Admin Setting
 - [ ] Add Support for Other Mailboxes (Outlook, Apple, etc.)
@@ -102,7 +111,7 @@ Currently we are not accepting any bug issues, since we're still actively mainta
 - [ ] Auto Calculate Severity String to Number Format
 - [ ] Improve Dockerization
 - [ ] Improve RBAC for Reviewer Users (Assign and Link Reports)
-- [ ] Improve Notifications and Confirmations on Successful Actions 
+- [ ] Improve Notifications and Confirmations on Successful Actions
 - [ ] Improve Duplicate Detection Algorithm
 - [ ] Improve Logging Module
 - [ ] Improve Backend Performance and Efficiency

@@ -5,3 +5,7 @@ django-ckeditor
 PyPDF2<3.0
 Pillow
 requests
+django-bleach
+python-magic
+libmagic
+#python-magic-bin==0.4.14
