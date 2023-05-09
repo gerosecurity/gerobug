@@ -22,6 +22,14 @@ In the other hand, creating your own self-managed platform will take time and ef
 
 <br>
 
+## Bare Minimum Specification
+* Ubuntu 18.04
+* vCPU 1 Core
+* RAM 1 GB
+* HDD 10 GB
+
+<br>
+
 ## Requirements
 * Gmail Email with <a href="https://support.google.com/accounts/answer/185833">App password</a> implemented
 * Docker (Latest)
