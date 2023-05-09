@@ -1,4 +1,5 @@
-![djangoTest](https://github.com/gerobug/gerobug/actions/workflows/django.yml/badge.svg)
+![djangoTest](https://github.com/gerobug/gerobug/actions/workflows/django.yml/badge.svg) 
+![CodeQL](https://github.com/gerobug/gerobug/actions/workflows/github-code-scanning/codeql/badge.svg)
 
 # Gerobug
 ![gerobugLogo](https://raw.githubusercontent.com/gerobug/gerobug-docs-images/main/logo.png)
@@ -17,7 +18,7 @@ In the other hand, creating your own self-managed platform will take time and ef
 
 ## Why Gerobug?
 - __EASY        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:__ Have your bug bounty program running with just single line of command 😏
-- __SECURE      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:__ Gerobug use email parser to receive reports to minimize security risks 🦾
+- __SECURE      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:__ Gerobug uses email parser and implements network segregation to minimize security risks. 🦾
 - __OPEN SOURCE &nbsp;&nbsp;&nbsp;&nbsp;:__ It is FREE. 🤩
 
 <br>
@@ -28,21 +29,22 @@ In the other hand, creating your own self-managed platform will take time and ef
 * Docker-compose (Latest)
 * Python 3.8 or above
 
+__(You don't need to install it manually, we'll do it for you!)__
+
 <br>
 
 ## Deployment and Usage
-__[This Version is Not Ready for Production Yet, We Will Update it ASAP]__<br><br>
 To deploy gerobug:
 1. Clone this repository
 ```bash
 git clone https://github.com/gerobug/gerobug
+cd gerobug
 ```
-2. Run this: 
+2. Run the Setup Script: 
 ```bash
-sudo docker-compose up --build --force-recreate -d
+./run.sh
 ```
-3. By default Gerobug will listen on port 6320
-4. Setup Mailbox and Change Admin Password
+3. Follow the setup instructions (Make sure the __Allowed Host__ is set to your __STATIC INTERNAL IP__)
 
 You can read the __detailed documentation [here](https://bit.ly/GerobugDocumentation)__ 
 <br>
@@ -84,6 +86,9 @@ We can generate certificate of appreciations for bug hunters so you don't have t
 - Hall of Fame / Wall of fame / Leaderboard<br>
 Yeah we have it too
 
+- Network Segregation<br>
+All services are running on seperate containers. Public users only able to access the static page (Rules and guidelines).
+
 <br>
 
 ## NOTE
@@ -92,15 +97,10 @@ Currently we are not accepting any bug issues, since we're still actively mainta
 <br>
 
 ## ON GOING IMPROVEMENTS
-- [ ] Completely Seperate "Rules & Guidelines" Page from Dashboard and DB (Air Gap)
-- [ ] Add Capability to Edit Report and NDA Template on Admin Setting
-- [ ] Add Capability to Edit Certificate Template on Admin Setting
-- [ ] Add Forced Prompt to Change Default Password and Setup Mailbox
 - [ ] Add Capability to Edit Email Template on Admin Setting
 - [ ] Add Support for Other Mailboxes (Outlook, Apple, etc.)
 - [ ] Add Flow Control (Custom Status, Add / Remove Status)
 - [ ] Auto Calculate Severity String to Number Format
-- [ ] Improve Dockerization
 - [ ] Improve RBAC for Reviewer Users (Assign and Link Reports)
 - [ ] Improve Notifications and Confirmations on Successful Actions 
 - [ ] Improve Duplicate Detection Algorithm
