@@ -3,7 +3,7 @@
 # Gerobug
 ![gerobugLogo](https://raw.githubusercontent.com/gerobug/gerobug-docs-images/main/logo.png)
 
-__Open source private (Self-managed) bug bounty platform.__
+__The first open source self-managed bug bounty platform.__
 
 Are you a company, planning to have your own bug bounty program, with minimum budget? 🤔<br>
 
@@ -16,9 +16,9 @@ In the other hand, creating your own self-managed platform will take time and ef
 <br>
 
 ## Why Gerobug?
-- __EASY        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:__ Have your bug bounty program running with just single line of command 😏
-- __SECURE      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:__ Gerobug uses email parser and implements network segregation to minimize security risks. 🦾
-- __OPEN SOURCE &nbsp;&nbsp;&nbsp;&nbsp;:__ It is FREE. 🤩
+- __EASY        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:__ Have your bug bounty program running with just single line of command 😏
+- __SECURE      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:__ Gerobug uses email parser and implements network segregation to minimize security risks. 🦾
+- __OPEN SOURCE &nbsp;&nbsp;:__ It is FREE. 🤩
 
 <br>
 
