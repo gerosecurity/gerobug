@@ -46,6 +46,8 @@ cd gerobug
 ```
 3. Follow the setup instructions (Make sure the __Allowed Host__ is set to your __STATIC INTERNAL IP__)
 
+<br>
+
 You can read the __detailed documentation [here](https://bit.ly/GerobugDocumentation)__ 
 <br>
 If you need to see the UML diagrams, you can see them __[here](https://drive.google.com/drive/folders/1eYKZLc_nQY2bv_Byak60WVrMSbaHTeUM)__
