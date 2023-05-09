@@ -1,4 +1,3 @@
-![djangoTest](https://github.com/gerobug/gerobug/actions/workflows/django.yml/badge.svg) 
 ![CodeQL](https://github.com/gerobug/gerobug/actions/workflows/github-code-scanning/codeql/badge.svg)
 
 # Gerobug
