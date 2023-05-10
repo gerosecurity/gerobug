@@ -1,4 +1,4 @@
-{%load crispy_forms_tags %} 
+{% load crispy_forms_tags %} 
 {% load static %}
 {% block content %}      
 
@@ -30,7 +30,7 @@
                 <br>
                 <form method="POST" action="" id="form-login">
                   {% csrf_token %}
-                    {{ login_form }}
+                    {{ login_form | crispy }}
                     <br>
                     {% for message in messages %}
                     {% if 'success' in message.tags %}
