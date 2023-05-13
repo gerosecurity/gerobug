@@ -52,7 +52,7 @@ cd gerobug
 ./run.sh
 ```
 3. Follow the setup instructions (Make sure the __Allowed Host__ is set to your __STATIC INTERNAL IP__)
-4. By default, Gerobug Dashboard will listen at port __6320__ (Access the login page at __http://[Static IP]:6320/login__)
+4. By default, Gerobug Dashboard will listen at port __6320__ (Access the login page at __http://[Internal IP]:6320/login__)
 
 <br>
 
