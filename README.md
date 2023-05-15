@@ -1,4 +1,6 @@
 ![CodeQL](https://github.com/gerobug/gerobug/actions/workflows/github-code-scanning/codeql/badge.svg)
+![License](https://img.shields.io/badge/License-AGPLv3-red.svg?&logo=none)
+![BHA2023](https://img.shields.io/badge/Black--Hat--Arsenal-Asia--2023-blue.svg)
 
 # Gerobug
 ![gerobugLogo](https://raw.githubusercontent.com/gerobug/gerobug-docs-images/main/logo.png)
