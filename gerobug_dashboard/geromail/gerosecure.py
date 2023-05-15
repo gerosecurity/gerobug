@@ -73,7 +73,7 @@ def monitor(email, ts):
 
         # IF NOT, RESET THE COUNTER
         else:
-            existing.counter = 0
+            existing.counter = 1
             existing.time = ts
             existing.save()
 
