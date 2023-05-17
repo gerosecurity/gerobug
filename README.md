@@ -65,9 +65,7 @@ Password&nbsp;&nbsp;&nbsp;: Randomly generated at `gerobug/gerobug_dashboard/sec
 
 <br>
 
-You can read the __detailed documentation [here](https://bit.ly/GerobugDocumentation)__ (Will be updated ASAP)
-<br>
-If you need to see the UML diagrams, you can see them __[here](https://drive.google.com/drive/folders/1eYKZLc_nQY2bv_Byak60WVrMSbaHTeUM)__
+You can read the __detailed documentation [here](https://gerobug.gitbook.io/documentation/)__
 
 <br>
 
