@@ -58,9 +58,11 @@ cd gerobug
 3. Follow the setup instructions (Make sure the __Allowed Host__ is set to your __STATIC INTERNAL IP__)
 4. By default, Gerobug Dashboard will listen at port __6320__ (Access the login page at __http://[Internal IP]:6320/login__)
 
+The admin username is `geromin` and the password will be randomly generated at `gerobug/gerobug_dashboard/secrets/gerobug_secret.env`
+
 <br>
 
-You can read the __detailed documentation [here](https://bit.ly/GerobugDocumentation)__ 
+You can read the __detailed documentation [here](https://bit.ly/GerobugDocumentation)__ (Will be updated ASAP)
 <br>
 If you need to see the UML diagrams, you can see them __[here](https://drive.google.com/drive/folders/1eYKZLc_nQY2bv_Byak60WVrMSbaHTeUM)__
 
