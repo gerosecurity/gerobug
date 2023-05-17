@@ -56,9 +56,12 @@ cd gerobug
 ./run.sh
 ```
 3. Follow the setup instructions (Make sure the __Allowed Host__ is set to your __STATIC INTERNAL IP__)
-4. By default, Gerobug Dashboard will listen at port __6320__ (Access the login page at __http://[Internal IP]:6320/login__)
+4. By default, Gerobug Dashboard (Internal) will listen at port __6320__ 
 
-The admin username is `geromin` and the password will be randomly generated at `gerobug/gerobug_dashboard/secrets/gerobug_secret.env`
+Access the login page at `http://[Internal IP]:6320/login`<br>
+<br>__Credential__<br>
+Username&nbsp;&nbsp;: `geromin`<br>
+Password&nbsp;&nbsp;&nbsp;: Randomly generated at `gerobug/gerobug_dashboard/secrets/gerobug_secret.env`
 
 <br>
 
