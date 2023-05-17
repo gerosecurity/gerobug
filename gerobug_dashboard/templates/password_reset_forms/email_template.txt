@@ -11,8 +11,7 @@ initiate the password reset process.
 This is a one-time link so it can only be used once!
 If you didn't make this request, please ignore this.
 
-Regards,
-
-Gerobug Dev Team
+Best regards,
+Gerobug Bounty System
 
 {% endautoescape %}
