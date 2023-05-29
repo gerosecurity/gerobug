@@ -2,7 +2,7 @@
 
 ![CodeQL](https://github.com/gerobug/gerobug/actions/workflows/github-code-scanning/codeql/badge.svg)
 [![License](https://img.shields.io/badge/License-AGPLv3-red.svg?&logo=none)](https://www.gnu.org/licenses/agpl-3.0)
-[![BHA2023](https://img.shields.io/badge/Black--Hat--Arsenal-Asia--2023-blue.svg)](https://www.blackhat.com/asia-23/arsenal/schedule/index.html#gerobug-open-source-private-self-managed-bug-bounty-platform-31241)
+[![Black Hat Arsenal](https://raw.githubusercontent.com/toolswatch/badges/master/arsenal/asia/2023.svg?sanitize=true)](https://www.blackhat.com/asia-23/arsenal/schedule/index.html#gerobug-open-source-private-self-managed-bug-bounty-platform-31241)
 
 # Gerobug
 
