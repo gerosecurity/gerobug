@@ -265,7 +265,7 @@ def classify_action(email, subject):
                 hunter = BugHunter.objects.get(hunter_email=email)
                 return 207, str(hunter.hunter_scores)
             else:
-                return 403
+                return 403, " "
         
         elif(re.search(r'^STATUS_OVERVIEW$', subject)):
             if BugHunter.objects.filter(hunter_email=email).exists():
@@ -279,9 +279,9 @@ def classify_action(email, subject):
                     
                     return 208, reports
                 else:
-                    return 403
+                    return 403, " "
             else:
-                return 403
+                return 403, " "
             
         else:
             return 404, " "

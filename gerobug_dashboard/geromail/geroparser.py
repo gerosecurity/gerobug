@@ -135,16 +135,29 @@ def read_mail():
                         email_dt = datetime.fromtimestamp(msg_ts)
                         email_date = email_dt.strftime("%Y-%m-%d %H:%M:%S")
 
-                        # PARSE HUNTER EMAIL AND SUBJECT
                         hunter_email = re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", str(msg['from'])).group()
-                        at = hunter_email.find('@')
-                        hunter_name = hunter_email[:at]
-                        email_subject = msg['subject']
 
                         print('\n============================')
                         print('[LOG] NEW EMAIL RECEIVED!')
                         print('Time : ' + email_date)
                         print('From : ' + hunter_email)
+                        
+                        # SPOOF PREVENTION
+                        spoof_check = re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", str(msg['return-path']))
+                        if spoof_check != None:
+                            spoof_check = spoof_check.group()
+                            if hunter_email != spoof_check:
+                                print('[LOG] Possible Spoofing Attempt, Igonring Mail!')
+                                continue
+                        else:
+                            print('[LOG] Possible Spoofing Attempt, Igonring Mail!')
+                            continue
+
+                        # PARSE HUNTER NAME AND SUBJECT
+                        at = hunter_email.find('@')
+                        hunter_name = hunter_email[:at]
+                        email_subject = msg['subject']
+
                         print('Subject : ' + email_subject)
                         
                         # MONITOR SPAM ACTIVITY
