@@ -24,6 +24,7 @@ services:
       PYTHONUNBUFFERED: 1
     volumes:
       - static-content:/src/static
+      - ./log/:/src/log
     restart: unless-stopped
     depends_on:
       - db

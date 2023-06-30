@@ -8,7 +8,7 @@ https://docs.djangoproject.com/en/4.0/howto/deployment/wsgi/
 """
 
 
-import os, gerocert.gerocert
+import os, logging, gerocert.gerocert
 
 from django.core.wsgi import get_wsgi_application
 from geromail.thread import RunGeromailThread
@@ -22,7 +22,9 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'gerobug.settings')
 
 application = get_wsgi_application()
 
-
+# LOGGING INITIATION
+logging.basicConfig(filename='log/gerobug.log', encoding='utf-8', level=logging.DEBUG, 
+                    format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 # INSERT STATUS TO DB
 def init_status_db(id, name):
@@ -33,10 +35,10 @@ def init_status_db(id, name):
         status.status_name = name
         
         status.save()
-        print("[LOG] Init Status DB success")
+        logging.debug("Init Status DB success")
     
     else:
-        print("[LOG] Status DB already exists")
+        logging.debug("Status DB already exists")
 
 # INSERT DEFAULT RULES (TERMS, SCOPE, ETC) AND BLACKLIST RULE TO DB
 def init_rules_db():
@@ -50,10 +52,10 @@ def init_rules_db():
         staticrules.reportguidelines = reportguidelines_templates
         staticrules.faq = faq_templates
         staticrules.save()
-        print("[LOG] Init Rules DB success")
+        logging.debug("Init Rules DB success")
     
     else:
-        print("[LOG] Rules DB already exists")
+        logging.debug("Rules DB already exists")
     
     if not BlacklistRule.objects.filter(rule_id=1).exists():
         blacklistrule = BlacklistRule()
@@ -64,10 +66,10 @@ def init_rules_db():
         blacklistrule.buffer_blacklist = 3600
         blacklistrule.buffer_clean = 86400
         blacklistrule.save()
-        print("[LOG] Init Blacklist Rules DB success")
+        logging.debug("Init Blacklist Rules DB success")
     
     else:
-        print("[LOG] Blacklist Rules DB already exists")
+        logging.debug("Blacklist Rules DB already exists")
 
 # INSERT CERTIFICATE DATA TO DB
 def init_cert_db(): 
@@ -80,10 +82,10 @@ def init_cert_db():
         certdata.save()
 
         gerocert.gerocert.generate_sample()
-        print("[LOG] Init Certificate Data success")
+        logging.debug("Init Certificate Data success")
     
     else:
-        print("[LOG] Certificate Data already exists")
+        logging.debug("Certificate Data already exists")
 
 # INIT MAILBOX
 def init_mailbox_db():
@@ -93,10 +95,10 @@ def init_mailbox_db():
         mailbox.email = ""
         mailbox.password = ""
         mailbox.save()
-        print("[LOG] Init Mailbox success")
+        logging.debug("Init Mailbox success")
 
     else:
-        print("[LOG] Mailbox already exists")
+        logging.debug("Mailbox already exists")
 
 # INIT GROUP REVIEWER CREATION
 def init_group():
@@ -119,7 +121,7 @@ def init_group():
         g_reviewer.permissions.add(permissions['view_staticrules'])
         g_reviewer.permissions.add(permissions['view_session'])
     except:
-        print("[LOG] Group Reviewer shall be created successfully. Visit the Admin Site!")
+        logging.debug("Group Reviewer shall be created successfully. Visit the Admin Site!")
 
 init_status_db(0, "Not Valid")
 init_status_db(1, "Need to Review")
@@ -134,7 +136,9 @@ init_rules_db()
 init_cert_db()
 init_mailbox_db()
 
-print("Number of Status :", ReportStatus.objects.count())
+logging.info("Number of Status         :", ReportStatus.objects.count())
+logging.info("Number of Report         :", BugReport.objects.count())
+logging.info("Number of Bug Hunters    :", BugHunter.objects.count())
 
 
 # RUN GEROMAIL MODULES

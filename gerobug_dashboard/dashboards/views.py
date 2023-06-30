@@ -21,7 +21,7 @@ from .forms import Requestform, AdminSettingForm, CompleteRequestform, MailboxFo
 from geromail import geromailer, gerofilter, geroparser
 from sys import platform
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
-import threading, os, shutil, gerocert.gerocert
+import threading, os, shutil, logging, gerocert.gerocert
 
 
 
@@ -162,6 +162,8 @@ def ReportUpdateStatus(request,id):
         if report.report_status < max:
            report.report_status += 1
            report.save()
+
+        logging.info("REPORT ",id," STATUS UPDATED (",report.report_status,") BY ",request.user.username)
         messages.success(request,"Report Status is updated!")
 
         def trigger_geromailer(report):
@@ -193,6 +195,8 @@ def FormHandler(request, id, complete):
                     report.report_status = 0
                     report.save()
 
+                    logging.info("REPORT ",id," STATUS UPDATED (INVALID) BY ",request.user.username)
+                    
                     def trigger_geromailer(report):
                         payload = [report.report_id, report.report_title, report.report_status, reasons, report.report_severity]
                         destination = report.hunter_email
@@ -204,15 +208,19 @@ def FormHandler(request, id, complete):
 
                 elif (status == "In Review" or status == "Fixing" or status == "Fixing (Retest)") and complete == "0":
                     code = 701 #REQUEST AMEND
+                    logging.info("REPORT ",id," REQUESTED AMEND BY ",request.user.username)
 
                 elif status == "Bounty Calculation" and complete == "0":
                     code = 702 #SEND CALCULATIONS
+                    logging.info("REPORT ",id," SEND CALCULATIONS BY ",request.user.username)
 
                 elif status == "Bounty in Process" and complete == "0":
                     code = 703 #REQUEST NDA
+                    logging.info("REPORT ",id," REQUESTED NDA BY ",request.user.username)
 
                 elif status == "Bounty in Process" and complete == "1":
                     code = 704 #COMPLETE
+                    logging.info("REPORT ",id," STATUS UPDATED (COMPLETE) BY ",request.user.username)
 
                 messages.success(request,"Email is successfully being processed and sent to the bug hunter with your reason.")
                 # TRIGGER COMPANY ACTION WITH THREADING
@@ -229,6 +237,7 @@ def FormHandler(request, id, complete):
 
     else:
         messages.error(request,"Something's wrong. Please report to the Admin for checking the logs.")
+        logging.error(request)
         return redirect('dashboard')
 
 
@@ -290,12 +299,12 @@ def AdminSetting(request):
                 reviewername = reviewer.cleaned_data.get('reviewername')
                 revieweremail = reviewer.cleaned_data.get('reviewer_email')
                 if User.objects.filter(Q(username__exact=reviewername)).count() > 0:
-                    messages.error(request,"Username is already used. Please try another username!")
-                    print("[LOG] Username is duplicated!")
+                    messages.error(request,"Username already used. Please try another username!")
+                    logging.error("Username already used!")
                     return redirect("setting")
                 elif User.objects.filter(Q(email__exact=revieweremail)).count() > 0:
-                    messages.error(request,"Email is already used. Please try another email!")
-                    print("[LOG] Email is duplicated!")
+                    messages.error(request,"Email already used. Please try another email!")
+                    logging.error("Email already used!")
                     return redirect("setting")
                 else:
                     reviewerpassword = "G3r0bUg_@dM!n_1337yipPie13579246810121337" #default pw, change since this is temp
@@ -303,11 +312,11 @@ def AdminSetting(request):
                     revieweraccount.set_password(reviewerpassword)
                     revieweraccount.groups.add(groupreviewer)
                     revieweraccount.save()
-                    print("[LOG] Reviewer is created successfully")
+                    logging.info("Reviewer is created successfully")
                     messages.success(request,"Reviewer is created successfully!")
                     return redirect('setting')
             except Exception as e:
-                print("[LOG] "+ e)
+                logging.error(e)
                 messages.error(request,"Something's wrong. Perhaps your username/email is already used. Please specify another one!")
                 return redirect("setting")
 
@@ -318,7 +327,7 @@ def AdminSetting(request):
             mailbox_account.password = mailbox.cleaned_data.get('mailbox_password') 
             mailbox_account.mailbox_status = 0
             mailbox_account.save()
-            print("[LOG] Mailbox updated successfully")
+            logging.info("Mailbox updated successfully")
             messages.success(request,"Mailbox updated successfully!")
             return redirect('setting')
 
@@ -331,7 +340,7 @@ def AdminSetting(request):
             user.set_password(account.cleaned_data.get('user_password'))
             user.save()
             
-            print("[LOG] "+username+" Updated successfully")
+            logging.info("User "+username+" Updated successfully")
             messages.success(request,"User "+username+" updated successfully!")
             return redirect('setting')
 
@@ -345,7 +354,7 @@ def AdminSetting(request):
             staticrules.reportguidelines = form.cleaned_data.get('reportguidelines')
             staticrules.faq = form.cleaned_data.get('faq')
             staticrules.save()
-            print("[LOG] Rules are updated successfully")
+            logging.info("Rules are updated successfully")
             messages.success(request,"Rules are updated successfully!")
             return render(request,'setting.html',
                           {'form': form, 'mailbox': MailboxForm(), 'account': AccountForm(),'reviewer': ReviewerForm(),'webhooks': WebhookForm(),'blacklistrule': BlacklistForm(),
@@ -359,16 +368,16 @@ def AdminSetting(request):
                 handle = webhook.cleaned_data.get('webhook_handle')
                 if Webhook.objects.filter(Q(webhook_service=service)).count() > 0:
                     messages.error(request,"Notification Channel already exists.")
-                    print("[LOG] Duplicate Notification Channel")
+                    logging.warning("Duplicate Notification Channel")
                     return redirect("setting")
                 else:
                     new_webhook = Webhook.objects.create(webhook_service=service,webhook_handle=handle)
                     new_webhook.save()
-                    print("[LOG] Notification Channel Saved Successfully")
+                    logging.info("Notification Channel Saved Successfully")
                     messages.success(request,"Notification Channel Saved Successfully")
                     return redirect('setting')
             except Exception as e:
-                print("[LOG] "+ e)
+                logging.error(e)
                 messages.error(request,"Something's wrong...")
                 return redirect("setting")
 
@@ -380,7 +389,7 @@ def AdminSetting(request):
             blacklistrule.buffer_blacklist = blacklistform.cleaned_data.get('buffer_blacklist') 
             blacklistrule.save()
 
-            print("[LOG] Blacklist rule updated successfully")
+            logging.info("Blacklist rule updated successfully")
             messages.success(request,"Blacklist rule updated successfully!")
             return redirect("setting")
         
@@ -393,7 +402,7 @@ def AdminSetting(request):
                 for chunk in template_file.chunks():
                     destination.write(chunk)
 
-            print("[LOG] Report Template updated successfully")
+            logging.info("Report Template updated successfully")
             messages.success(request,"Report Template updated successfully!")
             return redirect('setting')
         
@@ -406,7 +415,7 @@ def AdminSetting(request):
                 for chunk in template_file.chunks():
                     destination.write(chunk)
 
-            print("[LOG] NDA Template updated successfully")
+            logging.info("NDA Template updated successfully")
             messages.success(request,"NDA Template updated successfully!")
             return redirect('setting')
         
@@ -420,7 +429,7 @@ def AdminSetting(request):
                     destination.write(chunk)
 
             gerocert.gerocert.generate_sample()
-            print("[LOG] Certificate Template updated successfully")
+            logging.info("Certificate Template updated successfully")
             messages.success(request,"Certificate Template updated successfully!")
             return redirect('setting')
         
@@ -439,7 +448,7 @@ def AdminSetting(request):
                     destination.write(chunk)
 
             gerocert.gerocert.generate_sample()
-            print("[LOG] Certificate Data updated successfully")
+            logging.info("Certificate Data updated successfully")
             messages.success(request,"Certificate Data updated successfully!")
             return redirect('setting')
         
@@ -453,7 +462,7 @@ def AdminSetting(request):
                     destination.write(chunk)
 
             gerocert.gerocert.generate_sample()
-            print("[LOG] Personalization updated successfully")
+            logging.info("Personalization updated successfully")
             messages.success(request,"Personalization updated successfully!")
             return redirect('setting')
 
@@ -472,7 +481,7 @@ def ReviewerDelete(request,id):
                 messages.success(request,"User is deleted successfully!")
                 return redirect('setting')
         except Exception as e:
-            print("[LOG] ", e)
+            logging.error(e)
             messages.error(request,"Something wrong. The delete operation is unsuccessful. Please report to the Admin!")
             return redirect('setting')
         return redirect('setting')
@@ -487,7 +496,7 @@ def NotificationDelete(request,service):
                 messages.success(request,"Notification Media is deleted successfully!")
                 return redirect('setting')
         except Exception as e:
-            print("[LOG] ", e)
+            logging.error(e)
             messages.error(request,"Something wrong. The delete operation is unsuccessful. Please report to the Admin!")
             return redirect('setting')
         return redirect('setting')
