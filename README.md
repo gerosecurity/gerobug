@@ -136,4 +136,5 @@ Currently we are not accepting any bug issues, since we're still actively mainta
 
 ## Feedback
 If you have any feedback, please reach out to us at __gerobug.id@gmail.com__ 🫶
+Thank you.
 
