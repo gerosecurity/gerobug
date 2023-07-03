@@ -26,7 +26,8 @@ import threading, os, shutil, logging, gerocert.gerocert
 
 
 # LOGGING INITIATION
-logging.basicConfig(filename='log/gerobug.log', level=logging.DEBUG, 
+def log_config():
+    logging.basicConfig(filename='log/gerobug.log', level=logging.DEBUG, 
                     format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 
@@ -160,6 +161,7 @@ def ReportStatusView(request, id):
 
 @login_required
 def ReportUpdateStatus(request,id):
+    log_config()
     if request.method == "POST" and gerofilter.validate_id(id):
         report = BugReport.objects.get(report_id=id)
         max = ReportStatus.objects.count() - 2 # LIMITED TO "BOUNTY PROCESS"
@@ -169,6 +171,7 @@ def ReportUpdateStatus(request,id):
            report.save()
 
         logging.info("REPORT ",id," STATUS UPDATED (",report.report_status,") BY ",request.user.username)
+        print("REPORT ",id," STATUS UPDATED (",report.report_status,") BY ",request.user.username)
         messages.success(request,"Report Status is updated!")
 
         def trigger_geromailer(report):
@@ -184,6 +187,7 @@ def ReportUpdateStatus(request,id):
 
 @login_required
 def FormHandler(request, id, complete):
+    log_config()
     if gerofilter.validate_id(id):
         report = BugReport.objects.get(report_id=id)
         # report = get_object_or_404(BugReport,report_id=id)
@@ -199,7 +203,7 @@ def FormHandler(request, id, complete):
                     # MARK AS INVALID
                     report.report_status = 0
                     report.save()
-
+                    
                     logging.info("REPORT ",id," STATUS UPDATED (INVALID) BY ",request.user.username)
                     
                     def trigger_geromailer(report):
@@ -289,6 +293,7 @@ def ReportFiles(request, id):
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
 def AdminSetting(request):
+    log_config()
     users = User.objects.filter(is_superuser=False)
     mailbox_account = MailBox.objects.get(mailbox_id=1)
     bl = BlacklistRule.objects.get(rule_id=1)
@@ -479,6 +484,7 @@ def AdminSetting(request):
 
 @login_required
 def ReviewerDelete(request,id):
+    log_config()
     if request.method == "POST":
         try:
             if User.objects.filter(id=id).count() != 0:
@@ -494,6 +500,7 @@ def ReviewerDelete(request,id):
 
 @login_required
 def NotificationDelete(request,service):
+    log_config()
     if request.method == "POST":
         try:
             if Webhook.objects.filter(webhook_service=service).count() != 0:
