@@ -23,7 +23,8 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'gerobug.settings')
 application = get_wsgi_application()
 
 # LOGGING INITIATION
-logging.basicConfig(filename='log/gerobug.log', level=logging.DEBUG, 
+def log_config():
+    logging.basicConfig(filename='log/gerobug.log', level=logging.DEBUG, 
                     format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 # INSERT STATUS TO DB
@@ -35,6 +36,7 @@ def init_status_db(id, name):
         status.status_name = name
         
         status.save()
+        log_config()
         logging.debug("Init Status DB success")
     
     else:
@@ -52,9 +54,11 @@ def init_rules_db():
         staticrules.reportguidelines = reportguidelines_templates
         staticrules.faq = faq_templates
         staticrules.save()
+        log_config()
         logging.debug("Init Rules DB success")
     
     else:
+        log_config()
         logging.debug("Rules DB already exists")
     
     if not BlacklistRule.objects.filter(rule_id=1).exists():
@@ -66,9 +70,11 @@ def init_rules_db():
         blacklistrule.buffer_blacklist = 3600
         blacklistrule.buffer_clean = 86400
         blacklistrule.save()
+        log_config()
         logging.debug("Init Blacklist Rules DB success")
     
     else:
+        log_config()
         logging.debug("Blacklist Rules DB already exists")
 
 # INSERT CERTIFICATE DATA TO DB
@@ -82,9 +88,11 @@ def init_cert_db():
         certdata.save()
 
         gerocert.gerocert.generate_sample()
+        log_config()
         logging.debug("Init Certificate Data success")
     
     else:
+        log_config()
         logging.debug("Certificate Data already exists")
 
 # INIT MAILBOX
@@ -95,9 +103,11 @@ def init_mailbox_db():
         mailbox.email = ""
         mailbox.password = ""
         mailbox.save()
+        log_config()
         logging.debug("Init Mailbox success")
 
     else:
+        log_config()
         logging.debug("Mailbox already exists")
 
 # INIT GROUP REVIEWER CREATION
@@ -121,6 +131,7 @@ def init_group():
         g_reviewer.permissions.add(permissions['view_staticrules'])
         g_reviewer.permissions.add(permissions['view_session'])
     except:
+        log_config()
         logging.debug("Group Reviewer shall be created successfully. Visit the Admin Site!")
 
 init_status_db(0, "Not Valid")
@@ -136,6 +147,7 @@ init_rules_db()
 init_cert_db()
 init_mailbox_db()
 
+log_config()
 logging.info("Number of Status         :", ReportStatus.objects.count())
 logging.info("Number of Report         :", BugReport.objects.count())
 logging.info("Number of Bug Hunters    :", BugHunter.objects.count())
