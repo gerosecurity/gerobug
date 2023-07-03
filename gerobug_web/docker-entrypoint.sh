@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-sleep 90
+sleep 60
 
 echo "[LOG] GEROBUG-WEB is fully configured successfully."
 

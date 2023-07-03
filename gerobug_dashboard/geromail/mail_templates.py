@@ -290,7 +290,7 @@ message_701 = """\
                 <b>~NOTE~</b>
                 
                 <br><br>
-                You may submit your updated report with subject "UPDATE_~ID~" using this email address<br>
+                You may submit your updated report with subject "<b>UPDATE_~ID~</b>" using this email address<br>
                 Add a <b>Summary</b> of the update in the email body (text only)<br>
                 Do not forget to attach a <b>PDF File</b><br>
                 
@@ -351,7 +351,7 @@ message_703 = """\
                 <b>~NOTE~</b>
                 
                 <br><br>
-                Submit an email with subject "NDA_~ID~" using this email address<br>
+                Submit an email with subject "<b>NDA_~ID~</b>" using this email address<br>
                 Add the requested information in the email body (text only)<br>
                 Do not forget to attach the <b>signed NDA</b><br>
                 
