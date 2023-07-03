@@ -75,6 +75,7 @@ class ReportDetails(LoginRequiredMixin,DetailView):
 
 
 class ReportUpdate(LoginRequiredMixin,UpdateView):
+    log_config()
     login_url = '/login/'
     redirect_field_name = 'login'
     model = BugReport
@@ -82,10 +83,12 @@ class ReportUpdate(LoginRequiredMixin,UpdateView):
     fields = ["report_severity","report_severitystring","report_reviewer"] #Only status field is allowed to be edited
     
     def get_success_url(self):
+        logging.info("REPORT " + str(self.object.report_id) + " UPDATED BY " + str(self.request.user.username))
         return reverse('dashboard')
 
 
 class ReportDelete(LoginRequiredMixin,DeleteView):
+    log_config()
     login_url = '/login/'
     redirect_field_name = 'login'
     model = BugReport
@@ -105,6 +108,7 @@ class ReportDelete(LoginRequiredMixin,DeleteView):
             shutil.rmtree(os.path.join(MEDIA_ROOT)+"\\"+self.object.report_id)
         else:
             shutil.rmtree(os.path.join(MEDIA_ROOT)+"/"+self.object.report_id)
+        logging.info("REPORT " + str(self.object.report_id) + " DELETED BY " + str(self.request.user.username))
         return reverse_lazy('dashboard')
 
 
