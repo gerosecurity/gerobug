@@ -18,7 +18,7 @@ from django.middleware.csrf import get_token
 from .models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, ReportStatus, StaticRules, BlacklistRule, CertificateData
 from prerequisites.models import MailBox, Webhook
 from .forms import Requestform, AdminSettingForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm, WebhookForm, BlacklistForm, TemplateReportForm, TemplateNDAForm, TemplateCertForm, CertDataForm, PersonalizationForm
-from geromail import geromailer, gerofilter, geroparser
+from geromail import geromailer, gerofilter, geroparser, gerocalculator
 from sys import platform
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
 import threading, os, shutil, logging, gerocert.gerocert
@@ -83,6 +83,10 @@ class ReportUpdate(LoginRequiredMixin,UpdateView):
     fields = ["report_severity","report_severitystring","report_reviewer"] #Only status field is allowed to be edited
     
     def get_success_url(self):
+        report = BugReport.objects.get(report_status=self.object.report_id)
+        report.report_severity = gerocalculator(self.object.report_severitystring)
+        report.save()
+
         logging.info("REPORT " + str(self.object.report_id) + " UPDATED BY " + str(self.request.user.username))
         return reverse('dashboard')
 
