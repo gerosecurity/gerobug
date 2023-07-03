@@ -212,7 +212,7 @@ def read_mail():
                                     savereport(report_id, hunter_email, email_date, report_title, atk_type, report_endpoint, report_summary)
                                     
                                     gerofilter.check_duplicate(report_id)
-                                    geronotify.notify(report_title, hunter_email)
+                                    geronotify.notify(report_title, hunter_email, "NEW_REPORT")
                                     
                                     logging.info('[CODE 201] Bug Hunter Report Saved Successfully')
 
@@ -258,6 +258,7 @@ def read_mail():
                                 logging.info('Update Summary : ' + str(update_summary) + '\n')
 
                                 save_uan('U', update_id, str(payload[0]), email_date, update_summary, 0)
+                                geronotify.notify(str(payload[0]), hunter_email, "NEW_UPDATE")
                                 logging.info('[CODE 203] Bug Hunter Update Saved Successfully')
 
                             else:
@@ -303,6 +304,7 @@ def read_mail():
                                 report.save()
 
                                 save_uan('A', appeal_id, str(payload[0]), email_date, appeal_summary, appeal_file)
+                                geronotify.notify(str(payload[0]), hunter_email, "NEW_APPEAL")
                                 logging.info('[CODE 204] Bug Hunter Appeal Received Successfully')
                             
                             else: 
@@ -328,6 +330,7 @@ def read_mail():
                             
                             report.save()
 
+                            geronotify.notify(str(payload[0]), hunter_email, "NEW_AGREE")
                             logging.info('[CODE 205] Bug Hunter Agree Received Successfully')
 
                         # HUNTER SUBMITTED NDA
@@ -355,6 +358,7 @@ def read_mail():
                                 logging.info('NDA Summary : ' + str(nda_summary) + '\n')
 
                                 save_uan('N', nda_id, str(payload[0]), email_date, nda_summary, 0)
+                                geronotify.notify(str(payload[0]), hunter_email, "NEW_NDA")
                                 logging.info('[CODE 206] Bug Hunter NDA Received Successfully')
                             
                             else: 

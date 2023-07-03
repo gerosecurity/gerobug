@@ -105,4 +105,4 @@ def notify(destination, payload):
     else:
         write_mail(301, payload, destination) # NOTIFY STATUS UPDATE
     
-    logging.info('Sent Notification to'+str(destination)+str(payload))
+    logging.info('Sent Notification to ' + str(destination) + ' ' + str(payload))
