@@ -63,3 +63,10 @@ def calculate_owasp(severity_string):
            Final = 9
     
     return Final
+
+def calculate_cvss(severity_string):
+    Final = 0
+    # CVSS 3.1 SEVERITY STRING FORMAT
+    # CVSS:3.1/AV:L/AC:H/PR:L/UI:R/S:C/C:H/I:L/A:L
+
+    return Final
