@@ -13,7 +13,7 @@ from dashboards.models import Blacklist, Watchlist, BlacklistRule
 
 
 # LOGGING INITIATION
-logging.basicConfig(filename='log/gerobug.log', encoding='utf-8', level=logging.DEBUG, 
+logging.basicConfig(filename='log/gerobug.log', level=logging.DEBUG, 
                     format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 

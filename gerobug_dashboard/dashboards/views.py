@@ -25,6 +25,11 @@ import threading, os, shutil, logging, gerocert.gerocert
 
 
 
+# LOGGING INITIATION
+logging.basicConfig(filename='log/gerobug.log', level=logging.DEBUG, 
+                    format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+
+
 def LogoutForm(request):
     if request.user.is_authenticated:
         logout(request)
