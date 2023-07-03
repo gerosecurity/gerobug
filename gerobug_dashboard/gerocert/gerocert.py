@@ -20,7 +20,7 @@ def create_cert(name: str, certificate: str, severity):
     
     # AWARDEE NAME
     font = ImageFont.truetype(font_path, 140)
-    text_width, _ = draw.textsize(name, font=font)
+    text_width, _ = draw.textlength(name, font=font)
     draw.text(
         (
             (image_width - text_width) / 2,
@@ -41,7 +41,7 @@ def create_cert(name: str, certificate: str, severity):
     elif severity >= 9:
         severity = "CRITICAL"
     
-    text_width, _ = draw.textsize(severity, font=font)
+    text_width, _ = draw.textlength(severity, font=font)
     draw.text(
         (
             (image_width - text_width) / 2,
@@ -53,7 +53,7 @@ def create_cert(name: str, certificate: str, severity):
     
     # ISSUE DATE
     today = str(date.today())
-    text_width, _ = draw.textsize(today, font=font)
+    text_width, _ = draw.textlength(today, font=font)
     draw.text(
         (
             (image_width - text_width) / 1.8,
@@ -65,7 +65,7 @@ def create_cert(name: str, certificate: str, severity):
     
     # OFFICER NAME
     font = ImageFont.truetype(font_path, 80)
-    text_width, _ = draw.textsize(CertData.officer_name, font=font)
+    text_width, _ = draw.textlength(CertData.officer_name, font=font)
     x_name = (image_width - text_width) / 1.175
     y_name = (image_height) / 1.175
     draw.text(

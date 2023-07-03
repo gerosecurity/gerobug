@@ -8,7 +8,7 @@ https://docs.djangoproject.com/en/4.0/howto/deployment/wsgi/
 """
 
 
-import os, gerocert.gerocert
+import os, logging, gerocert.gerocert
 
 from django.core.wsgi import get_wsgi_application
 from geromail.thread import RunGeromailThread
@@ -24,7 +24,6 @@ application = get_wsgi_application()
 
 # LOGGING INITIATION
 def log_config():
-    import logging
     logging.basicConfig(filename='log/gerobug.log', level=logging.DEBUG, 
                     format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
