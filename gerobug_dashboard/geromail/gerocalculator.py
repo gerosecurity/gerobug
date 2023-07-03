@@ -41,24 +41,27 @@ def calculate_owasp(severity_string):
         B = 3
 
     # FINAL CALIBRATION
-    Final = round(((LS+IS+2)/2),2)
     if A+B < 4:
+        Final = round(((LS+IS)/2),2)
         if Final >= 4:
             Final = 3.99
 
     elif A+B == 4:
+        Final = round(((LS+IS)/2),2)
         if Final >= 7:
             Final = 6.99
         elif Final < 4:
             Final = 4
 
     elif A+B == 5:
+        Final = round(((LS+IS)/2),2)
         if Final >= 9:
             Final = 8.99
         elif Final < 7:
             Final = 7
 
     elif A+B == 6:
+       Final = round(((LS+IS+2)/2),2)
        if Final <= 9:
            Final = 9
     
