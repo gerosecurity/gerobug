@@ -128,18 +128,21 @@ def notify_telegram(title, hunter, action):
         =========================\n\
         Title       = *"+title+"*\n\
         Reporter    = *"+hunter+"*"
+
     elif action == "NEW_UPDATE":
         message = "\n\
         *🚨 NEW UPDATE/AMEND RECEIVED 🚨*\n\
         =========================\n\
         Report ID   = *"+title+"*\n\
         Reporter    = *"+hunter+"*"
+    
     elif action == "NEW_APPEAL":
         message = "\n\
         *🚨 NEW APPEAL RECEIVED 🚨*\n\
         =========================\n\
         Report ID   = *"+title+"*\n\
         Reporter    = *"+hunter+"*"
+    
     elif action == "NEW_AGREE":
         message = "\n\
         *🚨 HUNTER AGREEMENT RECEIVED 🚨*\n\
@@ -147,6 +150,7 @@ def notify_telegram(title, hunter, action):
         Report ID   = *"+title+"*\n\
         Reporter    = *"+hunter+"*\n\
         Report will be automatically moved to the next phase."
+    
     elif action == "NEW_NDA":
         message = "\n\
         *🚨 NEW NDA SUBMISSION RECEIVED 🚨*\n\
