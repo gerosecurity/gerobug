@@ -148,9 +148,9 @@ init_cert_db()
 init_mailbox_db()
 
 log_config()
-logging.info("Number of Status         :", ReportStatus.objects.count())
-logging.info("Number of Report         :", BugReport.objects.count())
-logging.info("Number of Bug Hunters    :", BugHunter.objects.count())
+logging.info("Number of Status         :"+str(ReportStatus.objects.count()))
+logging.info("Number of Report         :"+str(BugReport.objects.count()))
+logging.info("Number of Bug Hunters    :"+str(BugHunter.objects.count()))
 
 
 # RUN GEROMAIL MODULES
