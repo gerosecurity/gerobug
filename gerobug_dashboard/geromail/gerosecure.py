@@ -27,8 +27,8 @@ def check_blacklist(email):
     
         if diff < BLACKLISTRULE.buffer_blacklist:
             remaining = (blacklisted.time + BLACKLISTRULE.buffer_blacklist) - ct
-            logging.warning("Email Blacklisted Due to Spam Activity (Release in",remaining,"seconds)")
-            logging.info('============================\n')
+            logging.warning("Email Blacklisted Due to Spam Activity (Release in "+str(remaining)+" seconds)")
+            logging.info('============================')
 
             # LIMIT ONLY 1 NOTIFICATION TO MITIGATE ABUSE
             if blacklisted.informed == 0:
@@ -82,7 +82,7 @@ def monitor(email, ts):
             existing.time = ts
             existing.save()
 
-        logging.info("Monitor Counter :", existing.counter)
+        logging.info("Monitor Counter : "+str(existing.counter))
 
     else:
         watch = Watchlist()

@@ -144,10 +144,10 @@ def read_mail():
 
                         hunter_email = re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", str(msg['from'])).group()
 
-                        logging.info('\n============================')
+                        logging.info('============================')
                         logging.info('NEW EMAIL RECEIVED!')
-                        logging.info('Time : ' + email_date)
-                        logging.info('From : ' + hunter_email)
+                        logging.info('Time : ' + str(email_date))
+                        logging.info('From : ' + str(hunter_email))
                         
                         # SPOOF PREVENTION
                         spoof_check = re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", str(msg['return-path']))
@@ -165,7 +165,7 @@ def read_mail():
                         hunter_name = hunter_email[:at]
                         email_subject = msg['subject']
 
-                        logging.info('Subject : ' + email_subject)
+                        logging.info('Subject : ' + str(email_subject))
                         
                         # MONITOR SPAM ACTIVITY
                         gerosecure.monitor(hunter_email, int(msg_ts))
@@ -200,7 +200,7 @@ def read_mail():
                                 email_body = msg_body[0]
                                 email_body = str(email_body)
 
-                                logging.info('Body : ' + email_body + '\n')
+                                logging.info('Body : ' + str(email_body) + '\n')
                                 atk_type, report_endpoint, report_summary = gerofilter.parse_body(email_body)
                                 
                                 # VALIDATE REPORT
@@ -224,7 +224,7 @@ def read_mail():
                                 
                         # HUNTER CHECK STATUS
                         elif(code == 202): 
-                            logging.info('Report ID: ' + payload[0])
+                            logging.info('Report ID: ' + str(payload[0]))
                             report = BugReport.objects.get(report_id=payload[0])
 
                             payload[1] = report.report_title
@@ -233,7 +233,7 @@ def read_mail():
                         
                         # HUNTER UPDATE/AMEND REPORT
                         elif(code == 203):
-                            logging.info('Report ID : ' + payload[0])
+                            logging.info('Report ID : ' + str(payload[0]))
                             report = BugReport.objects.get(report_id=payload[0])
 
                             # UPDATE COUNTER
@@ -242,7 +242,7 @@ def read_mail():
 
                             # GENERATE UPDATE ID
                             update_id = str(payload[0]) + "U" + str(report.report_update)
-                            logging.info('Update ID : ' + update_id)
+                            logging.info('Update ID : ' + str(update_id))
 
                             # CHECK ATTACHMENT AND PARSE BODY
                             have_attachment = gerofilter.validate_attachment(msg, update_id, MEDIA_ROOT)
@@ -255,7 +255,7 @@ def read_mail():
 
                                 msg_body = msg.get_payload()[0].get_payload()
                                 update_summary = str(msg_body[0]).replace('Content-Type: text/plain; charset="UTF-8"', '')
-                                logging.info('Update Summary : ' + update_summary + '\n')
+                                logging.info('Update Summary : ' + str(update_summary) + '\n')
 
                                 save_uan('U', update_id, str(payload[0]), email_date, update_summary, 0)
                                 logging.info('[CODE 203] Bug Hunter Update Saved Successfully')
@@ -270,7 +270,7 @@ def read_mail():
 
                         # HUNTER APPEAL REPORT
                         elif(code == 204):
-                            logging.info('Report ID : ' + payload[0])
+                            logging.info('Report ID : ' + str(payload[0]))
                             report = BugReport.objects.get(report_id=payload[0])
 
                             # UPDATE COUNTER
@@ -281,7 +281,7 @@ def read_mail():
                             
                             # GENERATE APPEAL ID
                             appeal_id = str(payload[0]) + "A" + str(report.report_appeal)
-                            logging.info('Appeal ID : ' + appeal_id)
+                            logging.info('Appeal ID : ' + str(appeal_id))
                             
                             # CHECK ATTACHMENT AND PARSE BODY
                             have_attachment = gerofilter.validate_attachment(msg, appeal_id, MEDIA_ROOT)
@@ -294,7 +294,7 @@ def read_mail():
                                 appeal_file = 0
 
                             appeal_summary = str(appeal_summary).replace('Content-Type: text/plain; charset="UTF-8"', '')
-                            logging.info('Appeal Summary : ' + appeal_summary + '\n')
+                            logging.info('Appeal Summary : ' + str(appeal_summary) + '\n')
 
                             # VALIDATE APPEAL
                             if len(appeal_summary) > 3:
@@ -315,7 +315,7 @@ def read_mail():
 
                         # HUNTER AGREE
                         elif(code == 205):
-                            logging.info('Report ID: ' + payload[0])
+                            logging.info('Report ID: ' + str(payload[0]))
                             report = BugReport.objects.get(report_id=payload[0])
 
                             # REVOKE PERMISSION AND UPDATE STATUS
@@ -332,7 +332,7 @@ def read_mail():
 
                         # HUNTER SUBMITTED NDA
                         elif(code == 206):
-                            logging.info('Report ID: ' + payload[0])
+                            logging.info('Report ID: ' + str(payload[0]))
                             report = BugReport.objects.get(report_id=payload[0])
 
                             # UPDATE COUNTER
@@ -341,7 +341,7 @@ def read_mail():
 
                             # GENERATE NDA ID
                             nda_id = str(payload[0]) + "N" + str(report.report_nda)
-                            logging.info('NDA ID : ' + nda_id)
+                            logging.info('NDA ID : ' + str(nda_id))
 
                             # CHECK ATTACHMENT AND PARSE BODY
                             have_attachment = gerofilter.validate_attachment(msg, nda_id, MEDIA_ROOT)
@@ -352,7 +352,7 @@ def read_mail():
 
                                 msg_body = msg.get_payload()[0].get_payload()
                                 nda_summary = str(msg_body[0]).replace('Content-Type: text/plain; charset="UTF-8"', '')
-                                logging.info('NDA Summary : ' + nda_summary + '\n')
+                                logging.info('NDA Summary : ' + str(nda_summary) + '\n')
 
                                 save_uan('N', nda_id, str(payload[0]), email_date, nda_summary, 0)
                                 logging.info('[CODE 206] Bug Hunter NDA Received Successfully')
@@ -367,7 +367,7 @@ def read_mail():
 
                         # HUNTER CHECK SCORE
                         elif(code == 207):
-                            logging.info('Hunter Score: ' + payload[0])
+                            logging.info('Hunter Score: ' + str(payload[0]))
                             payload[3] = payload[0]
                             logging.info("[CODE 207] Bug Hunter Check Score Successfully")
 
@@ -390,7 +390,7 @@ def read_mail():
                         else:
                             logging.warning('[ERROR 404] Report not valid')
 
-                        logging.info('============================\n')
+                        logging.info('============================')
                         geromailer.write_mail(code, payload, hunter_email)
                         
         else:
@@ -485,7 +485,7 @@ def run():
 
                 except Exception as e:
                     error_count+=1
-                    logging.error("Failed to Login =",e,"(",str(error_count),")")
+                    logging.error("Failed to Login = " + str(e) + "("  + str(error_count) + ")")
                     MAILBOX_READY = False
                     time.sleep(5)
                     break

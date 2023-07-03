@@ -44,7 +44,7 @@ def validate_permission(operation, id):
     permited = []
 
     if permission <= 0: # NO PERMISSION
-        logging.info("[LOG] No Permission")
+        logging.info("No Permission")
         return False
     else:
         if permission >= 4: # UPDATE
@@ -62,12 +62,12 @@ def validate_permission(operation, id):
             if report.report_nda < 99:
                 permited.append("N")
 
-        logging.info("Permission =", report.report_permission, permited)
+        logging.info("Permission = " + str(report.report_permission) + " " + str(permited))
         if operation in permited:
-            logging.info(operation,"is Permitted")
+            logging.info(str(operation) + " is Permitted")
             return True
         else:
-            logging.info(operation,"is NOT Permitted")
+            logging.info(str(operation) + " is NOT Permitted")
             return False
 
 
@@ -106,7 +106,7 @@ def check_pdf(file):
     try:
         PyPDF2.PdfFileReader(open(file, "rb"))
     except Exception as e:
-        logging.error(e)
+        logging.error(str(e))
         logging.error("Invalid PDF File")
         return False
     else:

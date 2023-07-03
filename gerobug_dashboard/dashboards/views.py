@@ -170,8 +170,7 @@ def ReportUpdateStatus(request,id):
            report.report_status += 1
            report.save()
 
-        logging.info("REPORT ",id," STATUS UPDATED (",report.report_status,") BY ",request.user.username)
-        print("REPORT ",id," STATUS UPDATED (",report.report_status,") BY ",request.user.username)
+        logging.info("REPORT "+str(id)+" STATUS UPDATED ("+str(report.report_status)+") BY "+str(request.user.username))
         messages.success(request,"Report Status is updated!")
 
         def trigger_geromailer(report):
@@ -204,7 +203,7 @@ def FormHandler(request, id, complete):
                     report.report_status = 0
                     report.save()
                     
-                    logging.info("REPORT ",id," STATUS UPDATED (INVALID) BY ",request.user.username)
+                    logging.info("REPORT "+str(id)+" STATUS UPDATED (INVALID) BY "+str(request.user.username))
                     
                     def trigger_geromailer(report):
                         payload = [report.report_id, report.report_title, report.report_status, reasons, report.report_severity]
@@ -217,19 +216,19 @@ def FormHandler(request, id, complete):
 
                 elif (status == "In Review" or status == "Fixing" or status == "Fixing (Retest)") and complete == "0":
                     code = 701 #REQUEST AMEND
-                    logging.info("REPORT ",id," REQUESTED AMEND BY ",request.user.username)
+                    logging.info("REPORT "+str(id)+" REQUESTED AMEND BY "+str(request.user.username))
 
                 elif status == "Bounty Calculation" and complete == "0":
                     code = 702 #SEND CALCULATIONS
-                    logging.info("REPORT ",id," SEND CALCULATIONS BY ",request.user.username)
+                    logging.info("REPORT "+str(id)+" SEND CALCULATIONS BY "+str(request.user.username))
 
                 elif status == "Bounty in Process" and complete == "0":
                     code = 703 #REQUEST NDA
-                    logging.info("REPORT ",id," REQUESTED NDA BY ",request.user.username)
+                    logging.info("REPORT "+str(id)+" REQUESTED NDA BY "+str(request.user.username))
 
                 elif status == "Bounty in Process" and complete == "1":
                     code = 704 #COMPLETE
-                    logging.info("REPORT ",id," STATUS UPDATED (COMPLETE) BY ",request.user.username)
+                    logging.info("REPORT "+str(id)+" STATUS UPDATED (COMPLETE) BY "+str(request.user.username))
 
                 messages.success(request,"Email is successfully being processed and sent to the bug hunter with your reason.")
                 # TRIGGER COMPANY ACTION WITH THREADING
@@ -246,7 +245,7 @@ def FormHandler(request, id, complete):
 
     else:
         messages.error(request,"Something's wrong. Please report to the Admin for checking the logs.")
-        logging.error(request)
+        logging.error(str(request))
         return redirect('dashboard')
 
 
@@ -326,7 +325,7 @@ def AdminSetting(request):
                     messages.success(request,"Reviewer is created successfully!")
                     return redirect('setting')
             except Exception as e:
-                logging.error(e)
+                logging.error(str(e))
                 messages.error(request,"Something's wrong. Perhaps your username/email is already used. Please specify another one!")
                 return redirect("setting")
 
@@ -350,7 +349,7 @@ def AdminSetting(request):
             user.set_password(account.cleaned_data.get('user_password'))
             user.save()
             
-            logging.info("User "+username+" Updated successfully")
+            logging.info("User "+str(username)+" Updated successfully")
             messages.success(request,"User "+username+" updated successfully!")
             return redirect('setting')
 
@@ -387,7 +386,7 @@ def AdminSetting(request):
                     messages.success(request,"Notification Channel Saved Successfully")
                     return redirect('setting')
             except Exception as e:
-                logging.error(e)
+                logging.error(str(e))
                 messages.error(request,"Something's wrong...")
                 return redirect("setting")
 
@@ -492,7 +491,7 @@ def ReviewerDelete(request,id):
                 messages.success(request,"User is deleted successfully!")
                 return redirect('setting')
         except Exception as e:
-            logging.error(e)
+            logging.error(str(e))
             messages.error(request,"Something wrong. The delete operation is unsuccessful. Please report to the Admin!")
             return redirect('setting')
         return redirect('setting')
@@ -508,7 +507,7 @@ def NotificationDelete(request,service):
                 messages.success(request,"Notification Media is deleted successfully!")
                 return redirect('setting')
         except Exception as e:
-            logging.error(e)
+            logging.error(str(e))
             messages.error(request,"Something wrong. The delete operation is unsuccessful. Please report to the Admin!")
             return redirect('setting')
         return redirect('setting')
