@@ -80,11 +80,11 @@ class ReportUpdate(LoginRequiredMixin,UpdateView):
     redirect_field_name = 'login'
     model = BugReport
     template_name = "dashboard_varieties/edit_report.html"
-    fields = ["report_severity","report_severitystring","report_reviewer"] #Only status field is allowed to be edited
+    fields = ["report_severitystring","report_reviewer"] #Only status field is allowed to be edited
     
     def get_success_url(self):
-        report = BugReport.objects.get(report_status=self.object.report_id)
-        report.report_severity = gerocalculator(self.object.report_severitystring)
+        report = BugReport.objects.get(report_id=self.object.report_id)
+        report.report_severity = gerocalculator.calculate_owasp(self.object.report_severitystring)
         report.save()
 
         logging.info("REPORT " + str(self.object.report_id) + " UPDATED BY " + str(self.request.user.username))

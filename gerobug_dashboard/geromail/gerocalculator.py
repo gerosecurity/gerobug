@@ -1,5 +1,3 @@
-import re
-
 def calculate_owasp(severity_string):
     Final = 0
     # OWASP SEVERITY STRING FORMAT
@@ -28,5 +26,40 @@ def calculate_owasp(severity_string):
     LS = (SL+M+O+S+ED+EE+A+ID)/8
     IS = (LC+LI+LAV+LAC+FD+RD+NC+PV)/8
     
-    Final = round((((LS + IS) * 10) / 18),2)
+    if LS < 3: # LOW
+        A = 1
+    elif LS < 6: # MEDIUM
+        A = 2
+    elif LS <= 9: # HIGH
+        A = 3
+
+    if IS < 3: # LOW
+        B = 1
+    elif IS < 6: # MEDIUM
+        B = 2
+    elif IS <= 9: # HIGH
+        B = 3
+
+    # FINAL CALIBRATION
+    Final = round(((LS+IS+2)/2),2)
+    if A+B < 4:
+        if Final >= 4:
+            Final = 3.99
+
+    elif A+B == 4:
+        if Final >= 7:
+            Final = 6.99
+        elif Final < 4:
+            Final = 4
+
+    elif A+B == 5:
+        if Final >= 9:
+            Final = 8.99
+        elif Final < 7:
+            Final = 7
+
+    elif A+B == 6:
+       if Final <= 9:
+           Final = 9
+    
     return Final
