@@ -80,11 +80,11 @@ class ReportUpdate(LoginRequiredMixin,UpdateView):
     redirect_field_name = 'login'
     model = BugReport
     template_name = "dashboard_varieties/edit_report.html"
-    fields = ["report_severitystring","report_reviewer"] # Only status field is allowed to be edited
+    fields = ["report_severitystring", "report_reviewer"] # Only status field is allowed to be edited
     
     def get_success_url(self):
         report = BugReport.objects.get(report_id=self.object.report_id)
-        report.report_severity = gerocalculator.calculate_owasp(self.object.report_severitystring)
+        report.report_severity = gerocalculator.calculate(self.object.report_severitystring)
         report.save()
 
         logging.info("REPORT " + str(self.object.report_id) + " UPDATED BY " + str(self.request.user.username))
@@ -216,7 +216,7 @@ def FormHandler(request, id, complete):
                     def trigger_geromailer(report):
                         payload = [report.report_id, report.report_title, report.report_status, reasons, report.report_severity]
                         destination = report.hunter_email
-                        geromailer.notify(destination, payload) #TRIGGER GEROMAILER TO SEND UPDATE NOTIFICATION
+                        geromailer.notify(destination, payload) # TRIGGER GEROMAILER TO SEND UPDATE NOTIFICATION
                     
                     # SEND NOTIFICATION AND REASON WITH THREADING
                     trigger = threading.Thread(target=trigger_geromailer, args=(report,))

@@ -21,7 +21,7 @@ class BugReport(models.Model):
     report_attack = models.CharField(max_length=50, default='NO ATTACK TYPE')
     report_summary = models.TextField()
     report_severity = models.FloatField(default=0, verbose_name="Report Severity", validators=[MinValueValidator(0.0), MaxValueValidator(10.0)])
-    report_severitystring = models.CharField(default="", max_length=95, verbose_name="Severity String", validators=[MinLengthValidator(79), RegexValidator(regex='^\(SL:[0-9]\/M:[0-9]\/O:[0-9]\/S:[0-9]\/ED:[0-9]\/EE:[0-9]\/A:[0-9]\/ID:[0-9]\/LC:[0-9]\/LI:[0-9]\/LAV:[0-9]\/LAC:[0-9]\/FD:[0-9]\/RD:[0-9]\/NC:[0-9]\/PV:[0-9]\)$',message='Use OWASP Risk Rating Vector Format')])
+    report_severitystring = models.CharField(default="", max_length=95, verbose_name="Severity String", validators=[RegexValidator(regex='(^\(SL:[0-9]\/M:[0-9]\/O:[0-9]\/S:[0-9]\/ED:[0-9]\/EE:[0-9]\/A:[0-9]\/ID:[0-9]\/LC:[0-9]\/LI:[0-9]\/LAV:[0-9]\/LAC:[0-9]\/FD:[0-9]\/RD:[0-9]\/NC:[0-9]\/PV:[0-9]\)$)|(^CVSS:3\.1\/AV:[N|A|L|P]\/AC:[L|H]\/PR:[N|L|H]\/UI:[N|R]\/S:[U|C]\/C:[N|L|H]\/I:[N|L|H]\/A:[N|L|H]$)', message='Use OWASP Risk Rating / CVSS 3.1 Base Vector String')])
     report_status = models.IntegerField(default=1)
     report_duplicate = models.IntegerField(default=0)
     report_permission = models.IntegerField(default=0) # 4 (Update) 2 (Appeal) 1 (NDA) --> UAN --> Similar to RWX System

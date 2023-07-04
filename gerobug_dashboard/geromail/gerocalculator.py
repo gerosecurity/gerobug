@@ -1,3 +1,8 @@
+import re
+from cvss import CVSS3
+
+
+
 def calculate_owasp(severity_string):
     Final = 0
     # OWASP SEVERITY STRING FORMAT
@@ -41,35 +46,43 @@ def calculate_owasp(severity_string):
         B = 3
 
     # FINAL CALIBRATION
+    Final = round(((LS+IS+2)/2),2)
     if A+B < 4:
-        Final = round(((LS+IS)/2),2)
         if Final >= 4:
             Final = 3.99
 
     elif A+B == 4:
-        Final = round(((LS+IS)/2),2)
         if Final >= 7:
             Final = 6.99
         elif Final < 4:
             Final = 4
 
     elif A+B == 5:
-        Final = round(((LS+IS)/2),2)
         if Final >= 9:
             Final = 8.99
         elif Final < 7:
             Final = 7
 
     elif A+B == 6:
-       Final = round(((LS+IS+2)/2),2)
        if Final <= 9:
            Final = 9
     
     return Final
 
-def calculate_cvss(severity_string):
-    Final = 0
-    # CVSS 3.1 SEVERITY STRING FORMAT
-    # CVSS:3.1/AV:L/AC:H/PR:L/UI:R/S:C/C:H/I:L/A:L
 
-    return Final
+def calculate_cvss(severity_string):
+    cvss = CVSS3(severity_string)
+    return cvss.scores()[0]
+
+
+def calculate(severity_string):
+    cvss = re.search("^CVSS:3\.1\/AV:[N|A|L|P]\/AC:[L|H]\/PR:[N|L|H]\/UI:[N|R]\/S:[U|C]\/C:[N|L|H]\/I:[N|L|H]\/A:[N|L|H]$", severity_string)
+    if cvss:
+        return calculate_cvss(severity_string)
+    
+    else:
+        owasp = re.search("^\(SL:[0-9]\/M:[0-9]\/O:[0-9]\/S:[0-9]\/ED:[0-9]\/EE:[0-9]\/A:[0-9]\/ID:[0-9]\/LC:[0-9]\/LI:[0-9]\/LAV:[0-9]\/LAC:[0-9]\/FD:[0-9]\/RD:[0-9]\/NC:[0-9]\/PV:[0-9]\)$", severity_string)
+        if owasp:
+            return calculate_owasp(severity_string)
+        else:
+            return 0
