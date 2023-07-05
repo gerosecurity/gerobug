@@ -36,7 +36,7 @@ services:
     image: 'postgres:latest'
     ports:
       - "5432:5432"
-    command: postgres -c hba_file=./gerobug_hba.conf
+    command: postgres -c hba_file=/opt/gerobug_hba.conf
     env_file:
       - ./gerobug_dashboard/secrets/db_secret.env
     environment:
@@ -44,6 +44,7 @@ services:
       POSTGRES_USER: "gerobug"
     volumes:
       - ./db_data/:/var/lib/postgresql/data/
+      - ./gerobug_hba.conf:/opt/gerobug_hba.conf
     restart: unless-stopped
   
 volumes:
