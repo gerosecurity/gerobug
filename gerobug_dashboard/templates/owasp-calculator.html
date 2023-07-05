@@ -32,7 +32,7 @@
     <header>
       <div class="home-content">
         <i class='bx bx-menu'></i>
-        <span class="text">GEROBUG</span> <br />
+        <span class="text">GEROBUG | OWASP Risk Rating Calculator</span> <br />
       </div>
     </header>
 
@@ -45,6 +45,14 @@
           </div>
         </section>
 
+        <div>
+          
+            <b>VECTOR (SEVERITY STRING): </b>
+            <div class="p-3 mb-3 bg-info bg-opacity-10 rounded border border-info shadow">
+              <a id="score" target="_blank">(SL:0/M:0/O:0/S:0/ED:0/EE:0/A:0/ID:0/LC:0/LI:0/LAV:0/LAC:0/FD:0/RD:0/NC:0/PV:0)</a>
+            </div>
+        </div>
+        
         <!-- FIRST -->
         <div class="row">
           <!-- THREAT AGENT FACTORS -->
@@ -308,18 +316,9 @@
           </section>
         </div>
 
-        <!-- CREDITS -->
-        <section>
-          <div>
-            <b>VECTOR (SEVERITY STRING): </b><a id="score"
-              href="https://javierolmedo.github.io/OWASP-Calculator/?vector=(SL:1/M:1/O:0/S:2/ED:1/EE:1/A:1/ID:2/LC:2/LI:1/LAV:1/LAC:1/FD:1/RD:1/NC:2/PV:3)"
-              target="_blank">(SL:1/M:1/O:0/S:2/ED:1/EE:1/A:1/ID:2/LC:2/LI:1/LAV:1/LAC:1/FD:1/RD:1/NC:2/PV:3)</a>
-            <br><br>
-            <a href="#exampleModalCenter" data-toggle="modal">How is Severity Risk caculated?</a>
-            <br>
-            2021 OWASP Risk Assessment Calculator | Forked from <a href="https://github.com/JavierOlmedo/OWASP-Calculator" target="_blank"><span>Javier Olmedo</span></a>
-          </div>
-        </section>
+        <div>
+          <a href="#exampleModalCenter" data-toggle="modal">How is Severity Risk caculated?</a>
+        </div>
       </main>
 
       <!-- MODAL -->
@@ -414,8 +413,6 @@
     </div>
   </section>
 
-
-
   <!-- scripts -->
   <script src="{% static '/script/sidebar.js' %}"></script>
   <script src='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.3/js/bootstrap.min.js'></script>
@@ -425,4 +422,10 @@
   <script src='{% static "/script/owasp-calculator/sweetalert.min.js" %}'></script>
   <script src='{% static "/script/owasp-calculator/script.js" %}'></script>
 </body>
+
 {% endblock content %}
+
+<!--
+   CREDITS
+   Forked from https://github.com/JavierOlmedo/OWASP-Calculator by Javier Olmedo
+-->

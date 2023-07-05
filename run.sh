@@ -28,7 +28,7 @@ echo "=========================="
 if [ ! -f ./gerobug_dashboard/gerobug_host ]; then
     rx='([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])'
     while [[ ! $IP =~ ^$rx\.$rx\.$rx\.$rx$ ]]; do
-        echo "Provide Static IP for Gerobug Dashboard (Internal Static IP):"
+        echo "Provide INTERNAL IP for Gerobug Dashboard:"
         read IP
         echo
     done
@@ -51,7 +51,7 @@ else
     if [[ $RESULT == "Change IP" ]]; then
         rx='([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])'
         while [[ ! $IP =~ ^$rx\.$rx\.$rx\.$rx$ ]]; do
-            echo "Provide Static IP for Gerobug Dashboard (Internal Static IP):"
+            echo "Provide INTERNAL IP for Gerobug Dashboard:"
             read IP
             echo
         done
