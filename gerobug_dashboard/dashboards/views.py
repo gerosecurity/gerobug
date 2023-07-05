@@ -18,7 +18,7 @@ from django.middleware.csrf import get_token
 from .models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, ReportStatus, StaticRules, BlacklistRule, CertificateData
 from prerequisites.models import MailBox, Webhook
 from .forms import Requestform, AdminSettingForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm, WebhookForm, BlacklistForm, TemplateReportForm, TemplateNDAForm, TemplateCertForm, CertDataForm, PersonalizationForm
-from geromail import geromailer, gerofilter, geroparser
+from geromail import geromailer, gerofilter, geroparser, gerocalculator
 from sys import platform
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
 import threading, os, shutil, logging, gerocert.gerocert
@@ -75,17 +75,24 @@ class ReportDetails(LoginRequiredMixin,DetailView):
 
 
 class ReportUpdate(LoginRequiredMixin,UpdateView):
+    log_config()
     login_url = '/login/'
     redirect_field_name = 'login'
     model = BugReport
     template_name = "dashboard_varieties/edit_report.html"
-    fields = ["report_severity","report_severitystring","report_reviewer"] #Only status field is allowed to be edited
+    fields = ["report_severitystring", "report_reviewer"] # Only status field is allowed to be edited
     
     def get_success_url(self):
+        report = BugReport.objects.get(report_id=self.object.report_id)
+        report.report_severity = gerocalculator.calculate(self.object.report_severitystring)
+        report.save()
+
+        logging.info("REPORT " + str(self.object.report_id) + " UPDATED BY " + str(self.request.user.username))
         return reverse('dashboard')
 
 
 class ReportDelete(LoginRequiredMixin,DeleteView):
+    log_config()
     login_url = '/login/'
     redirect_field_name = 'login'
     model = BugReport
@@ -105,6 +112,7 @@ class ReportDelete(LoginRequiredMixin,DeleteView):
             shutil.rmtree(os.path.join(MEDIA_ROOT)+"\\"+self.object.report_id)
         else:
             shutil.rmtree(os.path.join(MEDIA_ROOT)+"/"+self.object.report_id)
+        logging.info("REPORT " + str(self.object.report_id) + " DELETED BY " + str(self.request.user.username))
         return reverse_lazy('dashboard')
 
 
@@ -208,7 +216,7 @@ def FormHandler(request, id, complete):
                     def trigger_geromailer(report):
                         payload = [report.report_id, report.report_title, report.report_status, reasons, report.report_severity]
                         destination = report.hunter_email
-                        geromailer.notify(destination, payload) #TRIGGER GEROMAILER TO SEND UPDATE NOTIFICATION
+                        geromailer.notify(destination, payload) # TRIGGER GEROMAILER TO SEND UPDATE NOTIFICATION
                     
                     # SEND NOTIFICATION AND REASON WITH THREADING
                     trigger = threading.Thread(target=trigger_geromailer, args=(report,))

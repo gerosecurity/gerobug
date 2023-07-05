@@ -9,3 +9,4 @@ psycopg2
 django-bleach
 python-magic
 libmagic
+cvss==2.6

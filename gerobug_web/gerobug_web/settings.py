@@ -50,21 +50,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'gerobug_web.wsgi.application'
 
-# GET DB SECRET
-root_path = str(BASE_DIR).replace("gerobug_dashboard",'')
-f = open(root_path+"/secrets/db_secret.env", "r")
-db_secret = f.read()
-f.close()
-
-db_secret = db_secret.replace("POSTGRES_PASSWORD=",'')
-db_secret = db_secret.replace('"','')
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': 'gerobug_db',
         'USER': 'gerobug',
-        'PASSWORD': db_secret,
+        'PASSWORD': os.environ.get("POSTGRES_PASSWORD"),
         'HOST': 'db',
         'PORT': '5432',
     }
