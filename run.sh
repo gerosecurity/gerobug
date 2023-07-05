@@ -100,4 +100,5 @@ echo -e "\n=============================="
 echo "VIEWING GEROBUG LOG"
 echo "=============================="
 
+echo "(To Exit The Log Viewer, Use Ctrl + C)"
 docker-compose logs -f
