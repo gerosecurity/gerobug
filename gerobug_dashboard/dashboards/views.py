@@ -84,10 +84,11 @@ class ReportUpdate(LoginRequiredMixin,UpdateView):
     
     def get_success_url(self):
         report = BugReport.objects.get(report_id=self.object.report_id)
-        report.report_severity = gerocalculator.calculate(self.object.report_severitystring)
+        report.report_severitytype = gerocalculator.classify(self.object.report_severitystring)
+        report.report_severity = gerocalculator.calculate(self.object.report_severitystring, report.report_severitytype)
         report.save()
 
-        logging.info("REPORT " + str(self.object.report_id) + " UPDATED BY " + str(self.request.user.username))
+        logging.info("REPORT " + str(self.object.report_id) + " SEVERITY UPDATED USING " + report.report_severitytype + " BY " + str(self.request.user.username))
         return reverse('dashboard')
 
 

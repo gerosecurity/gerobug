@@ -162,7 +162,16 @@
                             <td>Severity String</td>
                             <td> : </td>
                             <td>
+                                {% if object.report_severitytype == "OWASP" %} 
                                 <a href="{% url 'owasp-calculator' %}?vector={{object.report_severitystring}}" >{{object.report_severitystring}}</a>
+
+                                {% elif object.report_severitytype == "CVSS" %}
+                                <a href="{% url 'cvss-calculator' %}#{{object.report_severitystring}}" >{{object.report_severitystring}}</a>
+
+                                {% else %}
+                                <a href="#">{{object.report_severitystring}}</a>
+                                
+                                {% endif %}
                             </td>
                         </tr>
                        
