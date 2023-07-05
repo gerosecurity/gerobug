@@ -5,6 +5,8 @@ services:
     ports:
       - "80:80"
     command: python manage.py runserver 0.0.0.0:80 --insecure
+    env_file:
+      - ./gerobug_dashboard/secrets/db_secret.env
     environment:
       PYTHONUNBUFFERED: 1
     volumes:
@@ -20,6 +22,7 @@ services:
     command: python manage.py runserver 0.0.0.0:6320 --insecure
     env_file:
       - ./gerobug_dashboard/secrets/gerobug_secret.env
+      - ./gerobug_dashboard/secrets/db_secret.env
     environment:
       PYTHONUNBUFFERED: 1
     volumes:
@@ -38,7 +41,6 @@ services:
     environment:
       POSTGRES_DB: "gerobug_db"
       POSTGRES_USER: "gerobug"
-      POSTGRES_HOST_AUTH_METHOD: "trust"
     volumes:
       - ./db_data/:/var/lib/postgresql/data/
     restart: unless-stopped
