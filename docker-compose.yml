@@ -36,6 +36,7 @@ services:
     image: 'postgres:latest'
     ports:
       - "5432:5432"
+    command: postgres -c listen_addresses='10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, localhost'
     env_file:
       - ./gerobug_dashboard/secrets/db_secret.env
     environment:
