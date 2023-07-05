@@ -92,12 +92,22 @@
                     </li>
 
                     <li>
-                        <a href="{% url 'calculator' %}">
+                        <a href="{% url 'owasp-calculator' %}">
                             <i class="bi bi-calculator-fill"></i>
                             <span class="link_name">OWASP Calculator</span>
                         </a>
                         <ul class="sub-menu blank">
-                            <li><a class="link_name" href="{% url 'calculator' %}">OWASP Calculator</a></li>
+                            <li><a class="link_name" href="{% url 'owasp-calculator' %}">OWASP Calculator</a></li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <a href="{% url 'cvss-calculator' %}">
+                            <i class="bi bi-calculator-fill"></i>
+                            <span class="link_name">CVSS3 Calculator</span>
+                        </a>
+                        <ul class="sub-menu blank">
+                            <li><a class="link_name" href="{% url 'cvss-calculator' %}">CVSS3 Calculator</a></li>
                         </ul>
                     </li>
                 </ul>

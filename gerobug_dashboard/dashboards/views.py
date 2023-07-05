@@ -526,6 +526,10 @@ def OWASPCalculator(request):
     return render(request,'owasp-calculator.html')
 
 @login_required
+def CVSSCalculator(request):
+    return render(request,'cvss-calculator.html')
+
+@login_required
 def ManageRoles(request):
     return render(request,'manage.html')
 
