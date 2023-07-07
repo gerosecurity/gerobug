@@ -25,12 +25,13 @@ echo -e "\n=========================="
 echo "STOPPING CURRENT PROCESS"
 echo "=========================="
 docker-compose down
+docker volume rm gerobug_static-content
 sleep 3
 
 echo -e "\n=========================="
 echo "REBUILD UPDATES"
 echo "=========================="
-docker-compose up --build
+docker-compose up --build --force-recreate -d
 sleep 3
 
 echo -e "\n=============================="
