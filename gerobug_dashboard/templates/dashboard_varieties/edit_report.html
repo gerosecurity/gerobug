@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load crispy_forms_tags %}
 
 
 {% block content %}
@@ -41,8 +42,8 @@
             <br>
             <form action="" method="POST">
                 {% csrf_token %}
-                {{ form.as_p }}
-                <br><br><br>
+                {{ form | crispy}}
+                <br>
                 <!-- <button class="update-btn" data-bs-toggle="modal" type="button">Update Status</button> -->
                 <input type="submit" class="update-btn" value="Update">
                 </form>

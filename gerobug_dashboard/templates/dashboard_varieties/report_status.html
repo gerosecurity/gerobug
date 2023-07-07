@@ -19,7 +19,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
   <link href='https://unpkg.com/boxicons@2.0.7/css/boxicons.min.css' rel='stylesheet'>
-
+  
   <!-- jQuery cdn -->
   <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
   
@@ -77,9 +77,31 @@
                 <td><p class="max-text">{{attributes.report_summary }}</p> </td>
                 <td><a target="_blank" href="{% url 'report_files' attributes.report_id %}">Report File</a></td>
                 <td>
-                  <div id="status-tag">
-                    {{ reportstatus }}
-                  </div>
+                    {% if attributes.report_status == 1 %}
+                    <div class="status-tag" id="needreview">
+                      {{reportstatus}}
+                    </div>
+                    {% elif attributes.report_status == 2 %}
+                    <div class="status-tag" id="inreview">
+                      {{reportstatus}}
+                    </div>
+                    {% elif attributes.report_status == 3 or attributes.report_status == 4 %}
+                    <div class="status-tag" id="fixing">
+                      {{reportstatus}}
+                    </div>
+                    {% elif attributes.report_status == 5 or attributes.report_status == 6 %}
+                    <div class="status-tag" id="calculate">
+                      {{reportstatus}}
+                    </div>
+                    {% elif attributes.report_status == 7 %}
+                    <div class="status-tag" id="complete">
+                      {{reportstatus}}
+                    </div>
+                    {% elif attributes.report_status == 8 %}
+                    <div class="status-tag" id="invalid">
+                      {{reportstatus}}
+                    </div>
+                    {% endif %}
                 </td>
             </tr>
             {% endfor %}

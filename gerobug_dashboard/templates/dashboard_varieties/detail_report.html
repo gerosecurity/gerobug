@@ -121,7 +121,7 @@
                 </div>
 
                 {% if object.report_severity == 0 %} 
-                <div class="severity-type" id="none">NONE</div>
+                <div class="severity-type" id="none">Informational</div>
 
                 {% elif object.report_severity < 4 %} 
                 <div class="severity-type" id="low">Low</div>
@@ -162,6 +162,7 @@
                             <td>Severity String</td>
                             <td> : </td>
                             <td>
+                                <div id="severitystring">
                                 {% if object.report_severitytype == "OWASP" %} 
                                 <a href="{% url 'owasp-calculator' %}?vector={{object.report_severitystring}}" >{{object.report_severitystring}}</a>
 
@@ -172,6 +173,7 @@
                                 <a href="#">{{object.report_severitystring}}</a>
                                 
                                 {% endif %}
+                                </div>
                             </td>
                         </tr>
                        
