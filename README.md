@@ -124,5 +124,5 @@ All services are running on seperate containers. Public users only able to acces
 <br>
 
 ## Feedback
-If you have any feedback, please reach out to us at __gerobug.id@gmail.com__ 🫶
+If you have any feedback, please reach out to us at __gerobug.id@gmail.com__
 
