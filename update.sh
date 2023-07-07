@@ -30,7 +30,7 @@ sleep 3
 echo -e "\n=========================="
 echo "REBUILD UPDATES"
 echo "=========================="
-docker-compose up --build
+docker-compose up --build -d
 sleep 3
 
 echo -e "\n=============================="
