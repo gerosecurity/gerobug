@@ -82,6 +82,13 @@ h4{
     padding: 4px;
 }
 
+#severitystring {
+    width: 600px;
+    white-space: nowrap;
+    overflow: hidden;         
+    text-overflow: ellipsis;
+}
+
 #left-div table{
     max-width: 800px;
 }
@@ -229,7 +236,7 @@ input[type=number] {
     padding: 2px 8px;
     gap: 8px;
 
-    width: 72px;
+    width: 100px;
     height: 28px;
 
     /* background: #FFA9B3; */
