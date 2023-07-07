@@ -9,20 +9,20 @@
 
 __The first open source self-managed bug bounty platform.__
 
-Are you a company, planning to have your own bug bounty program, with minimum budget? 🤔<br>
+Are you a company, planning to have your own bug bounty program, with minimum budget?<br>
 
-__WE GOT YOU! 🫵__
+__WE GOT YOU!__
 
-We are aware that some organizations have had difficulty establishing their own bug bounty program. 😰<br>
-Using a third-party managed platform usually comes with a hefty price tag and security risks. 🙊 _(If you know, you know...)_<br>
-In the other hand, creating your own self-managed platform will take time and effort to build and maintain it. 😓
+We are aware that some organizations have had difficulty establishing their own bug bounty program.<br>
+Using a third-party managed platform usually comes with a hefty price tag and security risks. _(If you know, you know...)_<br>
+In the other hand, creating your own self-managed platform will take time and effort to build and maintain it.
 
 <br>
 
 ## Why Gerobug?
-- __EASY        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:__ Have your bug bounty program running with just single line of command 😏
-- __SECURE      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:__ Gerobug uses email parser and network segregation to minimize security risks. 🦾
-- __OPEN SOURCE &nbsp;&nbsp;:__ It is FREE. 🤩
+- __EASY        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:__ Have your bug bounty program running with just single line of command
+- __SECURE      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:__ Gerobug uses email parser and network segregation to minimize security risks.
+- __OPEN SOURCE &nbsp;&nbsp;:__ It is FREE.
 
 <br>
 
@@ -30,7 +30,15 @@ In the other hand, creating your own self-managed platform will take time and ef
 * Ubuntu 18.04
 * vCPU 1 Core
 * RAM 1 GB
-* HDD 10 GB
+* HDD 16 GB
+
+<br>
+
+## Recommended Specification
+* Ubuntu 22.04
+* vCPU 2 Core
+* RAM 2 GB
+* HDD 64 GB
 
 <br>
 
@@ -105,25 +113,6 @@ Yeah we have it too
 
 - Network Segregation<br>
 All services are running on seperate containers. Public users only able to access the static page (Rules and guidelines).
-
-<br>
-
-## NOTE
-Currently we are not accepting any bug issues, since we're still actively maintain and improving its features and capabilities. But we are open to any feedbacks and suggestions. Thank you for your understanding. 🙏
-
-<br>
-
-## ON GOING IMPROVEMENTS
-- [ ] Add Capability to Edit Email Template on Admin Setting
-- [ ] Add Support for Other Mailboxes (Outlook, Apple, etc.)
-- [ ] Add Flow Control (Custom Status, Add / Remove Status)
-- [ ] Auto Calculate Severity String to Number Format
-- [ ] Improve RBAC for Reviewer Users (Assign and Link Reports)
-- [ ] Improve Notifications and Confirmations on Successful Actions 
-- [ ] Improve Duplicate Detection Algorithm
-- [ ] Improve Logging Module
-- [ ] Improve Backend Performance and Efficiency
-- [ ] And many more... 🥵
 
 <br>
 
