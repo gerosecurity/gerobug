@@ -20,3 +20,6 @@ def halloffame(request,):
     ).exclude(hunter_scores=0).order_by('-points') #descending use '-'
 
     return render(request, 'halloffame.html',{'bughunters':bughunters})
+
+def notfound_404(request, exception):
+    return render(request, 'notfound.html', status=404)

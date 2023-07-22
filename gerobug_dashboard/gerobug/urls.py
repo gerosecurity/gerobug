@@ -28,3 +28,5 @@ urlpatterns = [
     #path('accounts/', include('django.contrib.auth.urls')),
     #path('admin/', admin.site.urls),
 ]
+
+handler404 = 'dashboards.views.notfound_404'
