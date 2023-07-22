@@ -22,3 +22,5 @@ urlpatterns = [
     path("submit/",emailcontext,name="submit"),
     path("halloffame/",halloffame,name="halloffame"),
 ]
+
+handler404 = 'dashboards.views.notfound_404'
