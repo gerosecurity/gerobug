@@ -14,10 +14,10 @@ services:
 
   web:
     build: ./gerobug_web
-    ports:
-      - "8000:8000"
+    expose:
+      - 8000
     #command: python manage.py runserver 0.0.0.0:80 --insecure
-    command: gunicorn gerobug_web.wsgi:application --bind 127.0.0.1:8000
+    command: gunicorn gerobug_web.wsgi:application --bind 0.0.0.0:8000
     env_file:
       - ./gerobug_dashboard/secrets/db_secret.env
     environment:
