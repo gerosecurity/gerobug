@@ -18,6 +18,9 @@ from django.core.exceptions import ObjectDoesNotExist
 from prerequisites.models import MailBox
 from dashboards.rulestemplate import *
 
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'gerobug.settings')
+
+application = get_wsgi_application()
 
 # LOGGING INITIATION
 def log_config():
@@ -131,30 +134,24 @@ def init_group():
         log_config()
         logging.debug("Group Reviewer shall be created successfully. Visit the Admin Site!")
 
-def start_app():
-    init_status_db(0, "Not Valid")
-    init_status_db(1, "Need to Review")
-    init_status_db(2, "In Review")
-    init_status_db(3, "Fixing")
-    init_status_db(4, "Fixing (Retest)")
-    init_status_db(5, "Bounty Calculation")
-    init_status_db(6, "Bounty in Process")
-    init_status_db(7, "Completed")
-    init_group()
-    init_rules_db()
-    init_cert_db()
-    init_mailbox_db()
+init_status_db(0, "Not Valid")
+init_status_db(1, "Need to Review")
+init_status_db(2, "In Review")
+init_status_db(3, "Fixing")
+init_status_db(4, "Fixing (Retest)")
+init_status_db(5, "Bounty Calculation")
+init_status_db(6, "Bounty in Process")
+init_status_db(7, "Completed")
+init_group()
+init_rules_db()
+init_cert_db()
+init_mailbox_db()
 
-    log_config()
-    logging.info("Number of Status         :"+str(ReportStatus.objects.count()))
-    logging.info("Number of Report         :"+str(BugReport.objects.count()))
-    logging.info("Number of Bug Hunters    :"+str(BugHunter.objects.count()))
-
-
-    # RUN GEROMAIL MODULES
-    RunGeromailThread(1).start()
-    return get_wsgi_application()
+log_config()
+logging.info("Number of Status         :"+str(ReportStatus.objects.count()))
+logging.info("Number of Report         :"+str(BugReport.objects.count()))
+logging.info("Number of Bug Hunters    :"+str(BugHunter.objects.count()))
 
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'gerobug.settings')
-application = start_app()
+# RUN GEROMAIL MODULES
+RunGeromailThread(1).start()
