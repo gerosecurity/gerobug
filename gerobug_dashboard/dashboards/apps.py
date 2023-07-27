@@ -1,17 +1,16 @@
-import os, logging, gerocert.gerocert
-
 from django.apps import AppConfig
-from geromail.thread import RunGeromailThread
-from dashboards.models import BugReport, BugHunter, ReportStatus, StaticRules, BlacklistRule, CertificateData
-from django.contrib.auth.models import Group, Permission
-from django.core.exceptions import ObjectDoesNotExist
-from prerequisites.models import MailBox
-from dashboards.rulestemplate import *
 
 class DashboardsConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'dashboards'
     def ready(self):
+        import logging, gerocert.gerocert, dashboards.rulestemplate
+        from geromail.thread import RunGeromailThread
+        from dashboards.models import BugReport, BugHunter, ReportStatus, StaticRules, BlacklistRule, CertificateData
+        from django.contrib.auth.models import Group, Permission
+        from django.core.exceptions import ObjectDoesNotExist
+        from prerequisites.models import MailBox
+
         # LOGGING INITIATION
         def log_config():
             logging.basicConfig(filename='log/gerobug.log', level=logging.DEBUG, 
@@ -37,12 +36,12 @@ class DashboardsConfig(AppConfig):
             if  not StaticRules.objects.filter(pk=1).exists():
                 staticrules = StaticRules()
                 
-                staticrules.RDP = RDP_template
-                staticrules.bountyterms = bountyterms_template
-                staticrules.inscope = inscope_templates
-                staticrules.outofscope = outofscope_templates
-                staticrules.reportguidelines = reportguidelines_templates
-                staticrules.faq = faq_templates
+                staticrules.RDP = dashboards.rulestemplate.RDP_template
+                staticrules.bountyterms = dashboards.rulestemplate.bountyterms_template
+                staticrules.inscope = dashboards.rulestemplate.inscope_templates
+                staticrules.outofscope = dashboards.rulestemplate.outofscope_templates
+                staticrules.reportguidelines = dashboards.rulestemplate.reportguidelines_templates
+                staticrules.faq = dashboards.rulestemplate.faq_templates
                 staticrules.save()
                 log_config()
                 logging.debug("Init Rules DB success")
