@@ -147,5 +147,4 @@ class DashboardsConfig(AppConfig):
 
 
             # RUN GEROMAIL MODULES
-            if RunGeromailThread is None or not RunGeromailThread.is_alive(self):
-                RunGeromailThread(1).start()
+            RunGeromailThread(1).start()

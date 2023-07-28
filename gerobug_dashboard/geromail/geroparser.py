@@ -28,6 +28,7 @@ logging.basicConfig(filename='log/gerobug.log', level=logging.DEBUG,
 EMAIL           = ""
 PWD             = ""
 MAILBOX_READY   = False
+PARSER_RUNNING  = False
 IMAP_SERVER     = "imap.gmail.com"
 IMAP_PORT       = 993
 
@@ -452,8 +453,9 @@ def company_action(id, note, code):
 
 # RUN GEROMAIL MODULES
 def run():
-    global EMAIL, PWD, MAILBOX_READY
+    global EMAIL, PWD, MAILBOX_READY, PARSER_RUNNING
     MAILBOX_READY = False
+    PARSER_RUNNING = False
     error_count = 0
     
     while True:
@@ -468,6 +470,7 @@ def run():
 
         # WAIT UNTIL MAILBOX READY
         while not MAILBOX_READY:
+            PARSER_RUNNING = True
             mailbox = MailBox.objects.get(mailbox_id=1)
             if mailbox.email == "" or mailbox.password == "":
                 logging.debug("Waiting for Mailbox Setup...")
@@ -477,6 +480,7 @@ def run():
         
         # ONLY RUN WHILE MAILBOX READY
         while MAILBOX_READY:
+            PARSER_RUNNING = True
             mailbox = MailBox.objects.get(mailbox_id=1)
             EMAIL       = mailbox.email
             PWD         = mailbox.password
@@ -500,3 +504,9 @@ def run():
 
             read_mail()
             time.sleep(10)
+
+        PARSER_RUNNING = False
+
+def check_run():
+    global PARSER_RUNNING
+    return PARSER_RUNNING
