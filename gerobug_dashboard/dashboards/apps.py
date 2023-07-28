@@ -4,7 +4,9 @@ import sys
 class DashboardsConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'dashboards'
-    if 'gerobug.wsgi' in sys.argv: # OR RUNSERVER
+    
+    # if 'gerobug.wsgi' in sys.argv:
+    if 'runserver' in sys.argv: 
         def ready(self):
             import logging, gerocert.gerocert, dashboards.rulestemplate
             from geromail.thread import RunGeromailThread
