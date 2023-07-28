@@ -6,6 +6,7 @@ class DashboardsConfig(AppConfig):
     name = 'dashboards'
     
     # if 'gerobug.wsgi' in sys.argv:
+    print(sys.argv)
     if 'runserver' in sys.argv: 
         def ready(self):
             import logging, gerocert.gerocert, dashboards.rulestemplate
