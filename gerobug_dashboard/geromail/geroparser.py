@@ -455,7 +455,7 @@ def company_action(id, note, code):
 def run():
     global EMAIL, PWD, MAILBOX_READY, PARSER_RUNNING
     MAILBOX_READY = False
-    PARSER_RUNNING = False
+    PARSER_RUNNING = True
     error_count = 0
     
     while True:
@@ -470,7 +470,6 @@ def run():
 
         # WAIT UNTIL MAILBOX READY
         while not MAILBOX_READY:
-            PARSER_RUNNING = True
             mailbox = MailBox.objects.get(mailbox_id=1)
             if mailbox.email == "" or mailbox.password == "":
                 logging.debug("Waiting for Mailbox Setup...")
@@ -480,7 +479,6 @@ def run():
         
         # ONLY RUN WHILE MAILBOX READY
         while MAILBOX_READY:
-            PARSER_RUNNING = True
             mailbox = MailBox.objects.get(mailbox_id=1)
             EMAIL       = mailbox.email
             PWD         = mailbox.password
@@ -504,8 +502,6 @@ def run():
 
             read_mail()
             time.sleep(10)
-
-        PARSER_RUNNING = False
 
 def check_run():
     global PARSER_RUNNING
