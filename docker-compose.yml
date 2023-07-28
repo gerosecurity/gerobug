@@ -43,7 +43,7 @@ services:
     volumes:
       - static-content:/src/static
       - ./log/:/src/log
-    restart: on-failure
+    restart: unless-stopped
     depends_on:
       - db
 
