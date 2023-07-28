@@ -5,7 +5,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "6320:6320"
+      #- "6320:6320"
     volumes:
       - static-content:/src/static
     restart: unless-stopped
@@ -29,12 +29,13 @@ services:
 
   dashboard:
     build: ./gerobug_dashboard
-    #ports:
-    #  - "6320:6320"
+    ports:
+     - "6320:6320"
+    # expose:
+    #   - 8001
     #command: python manage.py runserver 0.0.0.0:6320 --insecure
-    expose:
-      - 8001
-    command: gunicorn gerobug.wsgi --bind 0.0.0.0:8001
+    #command: gunicorn gerobug.wsgi --bind 0.0.0.0:8001
+    command: gunicorn gerobug.wsgi --bind 0.0.0.0:6320
     env_file:
       - ./gerobug_dashboard/secrets/gerobug_secret.env
       - ./gerobug_dashboard/secrets/db_secret.env
