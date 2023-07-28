@@ -19,7 +19,7 @@ echo "[IT IS RECOMMENDED TO SET ALLOWED HOST USING STATIC INTERNAL IP]"
 echo -e "================================================================================\n"
 
 echo "IP Address: " 
-echo $(ip addr | grep "inet .* eth")
+echo $(ip addr | grep "inet ")
 
 echo -e "\n=========================="
 echo "GEROBUG DASHBOARD IP SETUP"
