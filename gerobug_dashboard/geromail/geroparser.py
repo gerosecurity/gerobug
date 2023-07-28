@@ -457,13 +457,13 @@ def run():
     global EMAIL, PWD, MAILBOX_READY, PARSER_RUNNING
     MAILBOX_READY = False
     error_count = 0
-    print("Running = "+PARSER_RUNNING)
+    print("Running = "+str(PARSER_RUNNING))
     if PARSER_RUNNING:
         logging.warning("Geroparser already started!")
         return 0
     else:
         PARSER_RUNNING = True
-        print("Running Set = "+PARSER_RUNNING)
+        print("Running Set = "+str(PARSER_RUNNING))
         logging.debug("[LOG] Starting Geroparser")
 
     while PARSER_RUNNING:
