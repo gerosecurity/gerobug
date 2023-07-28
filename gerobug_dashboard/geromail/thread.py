@@ -10,7 +10,6 @@ class RunGeromailThread(threading.Thread):
     def run(self):
         try:
             if geroparser.check_run() == False:
-                print("[LOG] Starting Geroparser")
                 geroparser.run()
         
         except Exception as e:

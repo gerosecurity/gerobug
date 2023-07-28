@@ -455,10 +455,16 @@ def company_action(id, note, code):
 def run():
     global EMAIL, PWD, MAILBOX_READY, PARSER_RUNNING
     MAILBOX_READY = False
-    PARSER_RUNNING = True
     error_count = 0
-    
-    while True:
+
+    if PARSER_RUNNING:
+        logging.warning("Geroparser already started!")
+        return 0
+    else:
+        PARSER_RUNNING = True
+        logging.debug("[LOG] Starting Geroparser")
+
+    while PARSER_RUNNING:
         # LIMIT ERRORS TO AVOID BLACKLISTED BY MAIL SERVER
         if error_count >= 3:
             logging.warning("Error Limit Reached!")
