@@ -6,7 +6,6 @@ class DashboardsConfig(AppConfig):
     name = 'dashboards'
     
     # if 'gerobug.wsgi' in sys.argv:
-    print(sys.argv)
     if 'runserver' in sys.argv: 
         def ready(self):
             import logging, gerocert.gerocert, dashboards.rulestemplate
@@ -148,4 +147,5 @@ class DashboardsConfig(AppConfig):
 
 
             # RUN GEROMAIL MODULES
-            RunGeromailThread(1).start()
+            if RunGeromailThread is None or not RunGeromailThread.is_alive():
+                RunGeromailThread(1).start()
