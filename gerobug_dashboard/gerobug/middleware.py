@@ -1,12 +1,11 @@
 from django.core.exceptions import PermissionDenied
 from django.utils.deprecation import MiddlewareMixin
-from gerobug.settings import ALLOWED_HOSTS
 import re, logging
+
 
 class ForceInternalMiddleware(MiddlewareMixin):
     def process_request(self, request):
-
-        print(ALLOWED_HOSTS)
+        allowed_hosts = ['127.0.0.1', 'localhost']
         host = request.META.get('HTTP_HOST')
         host = host[0:host.find(":")]
         
@@ -20,17 +19,16 @@ class ForceInternalMiddleware(MiddlewareMixin):
                     ip_addr = None
                 else:
                     ip_addr = str(local_ip_3.search(host).group())
-                    ALLOWED_HOSTS.append(ip_addr)
+                    allowed_hosts.append(ip_addr)
             else:
                 ip_addr = str(local_ip_2.search(host).group())
-                ALLOWED_HOSTS.append(ip_addr)
+                allowed_hosts.append(ip_addr)
         else:
             ip_addr = str(local_ip_1.search(host).group())
-            ALLOWED_HOSTS.append(ip_addr)
+            allowed_hosts.append(ip_addr)
 
-        logging.debug("Used Host:",host)
-        logging.debug("Allowed Hosts:",ALLOWED_HOSTS)
-        if host not in ALLOWED_HOSTS:
+        if host not in allowed_hosts:
+            logging.warning("Host:",host,"is NOT ALLOWED.")
             raise PermissionDenied()
 
         return None
