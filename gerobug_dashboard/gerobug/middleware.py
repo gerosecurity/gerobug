@@ -3,6 +3,22 @@ import re
 
 class ForceInternalMiddleware(object):
 
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        return response
+
+    def process_view(self, request, view_func, view_args, view_kwargs):
+        return None
+
+    def process_exception(self, request, exception):
+        return None
+
+    def process_template_response(self, request, response):
+        return response
+    
     def process_request(self, request):
         allowed_hosts = ['127.0.0.1', 'localhost']
         host = request.META.get('HTTP_HOST')
@@ -24,7 +40,7 @@ class ForceInternalMiddleware(object):
         else:
             IP = local_ip_1.search(host)
             allowed_hosts.append(IP)
-            
+
 
         if host not in allowed_hosts:
             raise HttpResponseForbidden

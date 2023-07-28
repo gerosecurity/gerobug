@@ -46,6 +46,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+    # CUSTOM MIDDLEWARE
+    'gerobug.middleware.ForceInternalMiddleware',
 ]
 
 ROOT_URLCONF = 'gerobug.urls'
