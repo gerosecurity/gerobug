@@ -28,7 +28,7 @@ class ForceInternalMiddleware(MiddlewareMixin):
             allowed_hosts.append(ip_addr)
 
         if host not in allowed_hosts:
-            logging.warning("Host:",host,"is NOT ALLOWED.")
+            logging.warning("[USE INTERNAL IP] Host: " + str(host) + " is NOT ALLOWED.")
             raise PermissionDenied()
 
         return None
