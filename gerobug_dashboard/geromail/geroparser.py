@@ -27,10 +27,11 @@ logging.basicConfig(filename='log/gerobug.log', level=logging.DEBUG,
 # GMAIL IMAP CONFIG
 EMAIL           = ""
 PWD             = ""
-MAILBOX_READY   = False
-PARSER_RUNNING  = False
 IMAP_SERVER     = "imap.gmail.com"
 IMAP_PORT       = 993
+
+MAILBOX_READY   = False
+PARSER_RUNNING  = False
 
 
 # GENERATE REPORT ID
@@ -456,12 +457,13 @@ def run():
     global EMAIL, PWD, MAILBOX_READY, PARSER_RUNNING
     MAILBOX_READY = False
     error_count = 0
-
+    print("Running = "+PARSER_RUNNING)
     if PARSER_RUNNING:
         logging.warning("Geroparser already started!")
         return 0
     else:
         PARSER_RUNNING = True
+        print("Running Set = "+PARSER_RUNNING)
         logging.debug("[LOG] Starting Geroparser")
 
     while PARSER_RUNNING:
