@@ -49,7 +49,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
     # CUSTOM MIDDLEWARE
-    'gerobug.middleware.ForceInternalMiddleware',
+    # 'gerobug.middleware.ForceInternalMiddleware',
 ]
 
 ROOT_URLCONF = 'gerobug.urls'
