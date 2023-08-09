@@ -40,8 +40,12 @@ case $HAVE_DOMAIN in
     ;;
 esac
 echo ""
+
 if [[ $DOMAIN == "Y" ]]; then
-    echo "OK, You have a domain"
+    while [[ ! $GEROBUG_HOST =~ '*' ]]; do
+        read -rp "Enter your domain (example: www.gerobug.com): " -e GEROBUG_HOST
+    done
+    echo $GEROBUG_HOST > ./gerobug_dashboard/gerobug_host
 fi
 
 
@@ -60,6 +64,7 @@ case $HAVE_VPN in
     ;;
 esac
 echo ""
+
 if [[ $VPN == "Y" ]]; then
     echo "OK, You have a VPN Server"
 fi
