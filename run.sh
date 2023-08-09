@@ -40,6 +40,9 @@ case $HAVE_DOMAIN in
     ;;
 esac
 echo ""
+if [[ $DOMAIN == "Y" ]]; then
+    echo "OK, You have a domain"
+fi
 
 
 echo "Do you have a VPN Server on the network?"
@@ -57,6 +60,9 @@ case $HAVE_VPN in
     ;;
 esac
 echo ""
+if [[ $VPN == "Y" ]]; then
+    echo "OK, You have a VPN Server"
+fi
 
 echo "Okay, that was all I needed. We are ready to setup Gerobug server now."
 read -n1 -r -p "Press any key to continue..."
