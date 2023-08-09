@@ -66,3 +66,4 @@ services:
   
 volumes:
   static-content:
+  static-files:
