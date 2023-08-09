@@ -12,12 +12,13 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', get_random_secret_key())
 DEBUG = False
 
 # READ FROM GEROBUG HOST FILE
-f = open(root_path+"/gerobug_host", "r")
-gerobug_host = f.read()
-f.close()
+# f = open(root_path+"/gerobug_host", "r")
+# gerobug_host = f.read()
+# f.close()
 
-gerobug_host = gerobug_host.replace('\n','')
-#ALLOWED_HOSTS = ['127.0.0.1', 'localhost', gerobug_host] #INTERNAL IP
+# gerobug_host = gerobug_host.replace('\n','')
+# ALLOWED_HOSTS = ['127.0.0.1', 'localhost', gerobug_host] #INTERNAL IP
+
 ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
