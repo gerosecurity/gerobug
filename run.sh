@@ -42,9 +42,10 @@ esac
 echo ""
 
 if [[ $DOMAIN == "Y" ]]; then
-    while [[ ! $GEROBUG_HOST =~ '*' ]]; do
+    while [[ ! $GEROBUG_HOST == '*' ]]; do
         read -rp "Enter your domain (example: www.gerobug.com): " -e GEROBUG_HOST
     done
+    echo $GEROBUG_HOST
     echo $GEROBUG_HOST > ./gerobug_dashboard/gerobug_host
 fi
 
