@@ -10,9 +10,6 @@ echo "
 "
 echo "================================================================================"
 echo "Gerobug v2.1 (PRODUCTION READY)"
-# Detect public IPv4 address and pre-fill for the user
-IP=$(ip -4 addr | sed -ne 's|^.* inet \([^/]*\)/.* scope global.*$|\1|p' | head -1)
-echo "Server IP : $IP"
 echo "================================================================================"
 echo ""
 echo "================================================================================"
@@ -22,6 +19,17 @@ echo "Welcome to the Gerobug Installer!"
 echo "---------------------------------"
 echo "My name is Gero and I will assist you through the installation :)"
 echo "I need to ask you a few questions before starting the setup."
+echo ""
+
+# Detect public IPv4 address and pre-fill for the user
+IP=$(ip -4 addr | sed -ne 's|^.* inet \([^/]*\)/.* scope global.*$|\1|p' | head -1)
+echo "Server Public IP : $IP"
+echo $IP > ./gerobug_dashboard/gerobug_host
+echo ""
+
+IP=$(ip -4 addr | sed -ne 's|^.* inet \([^/]*\)/.* scope global.*$|\1|p' | head -2 | tail -1)
+echo "Server Internal IP : $IP"
+echo $IP >> ./gerobug_dashboard/gerobug_host
 echo ""
 
 echo "Do you have a domain that you want to use?"
@@ -42,11 +50,10 @@ esac
 echo ""
 
 if [[ $DOMAIN == "Y" ]]; then
-    while [[ ! $GEROBUG_HOST == '*' ]]; do
-        read -rp "Enter your domain (example: www.gerobug.com): " -e GEROBUG_HOST
-    done
-    echo $GEROBUG_HOST
-    echo $GEROBUG_HOST > ./gerobug_dashboard/gerobug_host
+    #while [[ VALIDATE DOMAIN ]]; do
+        read -p "Enter your domain (example: www.gerobug.com): " GEROBUG_HOST
+    #done
+    echo $GEROBUG_HOST >> ./gerobug_dashboard/gerobug_host
 fi
 
 
