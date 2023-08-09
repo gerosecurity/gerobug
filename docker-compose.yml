@@ -8,6 +8,7 @@ services:
       - "6320:6320"
     volumes:
       - static-content:/src/static
+      - static-content:/src/staticfiles
     restart: unless-stopped
     depends_on:
       - web
@@ -23,6 +24,7 @@ services:
       PYTHONUNBUFFERED: 1
     volumes:
       - static-content:/src/static
+      - static-content:/src/staticfiles
     restart: unless-stopped
     depends_on:
       - dashboard
@@ -42,6 +44,7 @@ services:
       PYTHONUNBUFFERED: 1
     volumes:
       - static-content:/src/static
+      - static-content:/src/staticfiles
       - ./log/:/src/log
     restart: unless-stopped
     depends_on:
