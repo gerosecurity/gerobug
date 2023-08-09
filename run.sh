@@ -13,6 +13,7 @@ echo "Gerobug v2.1 (PRODUCTION READY)"
 echo "================================================================================"
 echo ""
 echo "================================================================================"
+echo '' > ./gerobug_dashboard/gerobug_host
 
 echo "---------------------------------"
 echo "Welcome to the Gerobug Installer!"
@@ -21,15 +22,50 @@ echo "My name is Gero and I will assist you through the installation :)"
 echo "I need to ask you a few questions before starting the setup."
 echo ""
 
-# Detect public IPv4 address and pre-fill for the user
+# Detect Public IPv4
 IP=$(ip -4 addr | sed -ne 's|^.* inet \([^/]*\)/.* scope global.*$|\1|p' | head -1)
 echo "Server Public IP : $IP"
-echo $IP > ./gerobug_dashboard/gerobug_host
+echo "Is it correct?"
+echo "   1) YES"
+echo "   2) NO"
+until [[ $CHOICE =~ ^[1-2]$ ]]; do
+    read -rp "Your choice [1-2]: " -e CHOICE
+done
+case $CHOICE in
+1)
+    CHOICE="Y"
+    ;;
+2)
+    CHOICE="N"
+    ;;
+esac
+
+if [[ $CHOICE == "Y" ]]; then
+    echo $IP >> ./gerobug_dashboard/gerobug_host
+fi
 echo ""
 
+# Detect Internal IPv4
 IP=$(ip -4 addr | sed -ne 's|^.* inet \([^/]*\)/.* scope global.*$|\1|p' | head -2 | tail -1)
 echo "Server Internal IP : $IP"
-echo $IP >> ./gerobug_dashboard/gerobug_host
+echo "Is it correct?"
+echo "   1) YES"
+echo "   2) NO"
+until [[ $CHOICE =~ ^[1-2]$ ]]; do
+    read -rp "Your choice [1-2]: " -e CHOICE
+done
+case $CHOICE in
+1)
+    CHOICE="Y"
+    ;;
+2)
+    CHOICE="N"
+    ;;
+esac
+
+if [[ $CHOICE == "Y" ]]; then
+    echo $IP >> ./gerobug_dashboard/gerobug_host
+fi
 echo ""
 
 echo "Do you have a domain that you want to use?"
@@ -47,7 +83,6 @@ case $HAVE_DOMAIN in
     DOMAIN="N"
     ;;
 esac
-echo ""
 
 if [[ $DOMAIN == "Y" ]]; then
     #while [[ VALIDATE DOMAIN ]]; do
@@ -55,6 +90,7 @@ if [[ $DOMAIN == "Y" ]]; then
     #done
     echo $GEROBUG_HOST >> ./gerobug_dashboard/gerobug_host
 fi
+echo ""
 
 
 echo "Do you have a VPN Server on the network?"
@@ -71,11 +107,11 @@ case $HAVE_VPN in
     VPN="N"
     ;;
 esac
-echo ""
 
 if [[ $VPN == "Y" ]]; then
     echo "OK, You have a VPN Server"
 fi
+echo ""
 
 echo "Okay, that was all I needed. We are ready to setup Gerobug server now."
 read -n1 -r -p "Press any key to continue..."
