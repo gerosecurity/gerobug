@@ -42,6 +42,12 @@ esac
 
 if [[ $CHOICE == "Y" ]]; then
     echo $IP >> ./gerobug_dashboard/gerobug_host
+else
+    IP=''
+    rx='([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])'
+    while [[ ! $IP =~ ^$rx\.$rx\.$rx\.$rx$ ]]; do
+        read -p "Enter Public IP: " IP
+    done
 fi
 echo ""
 
@@ -65,6 +71,12 @@ esac
 
 if [[ $CHOICE == "Y" ]]; then
     echo $IP >> ./gerobug_dashboard/gerobug_host
+else
+    IP=''
+    rx='([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])'
+    while [[ ! $IP =~ ^$rx\.$rx\.$rx\.$rx$ ]]; do
+        read -p "Enter Internal IP (example: 127.0.0.1): " IP
+    done
 fi
 echo ""
 
