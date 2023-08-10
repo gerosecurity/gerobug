@@ -46,8 +46,9 @@ else
     IP=''
     rx='([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])'
     while [[ ! $IP =~ ^$rx\.$rx\.$rx\.$rx$ ]]; do
-        read -p "Enter Public IP: " IP
+        read -p "Enter Public / Primary IP: " IP
     done
+    echo $IP >> ./gerobug_dashboard/gerobug_host
 fi
 echo ""
 
@@ -75,8 +76,9 @@ else
     IP=''
     rx='([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])'
     while [[ ! $IP =~ ^$rx\.$rx\.$rx\.$rx$ ]]; do
-        read -p "Enter Internal IP (example: 127.0.0.1): " IP
+        read -p "Enter Internal / Secondary IP (example: 127.0.0.1): " IP
     done
+    echo $IP >> ./gerobug_dashboard/gerobug_host
 fi
 echo ""
 
