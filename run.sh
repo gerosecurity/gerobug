@@ -13,7 +13,6 @@ echo "Gerobug v2.1 (PRODUCTION READY)"
 echo "================================================================================"
 echo ""
 echo "================================================================================"
-echo '' > ./gerobug_dashboard/gerobug_host
 
 echo "---------------------------------"
 echo "Welcome to the Gerobug Installer!"
