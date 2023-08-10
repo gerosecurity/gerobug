@@ -84,10 +84,11 @@ case $HAVE_DOMAIN in
     ;;
 esac
 
+RX='^([a-zA-Z0-9-]{1,61}[a-zA-Z0-9])\.([a-zA-Z]{2,6}|[a-zA-Z0-9-]{2,30})\.([a-zA-Z]{2,8}(\.[a-zA-Z]{2,3})?)$'
 if [[ $DOMAIN == "Y" ]]; then
-    #while [[ VALIDATE DOMAIN ]]; do
+    while [[ ! "$GEROBUG_HOST" =~ $RX ]]; do
         read -p "Enter your domain (example: www.gerobug.com): " GEROBUG_HOST
-    #done
+    done
     echo $GEROBUG_HOST >> ./gerobug_dashboard/gerobug_host
 fi
 echo ""
@@ -107,9 +108,19 @@ case $HAVE_VPN in
     VPN="N"
     ;;
 esac
+echo "" 
 
-if [[ $VPN == "Y" ]]; then
-    echo "OK, You have a VPN Server"
+if [[ $VPN == "N" ]]; then
+    echo "Gerobug Dashboard will be accessible from public connection"
+    echo "[WARNING] THIS IS NOT RECOMMENDED FOR PRODUCTION SERVER!"
+    sed -i '/^.*allow   .*/s/^/#/g' ./nginx/default.conf
+    sed -i '/^.*deny   .*/s/^/#/g' ./nginx/default.conf
+else
+	echo "Gerobug Dashboard will only accept connection from INTERNAL IP"
+    echo "So a VPN Server will be required"
+    echo "If you face any trouble, read the documentation :)"
+    sed -i '/^#.*allow   .*/s/^#//' ./nginx/default.conf
+    sed -i '/^#.*deny   .*/s/^#//' ./nginx/default.conf
 fi
 echo ""
 
