@@ -22,6 +22,7 @@ echo "I need to ask you a few questions before starting the setup."
 echo ""
 
 # Detect Public IPv4
+truncate -s 0 ./gerobug_dashboard/gerobug_host
 IP=$(ip -4 addr | sed -ne 's|^.* inet \([^/]*\)/.* scope global.*$|\1|p' | head -1)
 echo "Server Public IP : $IP"
 echo "Is it correct?"
