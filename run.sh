@@ -1,12 +1,12 @@
 #!/bin/bash
 
 echo "
- ______     ______     ______     ______     ______     __  __     ______    
-/\  ___\   /\  ___\   /\  == \   /\  __ \   /\  == \   /\ \/\ \   /\  ___\   
-\ \ \__ \  \ \  __\   \ \  __<   \ \ \/\ \  \ \  __<   \ \ \_\ \  \ \ \__ \  
- \ \_____\  \ \_____\  \ \_\ \_\  \ \_____\  \ \_____\  \ \_____\  \ \_____\ 
-  \/_____/   \/_____/   \/_/ /_/   \/_____/   \/_____/   \/_____/   \/_____/ 
-                                                                             
+ ______     ______     ______     ______     ______     __  __     ______
+/\  ___\   /\  ___\   /\  == \   /\  __ \   /\  == \   /\ \/\ \   /\  ___\
+\ \ \__ \  \ \  __\   \ \  __<   \ \ \/\ \  \ \  __<   \ \ \_\ \  \ \ \__ \
+ \ \_____\  \ \_____\  \ \_\ \_\  \ \_____\  \ \_____\  \ \_____\  \ \_____\
+  \/_____/   \/_____/   \/_/ /_/   \/_____/   \/_____/   \/_____/   \/_____/
+
 "
 echo "================================================================================"
 echo "Gerobug v2.1 (PRODUCTION READY)"
@@ -104,6 +104,13 @@ if [[ $DOMAIN == "Y" ]]; then
         read -p "Enter your domain (example: www.gerobug.com): " GEROBUG_HOST
     done
     echo $GEROBUG_HOST >> ./gerobug_dashboard/gerobug_host
+    sed -i "s/{\$DOMAIN}/$GEROBUG_HOST/g" ./nginx/default.domain.conf
+    mv ./nginx/default.conf ./nginx/default.conf.bak
+    mv ./nginx/default.domain.conf ./nginx/default.conf
+    docker run -it --rm -p 80:80 --name certbot \
+    -v "/etc/letsencrypt:/etc/letsencrypt" \
+    -v "/var/lib/letsencrypt:/var/lib/letsencrypt" \
+    certbot/certbot certonly --standalone -d $GEROBUG_HOST
 fi
 echo ""
 
@@ -122,7 +129,7 @@ case $HAVE_VPN in
     VPN="N"
     ;;
 esac
-echo "" 
+echo ""
 
 if [[ $VPN == "N" ]]; then
     echo "Gerobug Dashboard will be accessible from public connection"
@@ -130,9 +137,12 @@ if [[ $VPN == "N" ]]; then
     sed -i '/^.*allow   .*/s/^/#/g' ./nginx/default.conf
     sed -i '/^.*deny   .*/s/^/#/g' ./nginx/default.conf
 else
-	echo "Gerobug Dashboard will only accept connection from INTERNAL IP"
+    echo "Gerobug Dashboard will only accept connection from INTERNAL IP"
     echo "So a VPN Server will be required"
     echo "If you face any trouble, read the documentation :)"
+    sed -i "s/{\$DOMAIN}/$GEROBUG_HOST/g" ./nginx/default.domain.vps.conf
+    mv ./nginx/default.conf ./nginx/default.domain.conf.bak
+    mv ./nginx/default.domain.vps.conf ./nginx/default.conf
     sed -i '/^#.*allow   .*/s/^#//' ./nginx/default.conf
     sed -i '/^#.*deny   .*/s/^#//' ./nginx/default.conf
 fi
@@ -162,8 +172,8 @@ fi
 
 if [ ! -f ./gerobug_dashboard/secrets/db_secret.env ]; then
     echo '[LOG] Creating New DB Secret...'
-    echo 'POSTGRES_PASSWORD="'$(tr -dc 'A-Za-z0-9!#$%&*?@' </dev/urandom | head -c 30)'"' > ./gerobug_dashboard/secrets/db_secret.env 
-    cp  ./gerobug_dashboard/secrets/db_secret.env ./gerobug_web/secrets/db_secret.env 
+    echo 'POSTGRES_PASSWORD="'$(tr -dc 'A-Za-z0-9!#$%&*?@' </dev/urandom | head -c 30)'"' > ./gerobug_dashboard/secrets/db_secret.env
+    cp  ./gerobug_dashboard/secrets/db_secret.env ./gerobug_web/secrets/db_secret.env
 fi
 
 if [ ! -f ./gerobug_dashboard/secrets/gerobug_secret.env ]; then
