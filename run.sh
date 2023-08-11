@@ -140,9 +140,6 @@ else
     echo "Gerobug Dashboard will only accept connection from INTERNAL IP"
     echo "So a VPN Server will be required"
     echo "If you face any trouble, read the documentation :)"
-    sed -i "s/{\$DOMAIN}/$GEROBUG_HOST/g" ./nginx/default.domain.vps.conf
-    mv ./nginx/default.conf ./nginx/default.domain.conf.bak
-    mv ./nginx/default.domain.vps.conf ./nginx/default.conf
     sed -i '/^#.*allow   .*/s/^#//' ./nginx/default.conf
     sed -i '/^#.*deny   .*/s/^#//' ./nginx/default.conf
 fi
