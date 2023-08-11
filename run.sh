@@ -98,19 +98,40 @@ case $HAVE_DOMAIN in
     ;;
 esac
 
+# CLEAR DEFAULT CONFIG
+DEFAULT=./nginx/default.conf
+if [[ -f "$DEFAULT" ]]; then
+    rm ./nginx/default.conf
+fi
+
 RX='^([a-zA-Z0-9-]{1,61}[a-zA-Z0-9])\.([a-zA-Z]{2,6}|[a-zA-Z0-9-]{2,30})\.([a-zA-Z]{2,8}(\.[a-zA-Z]{2,3})?)$'
 if [[ $DOMAIN == "Y" ]]; then
+    # READ DOMAIN
     while [[ ! "$GEROBUG_HOST" =~ $RX ]]; do
         read -p "Enter your domain (example: www.gerobug.com): " GEROBUG_HOST
     done
     echo $GEROBUG_HOST >> ./gerobug_dashboard/gerobug_host
-    sed -i "s/{\$DOMAIN}/$GEROBUG_HOST/g" ./nginx/default.domain.conf
-    mv ./nginx/default.conf ./nginx/default.conf.bak
-    mv ./nginx/default.domain.conf ./nginx/default.conf
+
+    # CREATE CLEAN HTTPS CONFIG
+    cp ./nginx/default.https.conf ./nginx/default.conf
+
+    # REPLACE DOMAIN NAME
+    sed -i "s/{\$DOMAIN}/$GEROBUG_HOST/g" ./nginx/default.conf
+
+    # RUN CERTBOT
     docker run -it --rm -p 80:80 --name certbot \
     -v "/etc/letsencrypt:/etc/letsencrypt" \
     -v "/var/lib/letsencrypt:/var/lib/letsencrypt" \
     certbot/certbot certonly --standalone -d $GEROBUG_HOST
+else
+    echo "Gerobug will not implement HTTPS [NOT RECOMMENDED FOR PRODUCTION]"
+    echo "A domain is required to setup HTTPS"
+    echp ""
+    echo "Run this script again later when you have a domain to setup HTTPS"
+    echo "or you can change the nginx config manually"
+    
+    # CREATE CLEAN HTTP CONFIG
+    cp ./nginx/default.http.conf ./nginx/default.conf
 fi
 echo ""
 
