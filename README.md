@@ -26,29 +26,20 @@ In the other hand, creating your own self-managed platform will take time and ef
 
 <br>
 
-## Bare Minimum Specification
-* Ubuntu 18.04
-* vCPU 1 Core
-* RAM 1 GB
-* HDD 16 GB
-
-<br>
-
-## Recommended Specification
-* Ubuntu 22.04
+## (Minimum) Recommended Specification
+* Ubuntu 20.04
 * vCPU 2 Core
 * RAM 2 GB
-* HDD 64 GB
+* HDD 16 GB
 
 <br>
 
 ## Requirements
 * Gmail Email with <a href="https://support.google.com/accounts/answer/185833">App password</a> implemented
-* Docker (Latest)
-* Docker-compose (Latest)
-* Python 3.8 or above
+* VPN Server (Recommended for Production Server)
+* Domain (Required for HTTPS Implementation)
 
-__(You don't need to install it manually, we'll do it for you!)__
+__(You don't need to install anything else, we'll do it for you!)__
 
 <br>
 
@@ -63,8 +54,8 @@ cd gerobug
 ```bash
 ./run.sh
 ```
-3. Follow the setup instructions (Make sure the __Allowed Host__ is set to your __STATIC INTERNAL IP__)
-4. By default, Gerobug Dashboard (Internal) will listen at port __6320__ 
+3. Follow the setup instructions (Read the [documentation](https://gerobug.gitbook.io/documentation/) for details)
+4. By default, Gerobug Dashboard will listen at port __6320__
 
 Access the login page at `http://[Internal IP]:6320/login`<br>
 <br>__Credential__<br>
@@ -78,6 +69,15 @@ You can read the __detailed documentation [here](https://gerobug.gitbook.io/docu
 <br>
 
 ## Main Features
+- Network Segregation<br>
+All services are running on seperate containers. Public users only able to access the static page (Rules and guidelines).
+
+- Easy and Quick Installation<br>
+Use our run script to install Gerobug, its quick and easy!
+
+- HTTPS Implementation<br>
+Automated HTTPS configuration using NGINX and Let's Encrypt.
+
 - Homepage<br>
 This should be the only page accessible by public, which contains Rules and Guidelines for your bug bounty program.
 
@@ -94,13 +94,13 @@ Company will also be notified via Slack/Telegram if there any new report.
 Gerobug has a simple Role-based user management.
 
 - Report Management<br>
-Manage reports easily using a kanban model.
+Manage reports easily using a kanban model dashboard.
 
 - Report Filtering and Flagging<br>
 Reports from Bug Hunter will be filtered and flagged if there are duplicate indication.
 
-- OWASP Risk Calculator<br>
-Gerobug has an integrated OWASP Risk Calculator to support the bug review process.
+- CVSS / OWASP Risk Calculator<br>
+Gerobug has an integrated CVSS / OWASP Risk Calculator to support the bug review process.
 
 - Email Blacklisting<br>
 Gerobug can temporarily block and release emails that conducted spam activity.
@@ -110,9 +110,6 @@ We can generate certificate of appreciations for bug hunters so you don't have t
 
 - Hall of Fame / Wall of fame / Leaderboard<br>
 Yeah we have it too
-
-- Network Segregation<br>
-All services are running on seperate containers. Public users only able to access the static page (Rules and guidelines).
 
 <br>
 
@@ -124,5 +121,5 @@ All services are running on seperate containers. Public users only able to acces
 <br>
 
 ## Feedback
-If you have any feedback, please reach out to us at __gerobug.id@gmail.com__
+If you have any feedback, please reach out to us at __support@gerobug.com__
 

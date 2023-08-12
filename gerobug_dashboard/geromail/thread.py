@@ -9,7 +9,8 @@ class RunGeromailThread(threading.Thread):
     
     def run(self):
         try:
-            geroparser.run()
+            if geroparser.check_run() == False:
+                geroparser.run()
         
         except Exception as e:
-            print(e)
+            print("[ERROR] Geroparser Thread Failed: " + str(e))

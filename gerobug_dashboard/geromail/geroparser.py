@@ -27,9 +27,11 @@ logging.basicConfig(filename='log/gerobug.log', level=logging.DEBUG,
 # GMAIL IMAP CONFIG
 EMAIL           = ""
 PWD             = ""
-MAILBOX_READY   = False
 IMAP_SERVER     = "imap.gmail.com"
 IMAP_PORT       = 993
+
+MAILBOX_READY   = False
+PARSER_RUNNING  = False
 
 
 # GENERATE REPORT ID
@@ -452,11 +454,18 @@ def company_action(id, note, code):
 
 # RUN GEROMAIL MODULES
 def run():
-    global EMAIL, PWD, MAILBOX_READY
+    global EMAIL, PWD, MAILBOX_READY, PARSER_RUNNING
     MAILBOX_READY = False
     error_count = 0
-    
-    while True:
+
+    if PARSER_RUNNING:
+        logging.warning("Geroparser already started!")
+        return 0
+    else:
+        PARSER_RUNNING = True
+        logging.debug("[LOG] Starting Geroparser")
+
+    while PARSER_RUNNING:
         # LIMIT ERRORS TO AVOID BLACKLISTED BY MAIL SERVER
         if error_count >= 3:
             logging.warning("Error Limit Reached!")
@@ -500,3 +509,7 @@ def run():
 
             read_mail()
             time.sleep(10)
+
+def check_run():
+    global PARSER_RUNNING
+    return PARSER_RUNNING

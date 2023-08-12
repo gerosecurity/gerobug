@@ -1,10 +1,24 @@
 version: "3.9"
 services:
-  web:
-    build: ./gerobug_web
+  nginx:
+    build: ./nginx
     ports:
       - "80:80"
-    command: python manage.py runserver 0.0.0.0:80 --insecure
+      - "443:443"
+      - "6320:6320"
+    volumes:
+      - static-content:/src/static
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /var/lib/letsencrypt:/var/lib/letsencrypt
+    restart: unless-stopped
+    depends_on:
+      - web
+
+  web:
+    build: ./gerobug_web
+    expose:
+      - 8000
+    command: gunicorn gerobug_web.wsgi:application --bind 0.0.0.0:8000
     env_file:
       - ./gerobug_dashboard/secrets/db_secret.env
     environment:
@@ -17,9 +31,12 @@ services:
 
   dashboard:
     build: ./gerobug_dashboard
-    ports:
-      - "6320:6320"
-    command: python manage.py runserver 0.0.0.0:6320 --insecure
+    # ports:
+    #  - "6320:6320"
+    # command: python manage.py runserver 0.0.0.0:6320 --insecure
+    expose:
+      - 8001
+    command: gunicorn gerobug.wsgi --bind 0.0.0.0:8001
     env_file:
       - ./gerobug_dashboard/secrets/gerobug_secret.env
       - ./gerobug_dashboard/secrets/db_secret.env
@@ -34,8 +51,8 @@ services:
 
   db:
     image: 'postgres:latest'
-    ports:
-      - "5432:5432"
+    expose:
+      - 5432
     command: postgres -c hba_file=/opt/gerobug_hba.conf
     env_file:
       - ./gerobug_dashboard/secrets/db_secret.env
@@ -49,3 +66,4 @@ services:
   
 volumes:
   static-content:
+  static-files:

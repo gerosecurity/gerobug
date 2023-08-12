@@ -34,7 +34,7 @@ done
 echo "[LOG] Creating Superuser "geromin" with password: "$DJANGO_SUPERUSER_PASSWORD
 python manage.py createsuperuser --noinput --username "geromin" --email "geromin@localhost"
 
-python manage.py collectstatic --noinput
+python manage.py collectstatic --noinput >/dev/null
 
 echo "[LOG] GEROBUG-DASHBOARD is fully configured successfully."
 
