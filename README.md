@@ -37,7 +37,7 @@ In the other hand, creating your own self-managed platform will take time and ef
 ## Requirements
 * Gmail Email with <a href="https://support.google.com/accounts/answer/185833">App password</a> implemented
 * VPN Server (Recommended for Production Server)
-* Domain (Required for HTTPS Implementation)
+* Domain for HTTPS (Recommended for Production Server)
 
 __(You don't need to install anything else, we'll do it for you!)__
 
@@ -121,5 +121,5 @@ Yeah we have it too
 <br>
 
 ## Feedback
-If you have any feedback, please reach out to us at __support@gerobug.com__
+If you have any feedback, please reach out to us at __gerobug.id@gmail.com__
 
