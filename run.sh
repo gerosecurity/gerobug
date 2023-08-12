@@ -126,7 +126,7 @@ if [[ $DOMAIN == "Y" ]]; then
 else
     echo "Gerobug will not implement HTTPS [NOT RECOMMENDED FOR PRODUCTION]"
     echo "A domain is required to setup HTTPS"
-    echp ""
+    echo ""
     echo "Run this script again later when you have a domain to setup HTTPS"
     echo "or you can change the nginx config manually"
     
