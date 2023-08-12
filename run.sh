@@ -119,6 +119,9 @@ if [[ $DOMAIN == "Y" ]]; then
     sed -i "s/{\$DOMAIN}/$GEROBUG_HOST/g" ./nginx/default.conf
 
     # RUN CERTBOT
+    echo -e "\n================================"
+    echo "SETTING UP HTTPS"
+    echo "================================"
     docker run -it --rm -p 80:80 --name certbot \
     -v "/etc/letsencrypt:/etc/letsencrypt" \
     -v "/var/lib/letsencrypt:/var/lib/letsencrypt" \
