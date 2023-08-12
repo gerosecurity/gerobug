@@ -8,6 +8,8 @@ services:
       - "6320:6320"
     volumes:
       - static-content:/src/static
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /var/lib/letsencrypt:/var/lib/letsencrypt
     restart: unless-stopped
     depends_on:
       - web
@@ -23,8 +25,6 @@ services:
       PYTHONUNBUFFERED: 1
     volumes:
       - static-content:/src/static
-      - /etc/letsencrypt:/etc/letsencrypt
-      - /var/lib/letsencrypt:/var/lib/letsencrypt
     restart: unless-stopped
     depends_on:
       - dashboard
