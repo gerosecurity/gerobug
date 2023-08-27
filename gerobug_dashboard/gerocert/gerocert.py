@@ -1,4 +1,4 @@
-import os
+import os, magic
 from PIL import Image, ImageDraw, ImageFont
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
 from dashboards.models import CertificateData
@@ -7,7 +7,7 @@ from datetime import date
 
 def create_cert(name: str, certificate: str, severity):
     CertData = CertificateData.objects.get(cert_id=1)
-    signature_path = os.path.join(BASE_DIR,'gerocert','cert_signature.jpg')
+    signature_path = os.path.join(BASE_DIR,'gerocert','cert_signature')
     logo_path = os.path.join(BASE_DIR,'static','logo.png')
 
     img = Image.open(certificate, mode='r')
@@ -87,11 +87,26 @@ def create_cert(name: str, certificate: str, severity):
     SIGNATURE = SIGNATURE.resize((int(image_width*20/100),int(image_height*15/100)),Image.Resampling.LANCZOS)
     img.paste(SIGNATURE, (int(x_name-10), int(y_name-(SIGNATURE.height+50))))
 
+    # VALIDATE FORMAT
+    file_mime_type = magic.from_file(signature_path, mime=True)
+    if file_mime_type == "image/png":
+        img.paste(SIGNATURE, (int(x_name-10), int(y_name-(SIGNATURE.height+50))), mask=SIGNATURE)
+    elif file_mime_type == "image/jpeg" or file_mime_type == "image/jpg":
+        img.paste(SIGNATURE, (int(x_name-10), int(y_name-(SIGNATURE.height+50))))
+
+
     # COMPANY LOGO
     LOGO = Image.open(logo_path)
     LOGO = LOGO.resize((int(image_width*25/100),int(image_height*10/100)),Image.Resampling.LANCZOS)
-    img.paste(LOGO, (int(image_width / 17), int(y_name-215)), mask=LOGO)
-    
+
+    # VALIDATE FORMAT
+    file_mime_type = magic.from_file(logo_path, mime=True)
+    if file_mime_type == "image/png":
+        img.paste(LOGO, (int(image_width / 17), int(y_name-215)), mask=LOGO)
+    elif file_mime_type == "image/jpeg" or file_mime_type == "image/jpg":
+        img.paste(LOGO, (int(image_width / 17), int(y_name-215)))
+
+
     return img
 
 
