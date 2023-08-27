@@ -85,8 +85,7 @@ def create_cert(name: str, certificate: str, severity):
     # OFFICER SIGNATURE
     SIGNATURE = Image.open(signature_path)
     SIGNATURE = SIGNATURE.resize((int(image_width*20/100),int(image_height*15/100)),Image.Resampling.LANCZOS)
-    img.paste(SIGNATURE, (int(x_name-10), int(y_name-(SIGNATURE.height+50))))
-
+    
     # VALIDATE FORMAT
     file_mime_type = magic.from_file(signature_path, mime=True)
     if file_mime_type == "image/png":
