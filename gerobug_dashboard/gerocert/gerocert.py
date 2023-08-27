@@ -89,7 +89,7 @@ def create_cert(name: str, certificate: str, severity):
     # VALIDATE FORMAT
     file_mime_type = magic.from_file(signature_path, mime=True)
     if file_mime_type == "image/png":
-        if SIGNATURE.mode is not 'RGBA':
+        if SIGNATURE.mode != 'RGBA':
             SIGNATURE.convert("RGBA")
         img.paste(SIGNATURE, (int(x_name-10), int(y_name-(SIGNATURE.height+50))), mask=SIGNATURE)
     elif file_mime_type == "image/jpeg" or file_mime_type == "image/jpg":
@@ -103,7 +103,7 @@ def create_cert(name: str, certificate: str, severity):
     # VALIDATE FORMAT
     file_mime_type = magic.from_file(logo_path, mime=True)
     if file_mime_type == "image/png":
-        if LOGO.mode is not 'RGBA':
+        if LOGO.mode != 'RGBA':
             LOGO.convert("RGBA")
         img.paste(LOGO, (int(image_width / 17), int(y_name-215)), mask=LOGO)
     elif file_mime_type == "image/jpeg" or file_mime_type == "image/jpg":
