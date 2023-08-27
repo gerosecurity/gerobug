@@ -69,7 +69,7 @@ class TemplateCertForm(forms.Form):
     template_cert = forms.FileField(widget=forms.FileInput(attrs={'id':'template_cert', 'placeholder': 'Certificate Template (.jpg)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.jpg'}),label="Certificate Template",validators=(validate_is_image,))
    
 class CertDataForm(forms.Form):
-    template_signature = forms.FileField(widget=forms.FileInput(attrs={'id':'template_signature', 'placeholder': 'Officer Signature (.jpg)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.jpg'}),label="Officer Signature",validators=(validate_is_image,))
+    template_signature = forms.FileField(widget=forms.FileInput(attrs={'id':'template_signature', 'placeholder': 'Officer Signature (.jpg)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.jpg, .png'}),label="Officer Signature",validators=(validate_is_image,))
     template_name = forms.CharField(widget=forms.TextInput(attrs={'id':'template_name', 'placeholder': 'e.g. Billy Sudarsono', 'style': 'width: 100%;', 'class': 'form-control'}),label="Officer Name")
     template_title = forms.CharField(widget=forms.TextInput(attrs={'id':'template_title', 'placeholder': 'e.g. Founder of Gerobug', 'style': 'width: 100%;', 'class': 'form-control'}),label="Officer Title")
 

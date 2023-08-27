@@ -460,7 +460,7 @@ def AdminSetting(request):
             certdata.save()
 
             template_file = request.FILES['template_signature']
-            path = os.path.join(BASE_DIR, "gerocert", "cert_signature.jpg")
+            path = os.path.join(BASE_DIR, "gerocert", "cert_signature")
 
             with open(path, 'wb+') as destination:
                 for chunk in template_file.chunks():
