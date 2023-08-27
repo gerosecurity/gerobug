@@ -80,13 +80,14 @@ class DashboardsConfig(AppConfig):
                     certdata.officer_title = "Founder of Gerobug"
                     certdata.save()
 
-                    gerocert.gerocert.generate_sample()
                     log_config()
                     logging.debug("Init Certificate Data success")
                 
                 else:
                     log_config()
                     logging.debug("Certificate Data already exists")
+                
+                gerocert.gerocert.generate_sample()
 
             # INIT MAILBOX
             def init_mailbox_db():
