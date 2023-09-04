@@ -172,6 +172,7 @@ def parse_body(body):
         endpoint = re.search('ENDPOINT=(.*)(\n)', body)
         if endpoint != None:
             endpoint = endpoint.group(1)
+            endpoint = re.sub(r"<.*>", "", str(endpoint))
         else:
             endpoint = ''
 
