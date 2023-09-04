@@ -59,7 +59,7 @@ def write_mail(code, payload, Destination):
             nda_filepath = os.path.join(BASE_DIR,"static/templates",nda_filename)
             nda_file = open(nda_filepath, 'rb')
  
-            attachment = MIMEBase('application', 'octate-stream', Name=nda_filename)
+            attachment = MIMEBase('application', 'pdf', Name=nda_filename)
             attachment.set_payload((nda_file).read())
             encoders.encode_base64(attachment)
             
@@ -72,13 +72,13 @@ def write_mail(code, payload, Destination):
             cert_filepath = os.path.join(MEDIA_ROOT,payload[0],cert_filename)
             cert_file = open(cert_filepath, 'rb')
  
-            attachment = MIMEBase('application', 'octate-stream', Name=cert_filename)
+            attachment = MIMEBase('application', 'image/jpeg', Name=cert_filename)
             attachment.set_payload((cert_file).read())
             encoders.encode_base64(attachment)
             
-            attachment.add_header('Content-Description', nda_filename)
+            attachment.add_header('Content-Description', cert_filename)
             attachment.add_header('Content-Decomposition', 'attachment', filename=cert_filename)    # GMAIL
-            attachment.add_header('Content-Disposition', 'attachment', filename=nda_filename)       # OUTLOOK
+            attachment.add_header('Content-Disposition', 'attachment', filename=cert_filename)       # OUTLOOK
             
             message.attach(attachment)
 
