@@ -199,8 +199,11 @@ def read_mail():
                             have_attachment = gerofilter.validate_attachment(msg, report_id, MEDIA_ROOT)
                             if have_attachment:
                                 msg_body = msg.get_payload()[0].get_payload()
-                                email_body = msg_body[0]
-                                email_body = str(email_body)
+                                email_body = str(msg_body[0])
+
+                                # CLEAN ENCODING FROM OUTLOOK
+                                email_body = email_body.replace('=\n','')
+                                email_body = email_body.replace('=3D','=')
 
                                 logging.info('Body : ' + str(email_body) + '\n')
                                 atk_type, report_endpoint, report_summary = gerofilter.parse_body(email_body)
@@ -256,7 +259,7 @@ def read_mail():
                                 payload[1] = report.report_title
 
                                 msg_body = msg.get_payload()[0].get_payload()
-                                update_summary = str(msg_body[0]).replace('Content-Type: text/plain; charset="UTF-8"', '')
+                                update_summary = re.sub(r"Content-T.*\n", "", str(msg_body[0]))
                                 logging.info('Update Summary : ' + str(update_summary) + '\n')
 
                                 save_uan('U', update_id, str(payload[0]), email_date, update_summary, 0)
@@ -296,7 +299,7 @@ def read_mail():
                                 appeal_summary = msg.get_payload()[0].get_payload()
                                 appeal_file = 0
 
-                            appeal_summary = str(appeal_summary).replace('Content-Type: text/plain; charset="UTF-8"', '')
+                            appeal_summary = re.sub(r"Content-T.*\n", "", str(appeal_summary))
                             logging.info('Appeal Summary : ' + str(appeal_summary) + '\n')
 
                             # VALIDATE APPEAL
@@ -356,7 +359,7 @@ def read_mail():
                                 report.save()
 
                                 msg_body = msg.get_payload()[0].get_payload()
-                                nda_summary = str(msg_body[0]).replace('Content-Type: text/plain; charset="UTF-8"', '')
+                                nda_summary = re.sub(r"Content-T.*\n", "", str(msg_body[0]))
                                 logging.info('NDA Summary : ' + str(nda_summary) + '\n')
 
                                 save_uan('N', nda_id, str(payload[0]), email_date, nda_summary, 0)

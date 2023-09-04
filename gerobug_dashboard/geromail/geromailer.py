@@ -76,7 +76,10 @@ def write_mail(code, payload, Destination):
             attachment.set_payload((cert_file).read())
             encoders.encode_base64(attachment)
             
-            attachment.add_header('Content-Decomposition', 'attachment', filename=cert_filename)
+            attachment.add_header('Content-Description', nda_filename)
+            attachment.add_header('Content-Decomposition', 'attachment', filename=cert_filename)    # GMAIL
+            attachment.add_header('Content-Disposition', 'attachment', filename=nda_filename)       # OUTLOOK
+            
             message.attach(attachment)
 
         # SEND EMAIL
