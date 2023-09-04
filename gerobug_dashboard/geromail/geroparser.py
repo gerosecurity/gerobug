@@ -210,7 +210,10 @@ def read_mail():
                                 
                                 # VALIDATE REPORT
                                 if (len(report_title) < 3) or (atk_type == '') or (report_endpoint == '') or (len(report_summary) < 10):
-                                    logging.warning('[ERROR 404] Report not valid')
+                                    logging.warning('[ERROR 404] Report not valid (Details are too short)')
+                                    code = 404
+                                elif (len(report_title) > 50) or (atk_type > 50) or (report_endpoint > 50):
+                                    logging.warning('[ERROR 404] Report not valid (Details are too long)')
                                     code = 404
                                 else:
                                     saveuser(hunter_email, hunter_name, 0)
