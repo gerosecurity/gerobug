@@ -17,7 +17,7 @@ class BugReport(models.Model):
     hunter_email = models.EmailField()
     report_reviewer = models.CharField(max_length=25, verbose_name="Report Reviewer")
     report_title = models.CharField(max_length=50, default='NO TITLE')
-    report_endpoint = models.CharField(max_length=50, default='NO ENDPOINT')
+    report_endpoint = models.CharField(max_length=100, default='NO ENDPOINT')
     report_attack = models.CharField(max_length=50, default='NO ATTACK TYPE')
     report_summary = models.TextField()
     report_severity = models.FloatField(default=0, verbose_name="Report Severity", validators=[MinValueValidator(0.0), MaxValueValidator(10.0)])
