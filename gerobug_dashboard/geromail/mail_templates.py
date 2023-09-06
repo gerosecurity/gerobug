@@ -183,7 +183,7 @@ message_404 = """\
 
                 However, your submission is <b>NOT VALID</b>
                 <br>
-                Please re-check your format, make sure you are following the required format as defined at www.gerobug.id<br>
+                Please re-check your format, make sure you are following the required format as defined <a href="https://gerobug.gitbook.io/documentation/filter-and-validation" target="_blank">here</a><br>
 
                 <br><br>
 
