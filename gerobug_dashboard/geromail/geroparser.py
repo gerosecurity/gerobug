@@ -409,7 +409,7 @@ def read_mail():
             logging.debug('No new email...')            
 
     except Exception as e:
-        logging.error(str(e))
+        logging.error("Failed to Login = " + str(e))
     
     mail.logout()
 
@@ -465,11 +465,11 @@ def run():
     error_count = 0
 
     if PARSER_RUNNING:
-        logging.warning("Geroparser already started!")
+        logging.warning("Geroparser already started.")
         return 0
     else:
         PARSER_RUNNING = True
-        logging.debug("[LOG] Starting Geroparser")
+        logging.debug("[LOG] Geroparser started.")
 
     while PARSER_RUNNING:
         # LIMIT ERRORS TO AVOID BLACKLISTED BY MAIL SERVER
@@ -514,7 +514,7 @@ def run():
                 mailbox.save()
 
             read_mail()
-            time.sleep(10)
+            time.sleep(30)
 
 def check_run():
     global PARSER_RUNNING

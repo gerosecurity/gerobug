@@ -1,5 +1,10 @@
-import threading
+import threading, logging
 from . import geroparser
+
+
+# LOGGING INITIATION
+logging.basicConfig(filename='log/gerobug.log', level=logging.DEBUG, 
+                    format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 class RunGeromailThread(threading.Thread):
 
@@ -9,8 +14,13 @@ class RunGeromailThread(threading.Thread):
     
     def run(self):
         try:
-            if geroparser.check_run() == False:
-                geroparser.run()
+            while True:
+                running = geroparser.check_run()
+                if running == False:
+                    logging.debug("[LOG] Starting Geroparser...")
+                    geroparser.run()
+                else:
+                    logging.warning("Geroparser Check Run = " + str(running))
         
         except Exception as e:
-            print("[ERROR] Geroparser Thread Failed: " + str(e))
+            logging.error("Geroparser Thread Failed: " + str(e))
