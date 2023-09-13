@@ -1,3 +1,5 @@
+# Gerobug: The First Open Source Bug Bounty Platform.
+
 ![gerobugLogo](https://raw.githubusercontent.com/gerobug/gerobug-docs-images/main/logo.png)
 
 ![CodeQL](https://github.com/gerobug/gerobug/actions/workflows/github-code-scanning/codeql/badge.svg)
@@ -5,8 +7,6 @@
 [![Black Hat Arsenal](https://raw.githubusercontent.com/toolswatch/badges/master/arsenal/asia/2023.svg?sanitize=true)](https://www.blackhat.com/asia-23/arsenal/schedule/index.html#gerobug-open-source-private-self-managed-bug-bounty-platform-31241)
 
 # Gerobug
-
-
 __The first open source self-managed bug bounty platform.__
 
 Are you a company, planning to have your own bug bounty program, with minimum budget?<br>
