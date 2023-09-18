@@ -13,14 +13,14 @@ class RunGeromailThread(threading.Thread):
         threading.Thread.__init__(self)
     
     def run(self):
-        try:
-            while True:
+        while True:
+            try:
                 running = geroparser.check_run()
                 if running == False:
                     logging.debug("[LOG] Starting Geroparser...")
                     geroparser.run()
                 else:
                     logging.warning("Geroparser Check Run = " + str(running))
-        
-        except Exception as e:
-            logging.error("Geroparser Thread Failed: " + str(e))
+            
+            except Exception as e:
+                logging.error("Geroparser Thread Failed: " + str(e))
