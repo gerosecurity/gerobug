@@ -144,12 +144,22 @@ def read_mail():
                         email_dt = datetime.fromtimestamp(msg_ts)
                         email_date = email_dt.strftime("%Y-%m-%d %H:%M:%S")
 
-                        hunter_email = re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", str(msg['from'])).group()
+                        # PARSE HUNTER NAME, EMAIL, AND SUBJECT
+                        raw_from = str(msg['from'])
+                        separator = raw_from.find(' <')
+
+                        hunter_email = re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", raw_from).group()
+                        hunter_name = raw_from[:separator]
+                        if len(hunter_name) < 3:
+                            at = hunter_email.find('@')
+                            hunter_name = hunter_email[:at]
+                        email_subject = msg['subject']
 
                         logging.info('============================')
                         logging.info('NEW EMAIL RECEIVED!')
                         logging.info('Time : ' + str(email_date))
-                        logging.info('From : ' + str(hunter_email))
+                        logging.info('From : ' + str(hunter_email) + ' (' + str(hunter_name) + ')')
+                        logging.info('Subject : ' + str(email_subject))
                         
                         # SPOOF PREVENTION
                         spoof_check = re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", str(msg['return-path']))
@@ -161,13 +171,6 @@ def read_mail():
                         else:
                             logging.warning('Possible Spoofing Attempt, Igonring Mail!')
                             continue
-
-                        # PARSE HUNTER NAME AND SUBJECT
-                        at = hunter_email.find('@')
-                        hunter_name = hunter_email[:at]
-                        email_subject = msg['subject']
-
-                        logging.info('Subject : ' + str(email_subject))
                         
                         # MONITOR SPAM ACTIVITY
                         gerosecure.monitor(hunter_email, int(msg_ts))
