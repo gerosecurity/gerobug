@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'dashboards.apps.DashboardsConfig',
     'geromail.apps.GeromailConfig',
     'ckeditor',
+    'colorfield',
 ]
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
