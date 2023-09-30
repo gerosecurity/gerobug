@@ -5,19 +5,11 @@
 <html lang="en" >
 <head>
   <meta charset="UTF-8">
-
   <title>404 Not Found</title>
   <link rel="shortcut icon" href='{% static "favicon.ico" %}' type="image/x-icon">
   <link rel="icon" href='{% static "favicon.ico" %}' type="image/x-icon">
-
-  <!-- CSS -->
-  <link rel="stylesheet" href="{% url 'themes' %}" type="text/css">
   <link rel="stylesheet" href='{% static "/css/notfound.css" %}'>
 
-  <!-- SCRIPTS -->
-  <script src='//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
-  <script src="{% static '/script/notfound.js' %}"></script>
-  
 </head>
 <body>
 <!-- partial:index.partial.html -->
@@ -52,11 +44,14 @@
       <div class="box__description-text">It seems like we couldn't find the page you were looking for</div>
     </div>
     
-    <a href="{% url 'dashboard' %}" class="box__button">Go back</a>
+    <a href="{% url 'rules' %}" class="box__button">Go back</a>
     
   </div>
   
 </div>
+  <!-- scripts -->
+  <script src='//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
+  <script src="{% static '/script/notfound.js' %}"></script>
 
 </body>
 </html>

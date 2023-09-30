@@ -482,6 +482,16 @@ def AdminSetting(request):
                     destination.write(chunk)
 
             gerocert.gerocert.generate_sample()
+
+            theme = Personalization.objects.get(personalize_id=1)
+            theme.main_1        = personalization.cleaned_data.get('main_1')    
+            theme.main_2        = personalization.cleaned_data.get('main_2') 
+            theme.secondary_1   = personalization.cleaned_data.get('secondary_1')  
+            theme.secondary_2   = personalization.cleaned_data.get('secondary_2')
+            theme.secondary_3   = personalization.cleaned_data.get('secondary_3')
+            theme.button_1      = personalization.cleaned_data.get('button_1')
+            theme.save()
+
             logging.info("Personalization updated successfully")
             messages.success(request,"Personalization updated successfully!")
             return redirect('setting')
