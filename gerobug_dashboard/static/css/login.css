@@ -11,7 +11,7 @@
 
     max-height: 100vh;
     /* font-family: 'Nunito'; */
-    background-color: #C82A3D;
+    background-color: var(--secondary-1);
 }
 
 .container {
@@ -51,7 +51,7 @@
 
 #button {
     border-radius: 30px;
-    background-color: #48409E;
+    background-color: var(--button-1);
 }
 
 #container {

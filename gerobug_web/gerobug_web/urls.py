@@ -15,12 +15,13 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from dashboards.views import halloffame,rulescontext,emailcontext
+from dashboards.views import halloffame,rulescontext,emailcontext,Themes
 
 urlpatterns = [
     path('', rulescontext,name="rules"),
     path("submit/",emailcontext,name="submit"),
     path("halloffame/",halloffame,name="halloffame"),
+    path("theme", Themes.as_view(), name='themes'),
 ]
 
 handler404 = 'dashboards.views.notfound_404'

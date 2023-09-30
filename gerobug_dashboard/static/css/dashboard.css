@@ -24,7 +24,7 @@
     width: 120px;
     height: 16px;
   
-    background: #FFA9B3;
+    background: var(--secondary-2);
     border-radius: 20px;
   
     display: flex;
@@ -105,7 +105,7 @@
     overflow-y: auto;
     margin-top: 8px;
     max-height: 500px;
-    background-color: #F53149;
+    background-color: var(--secondary-1);
     border-radius: 10px;
     /* padding: 10px; */
 }
@@ -181,7 +181,7 @@ a:link, a:visited{
 }
 
 .card button{
-    background-color: #48409E;
+    background-color: var(--button-1);
     border-width: 0;
     border-radius: 20px;
     color: white;

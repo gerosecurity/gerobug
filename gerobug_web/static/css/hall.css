@@ -27,7 +27,6 @@ body{
 }
 
 #title {
-    color: #C82A3D;
     display: flex;
 	flex-direction: row;
 	flex-wrap: nowrap;

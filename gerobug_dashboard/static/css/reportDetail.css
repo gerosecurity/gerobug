@@ -37,21 +37,21 @@ h4{
 
 #right-div{
     min-width: 250px;
-   background-color: #FFE0E0;
-   border-radius: 20px;
-   height: 320px;
-   padding: 20px;
-   display: flex;
-   flex-direction: column;
-   flex-wrap: nowrap;
-   justify-content: center;
-   align-items: center;
-   align-content: center;
-   /* direction:ltr; */
+    background-color: var(--secondary-3);
+    border-radius: 20px;
+    height: 320px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
+    align-content: center;
+    /* direction:ltr; */
 }
 
 #report-id {
-    color: #C82A3D;
+    color: var(--secondary-1);
 }
 
 #report-reviewer{
@@ -150,6 +150,7 @@ input[type=number] {
 	align-content: stretch;
     gap: 4px;
 }
+
 #report-title{
     display: flex;
     flex-direction: row;
@@ -175,7 +176,7 @@ input[type=number] {
     width: 150px;
     height: 28px;
 
-    background: #FFA9B3;
+    background: var(--secondary-2);
     border-radius: 20px;
 
     /* Inside auto layout */
@@ -297,7 +298,7 @@ label {
 }
 
 .amend-btn{
-    background-color: #48409E;
+    background-color: var(--button-1);
     border-width: 0;
     color: #f9f3f3;
     border-radius: 20px;
@@ -309,7 +310,7 @@ label {
 }
 
 .update-btn{
-    background-color: #48409E;
+    background-color: var(--button-1);
     border-width: 0;
     color: #f9f3f3;
     border-radius: 20px;
@@ -321,7 +322,7 @@ label {
 }
 
 .update-review-btn{
-    background-color: #48409E;
+    background-color: var(--button-1);
     border-width: 0;
     color: #f9f3f3;
     border-radius: 20px;
@@ -353,7 +354,7 @@ label {
 }
 
 .ok-btn{
-    background-color: #48409E;
+    background-color: var(--button-1);
     color: white;
     border-radius: 20px;
     border-width: 0px;
@@ -393,7 +394,7 @@ label {
     width: 48px;
     height: 16px;
     color: white;
-    background-color: #48409E;
+    background-color: var(--button-1);
     border-width: 0;
     border-radius: 4px;
     font-size: 10px;
@@ -406,7 +407,7 @@ h6{
     width: 84px;
     height: 16px;
     color: white;
-    background-color: #48409E;
+    background-color: var(--button-1);
     border-width: 0;
     border-radius: 4px;
     font-size: 10px;

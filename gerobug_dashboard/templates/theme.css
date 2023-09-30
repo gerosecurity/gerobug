@@ -1,0 +1,11 @@
+:root
+{
+    --main-1: {{main_1}}; 
+    --main-2: {{main_2}}; 
+    --secondary-1: {{secondary_1}}; 
+    --secondary-2: {{secondary_2}}; 
+    --secondary-3: {{secondary_3}}; 
+    --button-1: {{button_1}};
+    --text-1: {{text_1}}; 
+    --text-2: {{text_2}}; 
+}
