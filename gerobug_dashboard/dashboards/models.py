@@ -142,12 +142,12 @@ class CertificateData(models.Model):
 class Personalization(models.Model):
     personalize_id = models.IntegerField(default=1)
     # company_name = models.CharField(max_length=30)
-    main_1      = ColorField()
-    main_2      = ColorField()
-    secondary_1 = ColorField()
-    secondary_2 = ColorField()
-    secondary_3 = ColorField()
-    button_1    = ColorField()
+    main_1      = ColorField(default='#DA0037')
+    main_2      = ColorField(default='#E8596A')
+    secondary_1 = ColorField(default='#C82A3D')
+    secondary_2 = ColorField(default='#FA8997')
+    secondary_3 = ColorField(default='#FFE0E0')
+    button_1    = ColorField(default='#48409E')
 
     def __str__(self):
         return self.personalize_id

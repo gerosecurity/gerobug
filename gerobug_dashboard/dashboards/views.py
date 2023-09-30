@@ -494,7 +494,10 @@ def AdminSetting(request):
 
             logging.info("Personalization updated successfully")
             messages.success(request,"Personalization updated successfully!")
-            return redirect('setting')
+            return render(request,'setting.html',
+                          {'form': form, 'mailbox': MailboxForm(), 'account': AccountForm(),'reviewer': ReviewerForm(),'webhooks': WebhookForm(),'blacklistrule': BlacklistForm(),
+                           'templatereport': TemplateReportForm(), 'templatenda': TemplateNDAForm(), 'templatecert': TemplateCertForm(), 'certdata': CertDataForm(), 'personalization': PersonalizationForm(),
+                           'users':users,'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications,'bl':bl})
 
 
     return render(request,'setting.html',
