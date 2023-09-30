@@ -1,4 +1,5 @@
+django-bleach
+django-colorfield==0.10.1
 django==4.2.3
 gunicorn==21.0.0
 psycopg2
-django-bleach

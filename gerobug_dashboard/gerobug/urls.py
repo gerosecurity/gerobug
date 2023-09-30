@@ -16,7 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.views.generic.base import TemplateView
-from dashboards.views import halloffame,rulescontext,emailcontext
+from dashboards.views import halloffame,rulescontext,emailcontext,Themes
 
 urlpatterns = [
     path('', rulescontext,name="rules"),
@@ -24,6 +24,7 @@ urlpatterns = [
     path("halloffame/",halloffame,name="halloffame"),
     path('login/', include("prerequisites.urls"),name="login"),
     path('dashboard/', include("dashboards.urls"),name="dashboard"),
+    path("theme", Themes.as_view(), name='themes'),
     
     #path('accounts/', include('django.contrib.auth.urls')),
     #path('admin/', admin.site.urls),

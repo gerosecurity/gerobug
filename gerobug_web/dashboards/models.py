@@ -1,4 +1,5 @@
 from django.db import models
+from colorfield.fields import ColorField
 
 
 
@@ -37,3 +38,16 @@ class PrerequisitesMailbox(models.Model):
     class Meta:
         managed = False
         db_table = 'prerequisites_mailbox'
+
+class Personalization(models.Model):
+    personalize_id = models.IntegerField(primary_key=True)
+    main_1      = ColorField()
+    main_2      = ColorField()
+    secondary_1 = ColorField()
+    secondary_2 = ColorField()
+    secondary_3 = ColorField()
+    button_1    = ColorField()
+
+    class Meta:
+        managed = False
+        db_table = 'dashboards_personalization'

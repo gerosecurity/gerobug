@@ -1,8 +1,10 @@
 from django import forms
 from ckeditor.widgets import CKEditorWidget
-from dashboards.models import StaticRules
+from dashboards.models import StaticRules, Personalization
 from dashboards.rulestemplate import *
 from dashboards.validators import *
+from colorfield.widgets import ColorWidget
+
 
 class Requestform(forms.Form):
     reasons = forms.CharField(widget=forms.Textarea(attrs={"id":"reasons","name":"reasons","placeholder":"Write the reason here ..."}),required=True)
@@ -76,3 +78,26 @@ class CertDataForm(forms.Form):
 class PersonalizationForm(forms.Form):
     company_logo = forms.FileField(widget=forms.FileInput(attrs={'id':'company_logo', 'placeholder': 'Company Logo (.png)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.png'}),label="Company Logo",validators=(validate_is_image,))
     #company_name = forms.CharField(widget=forms.TextInput(attrs={'id':'company_name', 'placeholder': 'e.g. Gerobug Indonesia', 'style': 'width: 100%;', 'class': 'form-control'}),label="Company Name")
+    try:
+        THEME = Personalization.objects.get(personalize_id=1)
+        MAIN_1      = THEME.main_1
+        MAIN_2      = THEME.main_2
+        SECONDARY_1 = THEME.secondary_1
+        SECONDARY_2 = THEME.secondary_2
+        SECONDARY_3 = THEME.secondary_3
+        BUTTON_1    = THEME.button_1
+
+    except:
+        MAIN_1      = "#DA0037"
+        MAIN_2      = "#E8596A"
+        SECONDARY_1 = "#C82A3D"
+        SECONDARY_2 = "#FA8997"
+        SECONDARY_3 = "#FFE0E0"
+        BUTTON_1    = "#48409E"
+    
+    main_1 = forms.CharField(widget=ColorWidget, label="Main Color 1", initial=MAIN_1)
+    main_2 = forms.CharField(widget=ColorWidget, label="Main Color 2", initial=MAIN_2)
+    secondary_1 = forms.CharField(widget=ColorWidget, label="Secondary Color 1", initial=SECONDARY_1)
+    secondary_2 = forms.CharField(widget=ColorWidget, label="Secondary Color 2", initial=SECONDARY_2)
+    secondary_3 = forms.CharField(widget=ColorWidget, label="Secondary Color 3", initial=SECONDARY_3)
+    button_1 = forms.CharField(widget=ColorWidget, label="Button Color 1", initial=BUTTON_1)

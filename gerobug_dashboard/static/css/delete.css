@@ -22,7 +22,7 @@ main {
     width: 120px;
     height: 42px;
     color: white;
-    background-color: #48409E;
+    background-color: var(--button-1);
     border-width: 0;
     border-radius: 20px;
     font-size: 10px;

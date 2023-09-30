@@ -10,7 +10,7 @@ class DashboardsConfig(AppConfig):
         def ready(self):
             import logging, gerocert.gerocert, dashboards.rulestemplate
             from geromail.thread import RunGeromailThread
-            from dashboards.models import BugReport, BugHunter, ReportStatus, StaticRules, BlacklistRule, CertificateData
+            from dashboards.models import BugReport, BugHunter, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization
             from django.contrib.auth.models import Group, Permission
             from django.core.exceptions import ObjectDoesNotExist
             from prerequisites.models import MailBox
@@ -128,6 +128,24 @@ class DashboardsConfig(AppConfig):
                     log_config()
                     logging.debug("Group Reviewer shall be created successfully. Visit the Admin Site!")
 
+            # INIT THEME
+            def init_theme_db():
+                if not Personalization.objects.filter(personalize_id=1).exists():
+                    THEME = Personalization()
+                    THEME.personalize_id    = 1
+                    THEME.main_1            = "#DA0037"
+                    THEME.main_2            = "#E8596A"
+                    THEME.secondary_1       = "#C82A3D"
+                    THEME.secondary_2       = "#FA8997"
+                    THEME.secondary_3       = "#FFE0E0"
+                    THEME.button_1          = "#48409E"
+                    THEME.save()
+
+                    print("[LOG] Init Theme Data success")
+                
+                else:
+                    print("[LOG] Theme Data already exists")
+
             init_status_db(0, "Not Valid")
             init_status_db(1, "Need to Review")
             init_status_db(2, "In Review")
@@ -140,6 +158,7 @@ class DashboardsConfig(AppConfig):
             init_rules_db()
             init_cert_db()
             init_mailbox_db()
+            init_theme_db()
 
             log_config()
             logging.info("Number of Status         :"+str(ReportStatus.objects.count()))

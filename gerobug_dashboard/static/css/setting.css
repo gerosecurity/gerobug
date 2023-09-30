@@ -43,7 +43,7 @@
 }
 
 .card button{
-    background-color: #48409E;
+    background-color: var(--button-1);
     border-width: 0;
     border-radius: 20px;
     color: white;
@@ -90,11 +90,12 @@
     overflow-x: auto;
     overflow-y: auto;
 }
+
 button{
     width: 100px;
     height: 16px;
     color: white;
-    background-color: #48409E;
+    background-color: var(--button-1);
     border-width: 0;
     border-radius: 4px;
     font-size: 10px;

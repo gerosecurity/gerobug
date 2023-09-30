@@ -47,7 +47,7 @@ main{
 
 .col-4 a.active{
     text-decoration: none;
-    color: #C82A3D;
+    color: var(--secondary-1);
 }
 .col-8{
     overflow-y: auto;

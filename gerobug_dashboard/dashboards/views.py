@@ -9,13 +9,14 @@ from django.views.generic import (
     ListView,
     UpdateView,
     DeleteView,
-    DetailView
+    DetailView,
+    TemplateView
 )
 from django.urls import reverse, reverse_lazy
 from django.db.models import Sum
 from django.http import FileResponse
 from django.middleware.csrf import get_token
-from .models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, ReportStatus, StaticRules, BlacklistRule, CertificateData
+from .models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization
 from prerequisites.models import MailBox, Webhook
 from .forms import Requestform, AdminSettingForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm, WebhookForm, BlacklistForm, TemplateReportForm, TemplateNDAForm, TemplateCertForm, CertDataForm, PersonalizationForm
 from geromail import geromailer, gerofilter, geroparser, gerocalculator
@@ -481,9 +482,22 @@ def AdminSetting(request):
                     destination.write(chunk)
 
             gerocert.gerocert.generate_sample()
+
+            theme = Personalization.objects.get(personalize_id=1)
+            theme.main_1        = personalization.cleaned_data.get('main_1')    
+            theme.main_2        = personalization.cleaned_data.get('main_2') 
+            theme.secondary_1   = personalization.cleaned_data.get('secondary_1')  
+            theme.secondary_2   = personalization.cleaned_data.get('secondary_2')
+            theme.secondary_3   = personalization.cleaned_data.get('secondary_3')
+            theme.button_1      = personalization.cleaned_data.get('button_1')
+            theme.save()
+
             logging.info("Personalization updated successfully")
             messages.success(request,"Personalization updated successfully!")
-            return redirect('setting')
+            return render(request,'setting.html',
+                          {'form': form, 'mailbox': MailboxForm(), 'account': AccountForm(),'reviewer': ReviewerForm(),'webhooks': WebhookForm(),'blacklistrule': BlacklistForm(),
+                           'templatereport': TemplateReportForm(), 'templatenda': TemplateNDAForm(), 'templatecert': TemplateCertForm(), 'certdata': CertDataForm(), 'personalization': PersonalizationForm(),
+                           'users':users,'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications,'bl':bl})
 
 
     return render(request,'setting.html',
@@ -556,3 +570,21 @@ def halloffame(request,):
 
 def notfound_404(request, exception):
     return render(request, 'notfound.html', status=404)
+
+class Themes(TemplateView):
+    template_name = 'theme.css'
+    content_type = 'text/css'
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+
+        THEME = Personalization.objects.get(personalize_id=1)
+        context['main_1']       = THEME.main_1
+        context['main_2']       = THEME.main_2
+        context['secondary_1']  = THEME.secondary_1
+        context['secondary_2']  = THEME.secondary_2
+        context['secondary_3']  = THEME.secondary_3
+        context['button_1']     = THEME.button_1
+        context['text_1']       = "Black"
+        context['text_2']       = "White"
+
+        return self.render_to_response(context)

@@ -1,5 +1,5 @@
 .nav-bar {
-    background-color: #d02c3c;
+    background-color: var(--main-1);
     overflow: hidden;
 }
 
