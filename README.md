@@ -108,6 +108,9 @@ Gerobug can temporarily block and release emails that conducted spam activity.
 - Auto Generate Certificate<br>
 We can generate certificate of appreciations for bug hunters so you don't have to ;)
 
+- Personalization<br>
+You can customize Gerobug to fit your brand colors
+
 - Hall of Fame / Wall of fame / Leaderboard<br>
 Yeah we have it too
 
