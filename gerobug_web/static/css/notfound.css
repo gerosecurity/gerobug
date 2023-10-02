@@ -1,6 +1,6 @@
 @import url(https://fonts.googleapis.com/css?family=Ubuntu);
 html, body {
-  background: #C82A3D;
+  background: var(--main-1);
   font-family: "Ubuntu";
 }
 
@@ -210,13 +210,13 @@ html, body {
 .box .box__ghost .box__ghost-container .box__ghost-bottom div:nth-child(2n) {
   top: -12px;
   margin: 0 0px;
-  border-top: 15px solid #C82A3D;
+  border-top: 15px solid var(--secondary-1);
   background: transparent;
 }
 
 .box .box__ghost .box__ghost-shadow {
   height: 20px;
-  box-shadow: 0 50px 15px 5px #C82A3D;
+  box-shadow: 0 50px 15px 5px var(--secondary-1);
   border-radius: 50%;
   margin: 0 auto;
   animation: smallnbig 3s ease-in-out infinite;
@@ -251,7 +251,7 @@ html, body {
 .box .box__description .box__button {
   display: block;
   position: relative;
-  background: #FF5E65;
+  background: var(--secondary-2);
   border: 1px solid transparent;
   border-radius: 50px;
   height: 50px;

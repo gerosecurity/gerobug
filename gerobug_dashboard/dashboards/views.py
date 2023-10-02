@@ -564,7 +564,7 @@ def emailcontext(request,):
 def halloffame(request,):
     bughunters = BugHunter.objects.alias(
         points=Sum('hunter_scores')
-    ).exclude(hunter_scores=0).order_by('-points') #descending use '-'
+    ).exclude(hunter_scores=0).order_by('-points')
 
     return render(request, 'halloffame.html',{'bughunters':bughunters})
 
