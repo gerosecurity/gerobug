@@ -24,11 +24,11 @@ logging.basicConfig(filename='log/gerobug.log', level=logging.DEBUG,
                     format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 
-# GMAIL IMAP CONFIG
+# IMAP CONFIG
 EMAIL           = ""
 PWD             = ""
-IMAP_SERVER     = "imap.gmail.com"
-IMAP_PORT       = 993
+IMAP_SERVER     = ""
+IMAP_PORT       = 0
 
 MAILBOX_READY   = False
 PARSER_RUNNING  = False
@@ -463,7 +463,7 @@ def company_action(id, note, code):
 
 # RUN GEROMAIL MODULES
 def run():
-    global EMAIL, PWD, MAILBOX_READY, PARSER_RUNNING
+    global EMAIL, PWD, MAILBOX_READY, PARSER_RUNNING, IMAP_SERVER, IMAP_PORT
     MAILBOX_READY = False
     error_count = 0
 
@@ -498,6 +498,14 @@ def run():
             mailbox = MailBox.objects.get(mailbox_id=1)
             EMAIL       = mailbox.email
             PWD         = mailbox.password
+            TYPE        = mailbox.mailbox_type
+
+            if TYPE == "2":
+                IMAP_SERVER     = "outlook.office365.com"
+                IMAP_PORT       = 993
+            else:
+                IMAP_SERVER     = "imap.gmail.com"
+                IMAP_PORT       = 993
 
             # TEST LOGIN
             if mailbox.mailbox_status == 0:

@@ -38,8 +38,10 @@ class AdminSettingForm(forms.Form):
     faq = forms.CharField(widget=CKEditorWidget(attrs={"id": "faq"}),label="Frequenly Asked Questions",initial=FAQ)
 
 class MailboxForm(forms.Form):
+    CHOICES = (('1', 'GMAIL'),('2', 'OUTLOOK'),)
     mailbox_email = forms.CharField(widget=forms.EmailInput(attrs={'id':'mailbox_email', 'placeholder': 'Email', 'style': 'width: 100%;', 'class': 'form-control'}))
     mailbox_password = forms.CharField(widget=forms.PasswordInput(attrs={'id':'mailbox_password', 'placeholder': 'Password', 'style': 'width: 100%;', 'class': 'form-control'}))
+    mailbox_type = forms.ChoiceField(choices=CHOICES,label="Email Type")
 
 class AccountForm(forms.Form):
     username = forms.CharField(widget=forms.TextInput(attrs={'id':'username', 'placeholder': 'Username', 'style': 'width: 100%;', 'class': 'form-control'}))

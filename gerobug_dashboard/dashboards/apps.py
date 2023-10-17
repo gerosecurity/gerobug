@@ -96,6 +96,7 @@ class DashboardsConfig(AppConfig):
                     mailbox.mailbox_id = 1
                     mailbox.email = ""
                     mailbox.password = ""
+                    mailbox.mailbox_type = ""
                     mailbox.save()
                     log_config()
                     logging.debug("Init Mailbox success")

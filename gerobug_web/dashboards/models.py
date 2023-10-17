@@ -34,6 +34,7 @@ class PrerequisitesMailbox(models.Model):
     email = models.CharField(max_length=254)
     password = models.TextField()
     mailbox_status = models.IntegerField()
+    mailbox_type = models.CharField(max_length=1)
 
     class Meta:
         managed = False

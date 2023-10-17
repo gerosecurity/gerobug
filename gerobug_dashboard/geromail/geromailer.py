@@ -19,10 +19,6 @@ logging.basicConfig(filename='log/gerobug.log', level=logging.DEBUG,
                     format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 
-# GMAIL SMTP CONFIG
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT   = 465
-
 # WRITE EMAIL REPLY (CONFIRMATIONS)
 def write_mail(code, payload, Destination):
     try:
@@ -89,14 +85,31 @@ def write_mail(code, payload, Destination):
         mailbox     = MailBox.objects.get(mailbox_id=1)
         EMAIL       = mailbox.email
         PWD         = mailbox.password
+        TYPE        = mailbox.mailbox_type
+
+        # SMTP CONFIG
+        if TYPE == "2":
+            SMTP_SERVER = "smtp.office365.com"
+            SMTP_PORT   = 587
+        else:
+            SMTP_SERVER = "smtp.gmail.com"
+            SMTP_PORT   = 465
 
         if EMAIL == "" or PWD == "":
             pass
         else:
-            connection = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT)
-            connection.login(EMAIL, PWD)
-            connection.sendmail(EMAIL, Destination, message.as_string())
-            connection.close()
+            try:
+                connection = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT)
+                connection.login(EMAIL, PWD)
+                connection.sendmail(EMAIL, Destination, message.as_string())
+                connection.close()
+                
+            except Exception as e:
+                with smtplib.SMTP(host=SMTP_SERVER, port=SMTP_PORT) as server:
+                    server.starttls()
+                    server.login(EMAIL, PWD)
+                    server.sendmail(EMAIL, Destination, message.as_string())
+                    server.close()
     
         logging.info('Sent Email Successfully')
 

@@ -346,6 +346,7 @@ def AdminSetting(request):
             mailbox_account.email = mailbox.cleaned_data.get('mailbox_email')    
             mailbox_account.password = mailbox.cleaned_data.get('mailbox_password') 
             mailbox_account.mailbox_status = 0
+            mailbox_account.mailbox_type = mailbox.cleaned_data.get('mailbox_type')
             mailbox_account.save()
             logging.info("Mailbox updated successfully")
             messages.success(request,"Mailbox updated successfully!")
