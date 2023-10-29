@@ -134,7 +134,7 @@ class DashboardsConfig(AppConfig):
                 if not Personalization.objects.filter(personalize_id=1).exists():
                     THEME = Personalization()
                     THEME.personalize_id    = 1
-                    THEME.main_1            = "#DA0037"
+                    THEME.main_1            = "#171717"
                     THEME.main_2            = "#E8596A"
                     THEME.secondary_1       = "#C82A3D"
                     THEME.secondary_2       = "#FA8997"
