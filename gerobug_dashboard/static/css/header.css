@@ -1,54 +1,56 @@
-footer{
-  background-color: var(--main-1);
-  height: 50px;	
-  width: auto;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  justify-content: center;
-  align-items: center;
-  align-content: center;
-  padding-left: 4vw;
-  padding-right: 4vw;
-}
-
-#copyright{
-  padding-top: 1.5vh;
-  font-weight: bold;
-  font-size: 2vh;
-  text-align: center;
-  color: white;
-}
-body {margin: 0;}
-
-ul.topnav {
-  list-style-type: none;
+body {
   margin: 0;
-  padding: 0;
   overflow: hidden;
-  background-color: var(--main-1);
-  position: -webkit-sticky; /* Safari */
-  position: sticky;
-  top: 0;
 }
 
 header{
   position: sticky;
   position: -webkit-sticky;
   top: 0;
-  /* background-color: blue; */
   z-index: 999;
+}
+
+header img{
+  height: 100%;
+  width: 30vh;
+}
+
+ul.topnav {
+  background-color: var(--main-1);
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  position: -webkit-sticky; /* Safari */
+  position: sticky;
+  top: 0;
 }
 
 ul.topnav li {float: left;}
 
+.nav-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+ul.topnav li.icon {
+  display: none;
+}
+
 ul.topnav li a {
   display: block;
+  padding: 0vh 1vh 0vh 1vh;
+  height: 10vh;
   color: white;
-  text-align: center;
-  padding: 15px 16px;
   text-decoration: none;
-  height: 8vh;
+  text-align: center;
+}
+
+.nav-content {
+  margin: 0;
+  top: 50%;
 }
 
 ul.topnav li a:hover:not(.active) {background-color: var(--main-2);}
@@ -58,10 +60,47 @@ ul.topnav li a.active {background-color: var(--main-2);}
 ul.topnav li.right {float: right;}
 
 @media screen and (max-width: 600px) {
-  ul.topnav li.right, 
-  ul.topnav li {float: none;}
+  ul.topnav li:not(:first-child) {display: none;}
+  ul.topnav li.icon {
+    float: right;
+    display: block;
+  }
 }
 
-header img{
-  height: 4vh;
+@media screen and (max-width: 600px) {
+  ul.topnav.responsive {position: relative;}
+  ul.topnav.responsive li.icon {
+    position: absolute;
+    right: 0;
+    top: 0;
+  }
+  ul.topnav.responsive li {
+    float: none;
+    display: block;
+    text-align: left;
+  }
+}
+
+footer{
+  background-color: var(--main-1);
+  height: 5vh;	
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: center;
+  align-content: center;
+  padding-left: 4vw;
+  padding-right: 4vw;
+  bottom: 0px;
+  position: fixed;
+}
+
+#copyright{
+  padding-top: 1.5vh;
+  font-weight: bold;
+  font-size: 2vh;
+  text-align: center;
+  color: white;
 }

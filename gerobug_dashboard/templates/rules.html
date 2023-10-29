@@ -22,6 +22,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
 
@@ -30,22 +31,39 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"
     integrity="sha384-OERcA2EqjJCMA+/3y+gxIOqMEjwtxJY7qPCqsdltbNJuaOe923+mo//f6V8Qbsw3"
     crossorigin="anonymous"></script>
-    
+
+    <script>
+        function myFunction() {
+          var x = document.getElementById("navbar");
+          if (x.className === "topnav") {
+            x.className += " responsive";
+          } else {
+            x.className = "topnav";
+          }
+        }
+    </script>
 </head>
 
 <body>
     <header>
-        <ul class="topnav">
-          <li><div id=logo-atas>
-            <a href="{% url 'rules' %}"><img src="{% static 'logo.png' %}"></a>
-          </div></li>
-          <li><a class="active" href="{% url 'rules' %}">Rules & Guidelines</a></li>
-          <li><a href="{% url 'halloffame' %}">Hall Of Fame</a></li>
-          <li><a href="{% url 'submit' %}">Submit</a></li>
+        <ul class="topnav" id="navbar">
+            <li><a href="{% url 'rules' %}">
+                <div class="nav-content"><img src="{% static 'logo.png' %}"></div>
+            </a></li>
+            <li><a class="active" href="{% url 'rules' %}">
+                <div class="nav-content">Rules & Guidelines</div>
+            </a></li>
+            <li><a href="{% url 'halloffame' %}">
+                <div class="nav-content">Hall Of Fame</div>
+            </a></li>
+            <li><a href="{% url 'submit' %}">
+                <div class="nav-content">Submit</div>
+            </a></li>
+            <li class="icon"><a href="javascript:void(0);" onclick="myFunction()">
+                <div class="nav-content"><i class="fa fa-bars"></i></div>
+            </a></li>
         </ul>
-      </nav>
     </header>
-
 
     <main>
         <div class="row">
