@@ -1,5 +1,6 @@
 import time
 import logging
+from logging.handlers import TimedRotatingFileHandler
 from dashboards.models import Blacklist, Watchlist, BlacklistRule
 
 
@@ -12,11 +13,6 @@ from dashboards.models import Blacklist, Watchlist, BlacklistRule
 
 
 
-# LOGGING INITIATION
-logging.basicConfig(filename='log/gerobug.log', level=logging.DEBUG, 
-                    format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-
-
 # BLACKLIST SPAM EMAIL
 def check_blacklist(email):
     if Blacklist.objects.filter(email=email).exists():
@@ -27,8 +23,8 @@ def check_blacklist(email):
     
         if diff < BLACKLISTRULE.buffer_blacklist:
             remaining = (blacklisted.time + BLACKLISTRULE.buffer_blacklist) - ct
-            logging.warning("Email Blacklisted Due to Spam Activity (Release in "+str(remaining)+" seconds)")
-            logging.info('============================')
+            logging.getLogger("Gerologger").warning("Email Blacklisted Due to Spam Activity (Release in "+str(remaining)+" seconds)")
+            logging.getLogger("Gerologger").info('============================')
 
             # LIMIT ONLY 1 NOTIFICATION TO MITIGATE ABUSE
             if blacklisted.informed == 0:
@@ -41,7 +37,7 @@ def check_blacklist(email):
         else:
             # RELEASE THE BLACKLIST STATUS
             blacklisted.delete()
-            logging.info("Email Released from Blacklist")
+            logging.getLogger("Gerologger").info("Email Released from Blacklist")
             return False, "", False
     
     else:
@@ -82,7 +78,7 @@ def monitor(email, ts):
             existing.time = ts
             existing.save()
 
-        logging.info("Monitor Counter : "+str(existing.counter))
+        logging.getLogger("Gerologger").info("Monitor Counter : "+str(existing.counter))
 
     else:
         watch = Watchlist()

@@ -8,17 +8,22 @@ class DashboardsConfig(AppConfig):
     if 'gerobug.wsgi' in sys.argv:
     #if 'runserver' in sys.argv: 
         def ready(self):
-            import logging, gerocert.gerocert, dashboards.rulestemplate
+            import gerocert.gerocert, dashboards.rulestemplate
+            import logging
+            from logging.handlers import TimedRotatingFileHandler
             from geromail.thread import RunGeromailThread
             from dashboards.models import BugReport, BugHunter, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization
             from django.contrib.auth.models import Group, Permission
             from django.core.exceptions import ObjectDoesNotExist
             from prerequisites.models import MailBox
 
-            # LOGGING INITIATION
-            def log_config():
-                logging.basicConfig(filename='log/gerobug.log', level=logging.DEBUG, 
-                                format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+            # GEROLOGGER INITIATION
+            def gerologger_config():
+                gerologger = logging.getLogger("Gerologger")
+                log_handler = TimedRotatingFileHandler('log/gerobug.log', when='midnight', backupCount=3)
+                log_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
+                gerologger.setLevel(logging.DEBUG)
+                gerologger.addHandler(log_handler)
 
             # INSERT STATUS TO DB
             def init_status_db(id, name):
@@ -29,11 +34,10 @@ class DashboardsConfig(AppConfig):
                     status.status_name = name
                     
                     status.save()
-                    log_config()
-                    logging.debug("Init Status DB success")
+                    logging.getLogger("Gerologger").debug("Init Status DB success")
                 
                 else:
-                    logging.debug("Status DB already exists")
+                    logging.getLogger("Gerologger").debug("Status DB already exists")
 
             # INSERT DEFAULT RULES (TERMS, SCOPE, ETC) AND BLACKLIST RULE TO DB
             def init_rules_db():
@@ -47,12 +51,10 @@ class DashboardsConfig(AppConfig):
                     staticrules.reportguidelines = dashboards.rulestemplate.reportguidelines_templates
                     staticrules.faq = dashboards.rulestemplate.faq_templates
                     staticrules.save()
-                    log_config()
-                    logging.debug("Init Rules DB success")
+                    logging.getLogger("Gerologger").debug("Init Rules DB success")
                 
                 else:
-                    log_config()
-                    logging.debug("Rules DB already exists")
+                    logging.getLogger("Gerologger").debug("Rules DB already exists")
                 
                 if not BlacklistRule.objects.filter(rule_id=1).exists():
                     blacklistrule = BlacklistRule()
@@ -63,12 +65,10 @@ class DashboardsConfig(AppConfig):
                     blacklistrule.buffer_blacklist = 3600
                     blacklistrule.buffer_clean = 86400
                     blacklistrule.save()
-                    log_config()
-                    logging.debug("Init Blacklist Rules DB success")
+                    logging.getLogger("Gerologger").debug("Init Blacklist Rules DB success")
                 
                 else:
-                    log_config()
-                    logging.debug("Blacklist Rules DB already exists")
+                    logging.getLogger("Gerologger").debug("Blacklist Rules DB already exists")
 
             # INSERT CERTIFICATE DATA TO DB
             def init_cert_db(): 
@@ -80,12 +80,10 @@ class DashboardsConfig(AppConfig):
                     certdata.officer_title = "Founder of Gerobug"
                     certdata.save()
 
-                    log_config()
-                    logging.debug("Init Certificate Data success")
+                    logging.getLogger("Gerologger").debug("Init Certificate Data success")
                 
                 else:
-                    log_config()
-                    logging.debug("Certificate Data already exists")
+                    logging.getLogger("Gerologger").debug("Certificate Data already exists")
                 
                 gerocert.gerocert.generate_sample()
 
@@ -98,12 +96,10 @@ class DashboardsConfig(AppConfig):
                     mailbox.password = ""
                     mailbox.mailbox_type = ""
                     mailbox.save()
-                    log_config()
-                    logging.debug("Init Mailbox success")
+                    logging.getLogger("Gerologger").debug("Init Mailbox success")
 
                 else:
-                    log_config()
-                    logging.debug("Mailbox already exists")
+                    logging.getLogger("Gerologger").debug("Mailbox already exists")
 
             # INIT GROUP REVIEWER CREATION
             def init_group():
@@ -126,8 +122,7 @@ class DashboardsConfig(AppConfig):
                     g_reviewer.permissions.add(permissions['view_staticrules'])
                     g_reviewer.permissions.add(permissions['view_session'])
                 except:
-                    log_config()
-                    logging.debug("Group Reviewer shall be created successfully. Visit the Admin Site!")
+                    logging.getLogger("Gerologger").debug("Group Reviewer shall be created successfully. Visit the Admin Site!")
 
             # INIT THEME
             def init_theme_db():
@@ -147,6 +142,7 @@ class DashboardsConfig(AppConfig):
                 else:
                     print("[LOG] Theme Data already exists")
 
+            gerologger_config()
             init_status_db(0, "Not Valid")
             init_status_db(1, "Need to Review")
             init_status_db(2, "In Review")
@@ -161,10 +157,9 @@ class DashboardsConfig(AppConfig):
             init_mailbox_db()
             init_theme_db()
 
-            log_config()
-            logging.info("Number of Status         :"+str(ReportStatus.objects.count()))
-            logging.info("Number of Report         :"+str(BugReport.objects.count()))
-            logging.info("Number of Bug Hunters    :"+str(BugHunter.objects.count()))
+            logging.getLogger("Gerologger").info("Number of Status         :"+str(ReportStatus.objects.count()))
+            logging.getLogger("Gerologger").info("Number of Report         :"+str(BugReport.objects.count()))
+            logging.getLogger("Gerologger").info("Number of Bug Hunters    :"+str(BugHunter.objects.count()))
 
 
             # RUN GEROMAIL MODULES

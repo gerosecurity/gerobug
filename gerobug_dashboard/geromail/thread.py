@@ -1,10 +1,8 @@
 import threading, logging
+from logging.handlers import TimedRotatingFileHandler
 from . import geroparser
 
 
-# LOGGING INITIATION
-logging.basicConfig(filename='log/gerobug.log', level=logging.DEBUG, 
-                    format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 class RunGeromailThread(threading.Thread):
 
@@ -17,10 +15,10 @@ class RunGeromailThread(threading.Thread):
             try:
                 running = geroparser.check_run()
                 if running == False:
-                    logging.debug("[LOG] Starting Geroparser...")
+                    logging.getLogger("Gerologger").debug("[LOG] Starting Geroparser...")
                     geroparser.run()
                 else:
-                    logging.warning("Geroparser Check Run = " + str(running))
+                    logging.getLogger("Gerologger").warning("Geroparser Check Run = " + str(running))
             
             except Exception as e:
-                logging.error("Geroparser Thread Failed: " + str(e))
+                logging.getLogger("Gerologger").error("Geroparser Thread Failed: " + str(e))

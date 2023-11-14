@@ -13,6 +13,9 @@ services:
     restart: unless-stopped
     depends_on:
       - web
+    logging:
+      options:
+        max-size: 50m
 
   web:
     build: ./gerobug_web
@@ -48,6 +51,9 @@ services:
     restart: unless-stopped
     depends_on:
       - db
+    logging:
+      options:
+        max-size: 50m
 
   db:
     image: 'postgres:latest'
@@ -63,7 +69,10 @@ services:
       - ./db_data/:/var/lib/postgresql/data/
       - ./gerobug_hba.conf:/opt/gerobug_hba.conf
     restart: unless-stopped
-  
+    logging:
+      options:
+        max-size: 50m
+        
 volumes:
   static-content:
   static-files:

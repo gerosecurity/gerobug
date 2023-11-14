@@ -2,6 +2,7 @@ import smtplib
 import os
 import logging
 
+from logging.handlers import TimedRotatingFileHandler
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
@@ -12,11 +13,6 @@ from dashboards.models import ReportStatus
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
 from prerequisites.models import MailBox
 
-
-
-# LOGGING INITIATION
-logging.basicConfig(filename='log/gerobug.log', level=logging.DEBUG, 
-                    format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 
 # WRITE EMAIL REPLY (CONFIRMATIONS)
@@ -111,10 +107,10 @@ def write_mail(code, payload, Destination):
                     server.sendmail(EMAIL, Destination, message.as_string())
                     server.close()
     
-        logging.info('Sent Email Successfully')
+        logging.getLogger("Gerologger").info('Sent Email Successfully')
 
     except Exception as e: 
-        logging.error(str(e))
+        logging.getLogger("Gerologger").error(str(e))
 
 
 # WRITE EMAIL NOTIFICATION / UPDATES
@@ -124,4 +120,4 @@ def notify(destination, payload):
     else:
         write_mail(301, payload, destination) # NOTIFY STATUS UPDATE
     
-    logging.info('Sent Notification to ' + str(destination) + ' ' + str(payload))
+    logging.getLogger("Gerologger").info('Sent Notification to ' + str(destination) + ' ' + str(payload))
