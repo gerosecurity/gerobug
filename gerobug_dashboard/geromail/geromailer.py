@@ -2,6 +2,7 @@ import smtplib
 import os
 import logging
 
+from logging.handlers import TimedRotatingFileHandler
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
@@ -14,9 +15,12 @@ from prerequisites.models import MailBox
 
 
 
-# LOGGING INITIATION
-logging.basicConfig(filename='log/gerobug.log', level=logging.DEBUG, 
-                    format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+# GEROLOGGER INITIATION
+gerologger = logging.getLogger("Gerobug Log")
+log_handler = TimedRotatingFileHandler('log/gerobug.log', when='midnight', backupCount=3)
+log_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
+gerologger.setLevel(logging.DEBUG)
+gerologger.addHandler(log_handler)
 
 
 # WRITE EMAIL REPLY (CONFIRMATIONS)
@@ -111,10 +115,10 @@ def write_mail(code, payload, Destination):
                     server.sendmail(EMAIL, Destination, message.as_string())
                     server.close()
     
-        logging.info('Sent Email Successfully')
+        gerologger.info('Sent Email Successfully')
 
     except Exception as e: 
-        logging.error(str(e))
+        gerologger.error(str(e))
 
 
 # WRITE EMAIL NOTIFICATION / UPDATES
@@ -124,4 +128,4 @@ def notify(destination, payload):
     else:
         write_mail(301, payload, destination) # NOTIFY STATUS UPDATE
     
-    logging.info('Sent Notification to ' + str(destination) + ' ' + str(payload))
+    gerologger.info('Sent Notification to ' + str(destination) + ' ' + str(payload))
