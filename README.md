@@ -111,6 +111,9 @@ We can generate certificate of appreciations for bug hunters so you don't have t
 - Personalization<br>
 You can customize Gerobug to fit your brand colors
 
+- Logging and Log Rotation<br>
+Gerobug have internal audit log with log rotation enabled
+
 - Hall of Fame / Wall of fame / Leaderboard<br>
 Yeah we have it too
 
