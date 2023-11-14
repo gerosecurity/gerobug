@@ -29,15 +29,6 @@ from logging.handlers import TimedRotatingFileHandler
 
 
 
-# gerologger INITIATION
-def log_config():
-    gerologger = logging.getLogger("Gerobug Log")
-    log_handler = TimedRotatingFileHandler('log/gerobug.log', when='midnight', backupCount=3)
-    log_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
-    gerologger.setLevel(logging.DEBUG)
-    gerologger.addHandler(log_handler)
-
-
 def LogoutForm(request):
     if request.user.is_authenticated:
         logout(request)
@@ -82,7 +73,6 @@ class ReportDetails(LoginRequiredMixin,DetailView):
 
 
 class ReportUpdate(LoginRequiredMixin,UpdateView):
-    log_config()
     login_url = '/login/'
     redirect_field_name = 'login'
     model = BugReport
@@ -96,12 +86,11 @@ class ReportUpdate(LoginRequiredMixin,UpdateView):
         report.report_reviewer = str(self.request.user.username)
         report.save()
 
-        gerologger.info("REPORT " + str(self.object.report_id) + " SEVERITY UPDATED USING " + report.report_severitytype + " BY " + str(self.request.user.username))
+        logging.getLogger("Gerologger").info("REPORT " + str(self.object.report_id) + " SEVERITY UPDATED USING " + report.report_severitytype + " BY " + str(self.request.user.username))
         return reverse('dashboard')
 
 
 class ReportDelete(LoginRequiredMixin,DeleteView):
-    log_config()
     login_url = '/login/'
     redirect_field_name = 'login'
     model = BugReport
@@ -121,7 +110,7 @@ class ReportDelete(LoginRequiredMixin,DeleteView):
             shutil.rmtree(os.path.join(MEDIA_ROOT)+"\\"+self.object.report_id)
         else:
             shutil.rmtree(os.path.join(MEDIA_ROOT)+"/"+self.object.report_id)
-        gerologger.info("REPORT " + str(self.object.report_id) + " DELETED BY " + str(self.request.user.username))
+        logging.getLogger("Gerologger").info("REPORT " + str(self.object.report_id) + " DELETED BY " + str(self.request.user.username))
         return reverse_lazy('dashboard')
 
 
@@ -178,7 +167,6 @@ def ReportStatusView(request, id):
 
 @login_required
 def ReportUpdateStatus(request,id):
-    log_config()
     if request.method == "POST" and gerofilter.validate_id(id):
         report = BugReport.objects.get(report_id=id)
         max = ReportStatus.objects.count() - 2 # LIMITED TO "BOUNTY PROCESS"
@@ -187,7 +175,7 @@ def ReportUpdateStatus(request,id):
            report.report_status += 1
            report.save()
 
-        gerologger.info("REPORT "+str(id)+" STATUS UPDATED ("+str(report.report_status)+") BY "+str(request.user.username))
+        logging.getLogger("Gerologger").info("REPORT "+str(id)+" STATUS UPDATED ("+str(report.report_status)+") BY "+str(request.user.username))
         messages.success(request,"Report Status is updated!")
 
         def trigger_geromailer(report):
@@ -203,7 +191,6 @@ def ReportUpdateStatus(request,id):
 
 @login_required
 def FormHandler(request, id, complete):
-    log_config()
     if gerofilter.validate_id(id):
         report = BugReport.objects.get(report_id=id)
         # report = get_object_or_404(BugReport,report_id=id)
@@ -220,7 +207,7 @@ def FormHandler(request, id, complete):
                     report.report_status = 0
                     report.save()
                     
-                    gerologger.info("REPORT "+str(id)+" STATUS UPDATED (INVALID) BY "+str(request.user.username))
+                    logging.getLogger("Gerologger").info("REPORT "+str(id)+" STATUS UPDATED (INVALID) BY "+str(request.user.username))
                     
                     def trigger_geromailer(report):
                         payload = [report.report_id, report.report_title, report.report_status, reasons, report.report_severity]
@@ -233,19 +220,19 @@ def FormHandler(request, id, complete):
 
                 elif (status == "In Review" or status == "Fixing" or status == "Fixing (Retest)") and complete == "0":
                     code = 701 #REQUEST AMEND
-                    gerologger.info("REPORT "+str(id)+" REQUESTED AMEND BY "+str(request.user.username))
+                    logging.getLogger("Gerologger").info("REPORT "+str(id)+" REQUESTED AMEND BY "+str(request.user.username))
 
                 elif status == "Bounty Calculation" and complete == "0":
                     code = 702 #SEND CALCULATIONS
-                    gerologger.info("REPORT "+str(id)+" SEND CALCULATIONS BY "+str(request.user.username))
+                    logging.getLogger("Gerologger").info("REPORT "+str(id)+" SEND CALCULATIONS BY "+str(request.user.username))
 
                 elif status == "Bounty in Process" and complete == "0":
                     code = 703 #REQUEST NDA
-                    gerologger.info("REPORT "+str(id)+" REQUESTED NDA BY "+str(request.user.username))
+                    logging.getLogger("Gerologger").info("REPORT "+str(id)+" REQUESTED NDA BY "+str(request.user.username))
 
                 elif status == "Bounty in Process" and complete == "1":
                     code = 704 #COMPLETE
-                    gerologger.info("REPORT "+str(id)+" STATUS UPDATED (COMPLETE) BY "+str(request.user.username))
+                    logging.getLogger("Gerologger").info("REPORT "+str(id)+" STATUS UPDATED (COMPLETE) BY "+str(request.user.username))
 
                 messages.success(request,"Email is successfully being processed and sent to the bug hunter with your reason.")
                 # TRIGGER COMPANY ACTION WITH THREADING
@@ -262,7 +249,7 @@ def FormHandler(request, id, complete):
 
     else:
         messages.error(request,"Something's wrong. Please report to the Admin for checking the logs.")
-        gerologger.error(str(request))
+        logging.getLogger("Gerologger").error(str(request))
         return redirect('dashboard')
 
 
@@ -309,7 +296,6 @@ def ReportFiles(request, id):
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
 def AdminSetting(request):
-    log_config()
     users = User.objects.filter(is_superuser=False)
     mailbox_account = MailBox.objects.get(mailbox_id=1)
     bl = BlacklistRule.objects.get(rule_id=1)
@@ -326,11 +312,11 @@ def AdminSetting(request):
                 revieweremail = reviewer.cleaned_data.get('reviewer_email')
                 if User.objects.filter(Q(username__exact=reviewername)).count() > 0:
                     messages.error(request,"Username already used. Please try another username!")
-                    gerologger.error("Username already used!")
+                    logging.getLogger("Gerologger").error("Username already used!")
                     return redirect("setting")
                 elif User.objects.filter(Q(email__exact=revieweremail)).count() > 0:
                     messages.error(request,"Email already used. Please try another email!")
-                    gerologger.error("Email already used!")
+                    logging.getLogger("Gerologger").error("Email already used!")
                     return redirect("setting")
                 else:
                     reviewerpassword = "G3r0bUg_@dM!n_1337yipPie13579246810121337" #default pw, change since this is temp
@@ -338,11 +324,11 @@ def AdminSetting(request):
                     revieweraccount.set_password(reviewerpassword)
                     revieweraccount.groups.add(groupreviewer)
                     revieweraccount.save()
-                    gerologger.info("Reviewer is created successfully")
+                    logging.getLogger("Gerologger").info("Reviewer is created successfully")
                     messages.success(request,"Reviewer is created successfully!")
                     return redirect('setting')
             except Exception as e:
-                gerologger.error(str(e))
+                logging.getLogger("Gerologger").error(str(e))
                 messages.error(request,"Something's wrong. Perhaps your username/email is already used. Please specify another one!")
                 return redirect("setting")
 
@@ -354,7 +340,7 @@ def AdminSetting(request):
             mailbox_account.mailbox_status = 0
             mailbox_account.mailbox_type = mailbox.cleaned_data.get('mailbox_type')
             mailbox_account.save()
-            gerologger.info("Mailbox updated successfully")
+            logging.getLogger("Gerologger").info("Mailbox updated successfully")
             messages.success(request,"Mailbox updated successfully!")
             return redirect('setting')
 
@@ -367,7 +353,7 @@ def AdminSetting(request):
             user.set_password(account.cleaned_data.get('user_password'))
             user.save()
             
-            gerologger.info("User "+str(username)+" Updated successfully")
+            logging.getLogger("Gerologger").info("User "+str(username)+" Updated successfully")
             messages.success(request,"User "+username+" updated successfully!")
             return redirect('setting')
 
@@ -381,7 +367,7 @@ def AdminSetting(request):
             staticrules.reportguidelines = form.cleaned_data.get('reportguidelines')
             staticrules.faq = form.cleaned_data.get('faq')
             staticrules.save()
-            gerologger.info("Rules are updated successfully")
+            logging.getLogger("Gerologger").info("Rules are updated successfully")
             messages.success(request,"Rules are updated successfully!")
             return render(request,'setting.html',
                           {'form': form, 'mailbox': MailboxForm(), 'account': AccountForm(),'reviewer': ReviewerForm(),'webhooks': WebhookForm(),'blacklistrule': BlacklistForm(),
@@ -395,16 +381,16 @@ def AdminSetting(request):
                 handle = webhook.cleaned_data.get('webhook_handle')
                 if Webhook.objects.filter(Q(webhook_service=service)).count() > 0:
                     messages.error(request,"Notification Channel already exists.")
-                    gerologger.warning("Duplicate Notification Channel")
+                    logging.getLogger("Gerologger").warning("Duplicate Notification Channel")
                     return redirect("setting")
                 else:
                     new_webhook = Webhook.objects.create(webhook_service=service,webhook_handle=handle)
                     new_webhook.save()
-                    gerologger.info("Notification Channel Saved Successfully")
+                    logging.getLogger("Gerologger").info("Notification Channel Saved Successfully")
                     messages.success(request,"Notification Channel Saved Successfully")
                     return redirect('setting')
             except Exception as e:
-                gerologger.error(str(e))
+                logging.getLogger("Gerologger").error(str(e))
                 messages.error(request,"Something's wrong...")
                 return redirect("setting")
 
@@ -416,7 +402,7 @@ def AdminSetting(request):
             blacklistrule.buffer_blacklist = blacklistform.cleaned_data.get('buffer_blacklist') 
             blacklistrule.save()
 
-            gerologger.info("Blacklist rule updated successfully")
+            logging.getLogger("Gerologger").info("Blacklist rule updated successfully")
             messages.success(request,"Blacklist rule updated successfully!")
             return redirect("setting")
         
@@ -429,7 +415,7 @@ def AdminSetting(request):
                 for chunk in template_file.chunks():
                     destination.write(chunk)
 
-            gerologger.info("Report Template updated successfully")
+            logging.getLogger("Gerologger").info("Report Template updated successfully")
             messages.success(request,"Report Template updated successfully!")
             return redirect('setting')
         
@@ -442,7 +428,7 @@ def AdminSetting(request):
                 for chunk in template_file.chunks():
                     destination.write(chunk)
 
-            gerologger.info("NDA Template updated successfully")
+            logging.getLogger("Gerologger").info("NDA Template updated successfully")
             messages.success(request,"NDA Template updated successfully!")
             return redirect('setting')
         
@@ -456,7 +442,7 @@ def AdminSetting(request):
                     destination.write(chunk)
 
             gerocert.gerocert.generate_sample()
-            gerologger.info("Certificate Template updated successfully")
+            logging.getLogger("Gerologger").info("Certificate Template updated successfully")
             messages.success(request,"Certificate Template updated successfully!")
             return redirect('setting')
         
@@ -475,7 +461,7 @@ def AdminSetting(request):
                     destination.write(chunk)
 
             gerocert.gerocert.generate_sample()
-            gerologger.info("Certificate Data updated successfully")
+            logging.getLogger("Gerologger").info("Certificate Data updated successfully")
             messages.success(request,"Certificate Data updated successfully!")
             return redirect('setting')
         
@@ -499,7 +485,7 @@ def AdminSetting(request):
             theme.button_1      = personalization.cleaned_data.get('button_1')
             theme.save()
 
-            gerologger.info("Personalization updated successfully")
+            logging.getLogger("Gerologger").info("Personalization updated successfully")
             messages.success(request,"Personalization updated successfully!")
             return render(request,'setting.html',
                           {'form': AdminSettingForm(), 'mailbox': MailboxForm(), 'account': AccountForm(),'reviewer': ReviewerForm(),'webhooks': WebhookForm(),'blacklistrule': BlacklistForm(),
@@ -514,7 +500,6 @@ def AdminSetting(request):
 
 @login_required
 def ReviewerDelete(request,id):
-    log_config()
     if request.method == "POST":
         try:
             if User.objects.filter(id=id).count() != 0:
@@ -522,7 +507,7 @@ def ReviewerDelete(request,id):
                 messages.success(request,"User is deleted successfully!")
                 return redirect('setting')
         except Exception as e:
-            gerologger.error(str(e))
+            logging.getLogger("Gerologger").error(str(e))
             messages.error(request,"Something wrong. The delete operation is unsuccessful. Please report to the Admin!")
             return redirect('setting')
         return redirect('setting')
@@ -530,7 +515,6 @@ def ReviewerDelete(request,id):
 
 @login_required
 def NotificationDelete(request,service):
-    log_config()
     if request.method == "POST":
         try:
             if Webhook.objects.filter(webhook_service=service).count() != 0:
@@ -538,7 +522,7 @@ def NotificationDelete(request,service):
                 messages.success(request,"Notification Media is deleted successfully!")
                 return redirect('setting')
         except Exception as e:
-            gerologger.error(str(e))
+            logging.getLogger("Gerologger").error(str(e))
             messages.error(request,"Something wrong. The delete operation is unsuccessful. Please report to the Admin!")
             return redirect('setting')
         return redirect('setting')

@@ -8,14 +8,6 @@ from dashboards.models import BugHunter, BugReport, BugReportUpdate, BugReportAp
 
 
 
-# GEROLOGGER INITIATION
-gerologger = logging.getLogger("Gerobug Log")
-log_handler = TimedRotatingFileHandler('log/gerobug.log', when='midnight', backupCount=3)
-log_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
-gerologger.setLevel(logging.DEBUG)
-gerologger.addHandler(log_handler)
-
-
 # CHECK IF POSSIBLE DUPLICATE (NEED IMPROVEMENTS)
 def check_duplicate(id):
     report = BugReport.objects.get(report_id=id)
@@ -28,7 +20,7 @@ def check_duplicate(id):
         if (x.report_id != id) and (x.report_attack == attack):
             report.report_duplicate = 1
             report.save()
-            gerologger.warning('Possible Duplicate Report')
+            logging.getLogger("Gerologger").warning('Possible Duplicate Report')
             break
 
 # VALIDATE APPEAL LIMIT
@@ -48,7 +40,7 @@ def validate_permission(operation, id):
     permited = []
 
     if permission <= 0: # NO PERMISSION
-        gerologger.info("No Permission")
+        logging.getLogger("Gerologger").info("No Permission")
         return False
     else:
         if permission >= 4: # UPDATE
@@ -66,12 +58,12 @@ def validate_permission(operation, id):
             if report.report_nda < 99:
                 permited.append("N")
 
-        gerologger.info("Permission = " + str(report.report_permission) + " " + str(permited))
+        logging.getLogger("Gerologger").info("Permission = " + str(report.report_permission) + " " + str(permited))
         if operation in permited:
-            gerologger.info(str(operation) + " is Permitted")
+            logging.getLogger("Gerologger").info(str(operation) + " is Permitted")
             return True
         else:
-            gerologger.info(str(operation) + " is NOT Permitted")
+            logging.getLogger("Gerologger").info(str(operation) + " is NOT Permitted")
             return False
 
 
@@ -110,8 +102,8 @@ def check_pdf(file):
     try:
         PyPDF2.PdfFileReader(open(file, "rb"))
     except Exception as e:
-        gerologger.error(str(e))
-        gerologger.error("Invalid PDF File")
+        logging.getLogger("Gerologger").error(str(e))
+        logging.getLogger("Gerologger").error("Invalid PDF File")
         return False
     else:
         return True
@@ -136,7 +128,7 @@ def validate_attachment(msg, id, FILEPATH):
             filePath = os.path.join(fileDir, fileName)
             file = part.get_payload(decode=True)
             fileSize = len(file)
-            gerologger.info('File size = ' + str(fileSize))
+            logging.getLogger("Gerologger").info('File size = ' + str(fileSize))
         
             if fileSize >= 25000000:
                 pass
@@ -187,7 +179,7 @@ def parse_body(body):
             summary = ''
 
     except Exception as e:
-        gerologger.error(str(e))
+        logging.getLogger("Gerologger").error(str(e))
 
     return type, endpoint, summary
 
@@ -298,4 +290,4 @@ def classify_action(email, subject):
             return 404, " "
 
     except Exception as e:
-        gerologger.error(str(e))
+        logging.getLogger("Gerologger").error(str(e))

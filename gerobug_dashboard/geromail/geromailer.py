@@ -15,14 +15,6 @@ from prerequisites.models import MailBox
 
 
 
-# GEROLOGGER INITIATION
-gerologger = logging.getLogger("Gerobug Log")
-log_handler = TimedRotatingFileHandler('log/gerobug.log', when='midnight', backupCount=3)
-log_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
-gerologger.setLevel(logging.DEBUG)
-gerologger.addHandler(log_handler)
-
-
 # WRITE EMAIL REPLY (CONFIRMATIONS)
 def write_mail(code, payload, Destination):
     try:
@@ -115,10 +107,10 @@ def write_mail(code, payload, Destination):
                     server.sendmail(EMAIL, Destination, message.as_string())
                     server.close()
     
-        gerologger.info('Sent Email Successfully')
+        logging.getLogger("Gerologger").info('Sent Email Successfully')
 
     except Exception as e: 
-        gerologger.error(str(e))
+        logging.getLogger("Gerologger").error(str(e))
 
 
 # WRITE EMAIL NOTIFICATION / UPDATES
@@ -128,4 +120,4 @@ def notify(destination, payload):
     else:
         write_mail(301, payload, destination) # NOTIFY STATUS UPDATE
     
-    gerologger.info('Sent Notification to ' + str(destination) + ' ' + str(payload))
+    logging.getLogger("Gerologger").info('Sent Notification to ' + str(destination) + ' ' + str(payload))
