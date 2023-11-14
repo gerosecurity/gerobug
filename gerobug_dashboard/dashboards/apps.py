@@ -19,7 +19,7 @@ class DashboardsConfig(AppConfig):
 
             # GEROLOGGER INITIATION
             def gerologger_config():
-                gerologger = logging.getLogger("gerologger")
+                gerologger = logging.getLogger("Gerologger")
                 log_handler = TimedRotatingFileHandler('log/gerobug.log', when='midnight', backupCount=3)
                 log_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
                 gerologger.setLevel(logging.DEBUG)
