@@ -205,11 +205,19 @@ if [ ! -f ./gerobug_dashboard/secrets/gerobug_secret.env ]; then
     echo 'DJANGO_SUPERUSER_PASSWORD="'$DJANGO_SUPERUSER_PASSWORD'"' > ./gerobug_dashboard/secrets/gerobug_secret.env
 fi
 
+function docker_cmd() {
+    if docker --version | grep -q "version 2[0-9]\."; then
+        echo "docker compose"
+    else
+        echo "docker-compose"
+    fi
+}
+
 echo -e "\n=============================="
 echo "BUILDING GEROBUG"
 echo "=============================="
 
-docker-compose up --build --force-recreate -d
+$(docker_cmd) up --build --force-recreate --wait
 
 
 echo -e "\n=============================="
@@ -217,4 +225,4 @@ echo "VIEWING GEROBUG LOG"
 echo "=============================="
 
 echo "(To Exit The Log Viewer, Use Ctrl + C)"
-docker-compose logs -f
+$(docker_cmd) logs --follow --tail 250
