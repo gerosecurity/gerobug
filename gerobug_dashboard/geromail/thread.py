@@ -19,6 +19,7 @@ class RunGeromailThread(threading.Thread):
                     geroparser.run()
                 else:
                     logging.getLogger("Gerologger").warning("Geroparser Check Run = " + str(running))
+                    break
             
             except Exception as e:
                 logging.getLogger("Gerologger").error("Geroparser Thread Failed: " + str(e))
