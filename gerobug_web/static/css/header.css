@@ -53,7 +53,7 @@ ul.topnav li a {
   top: 50%;
 }
 
-ul.topnav li a:hover:not(.active) {background-color: var(--main-2);}
+ul.topnav li a:hover:not(.active):not(.logo) {background-color: var(--main-2);}
 
 ul.topnav li a.active {background-color: var(--main-2);}
 
