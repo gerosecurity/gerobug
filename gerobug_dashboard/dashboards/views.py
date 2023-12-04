@@ -104,6 +104,14 @@ class ReportDelete(LoginRequiredMixin,DeleteView):
         BugReportUpdate.objects.filter(report_id=self.object.report_id).delete()
         BugReportAppeal.objects.filter(report_id=self.object.report_id).delete()
         BugReportNDA.objects.filter(report_id=self.object.report_id).delete()  
+        # if BugReportUpdate.objects.filter(report_id=self.object.report_id).exists():
+        #     BugReportUpdate.objects.filter(report_id=self.object.report_id).delete()
+
+        # if BugReportAppeal.objects.filter(report_id=self.object.report_id).exists():
+        #     BugReportAppeal.objects.filter(report_id=self.object.report_id).delete()
+        
+        # if BugReportNDA.objects.filter(report_id=self.object.report_id).exists():
+        #     BugReportNDA.objects.filter(report_id=self.object.report_id).delete() 
 
     def get_success_url(self):
         if platform == "win32":
@@ -566,10 +574,10 @@ def halloffame(request,):
     return render(request, 'halloffame.html',{'bughunters':bughunters})
 
 def notfound_404(request, exception):
-    return render(request, 'notfound.html', status=404)
+    return render(request, '404.html', status=404)
 
-def error_500(request, exception):
-    return render(request, '500.html', status=500)
+# def error_500(request, exception):
+#     return render(request, '500.html', status=500)
 
 class Themes(TemplateView):
     template_name = 'theme.css'

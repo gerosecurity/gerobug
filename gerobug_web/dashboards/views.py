@@ -23,7 +23,7 @@ def halloffame(request,):
     return render(request, 'halloffame.html',{'bughunters':bughunters})
 
 def notfound_404(request, exception):
-    return render(request, 'notfound.html', status=404)
+    return render(request, '404.html', status=404)
 
 def error_500(request, exception):
     return render(request, '500.html', status=500)
