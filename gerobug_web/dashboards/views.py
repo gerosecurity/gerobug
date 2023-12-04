@@ -18,12 +18,15 @@ def emailcontext(request,):
 def halloffame(request,):
     bughunters = DashboardsBughunter.objects.alias(
         points=Sum('hunter_scores')
-    ).exclude(hunter_scores=0).order_by('-points') #descending use '-'
+    ).exclude(hunter_scores=0).order_by('-points')
 
     return render(request, 'halloffame.html',{'bughunters':bughunters})
 
 def notfound_404(request, exception):
     return render(request, 'notfound.html', status=404)
+
+def error_500(request, exception):
+    return render(request, '500.html', status=500)
 
 class Themes(TemplateView):
     template_name = 'theme.css'

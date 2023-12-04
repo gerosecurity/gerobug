@@ -6,7 +6,7 @@ This is an automated message for you due to your request to reset your password
 associated with this email account. To continue, please click the link below to 
 initiate the password reset process.
 
-{{ domain }}{% url 'password_reset_confirm' uidb64=uid token=token %}
+{{ domain }}:6320{% url 'password_reset_confirm' uidb64=uid token=token %}
 
 This is a one-time link so it can only be used once!
 If you didn't make this request, please ignore this.

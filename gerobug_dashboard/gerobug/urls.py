@@ -31,3 +31,4 @@ urlpatterns = [
 ]
 
 handler404 = 'dashboards.views.notfound_404'
+handler500 = 'dashboards.views.error_500'
