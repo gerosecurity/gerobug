@@ -58,9 +58,8 @@
           <thead>
             <tr>
               <th>Report Number</th>
+              <th>Report Title</th>
               <th>Bug Hunter</th>
-              <th>Progress Date</th>
-              <th>Report Summary</th>
               <th>Proof Of Concepts</th>
               <th>Status</th>
             </tr>
@@ -69,9 +68,9 @@
             {% for attributes in bugreportlists %}
             <tr data-href="{% url 'report_detail' attributes.report_id %}">
                 <td>{{ attributes.report_id }}</td>
+                <td>{{ attributes.report_title }}</td>
                 <td>{{ attributes.hunter_email }}</td>
-                <td>{{ attributes.report_date }}</td>
-                <td><p class="max-text">{{attributes.report_summary }}</p> </td>
+                <!-- <td><p class="max-text">{{attributes.report_summary }}</p> </td> -->
                 <td><a target="_blank" href="{% url 'report_files' attributes.report_id %}">Report File</a></td>
                 <td>
                     {% if attributes.report_status == 1 %}
@@ -94,7 +93,7 @@
                     <div class="status-tag" id="complete">
                       {{reportstatus}}
                     </div>
-                    {% elif attributes.report_status == 8 %}
+                    {% elif attributes.report_status == 0 %}
                     <div class="status-tag" id="invalid">
                       {{reportstatus}}
                     </div>
