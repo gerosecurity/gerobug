@@ -158,6 +158,13 @@ class NDADetails(LoginRequiredMixin,DetailView):
 
 @login_required
 def ReportStatusView(request, id):
+    count = int(ReportStatus.objects.count()) - 1
+    print(count)
+    if int(id) > count:
+        return notfound_404(request, id)
+    elif int(id) < 0:
+        return notfound_404(request, id)
+        
     report = BugReport.objects.filter(report_status=id).values()
     status = ReportStatus.objects.get(status_id=id)
     status = status.status_name
