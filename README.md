@@ -35,7 +35,7 @@ In the other hand, creating your own self-managed platform will take time and ef
 <br>
 
 ## Requirements
-* Gmail Email with <a href="https://support.google.com/accounts/answer/185833">App password</a> implemented
+* <a href="https://support.google.com/accounts/answer/185833">Gmail</a> or <a href="https://support.microsoft.com/en-us/account-billing/using-app-passwords-with-apps-that-don-t-support-two-step-verification-5896ed9b-4263-e681-128a-a6f2979a7944">Outlook</a> Email with <b>App password</b> implemented
 * VPN Server (Recommended for Production Server)
 * Domain for HTTPS (Recommended for Production Server)
 
