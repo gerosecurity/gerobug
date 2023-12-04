@@ -25,8 +25,8 @@ def halloffame(request,):
 def notfound_404(request, exception):
     return render(request, '404.html', status=404)
 
-def error_500(request, exception):
-    return render(request, '500.html', status=500)
+# def error_500(request, exception):
+#     return render(request, '500.html', status=500)
 
 class Themes(TemplateView):
     template_name = 'theme.css'

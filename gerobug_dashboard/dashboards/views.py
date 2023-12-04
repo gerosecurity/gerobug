@@ -101,17 +101,14 @@ class ReportDelete(LoginRequiredMixin,DeleteView):
         super().delete(*args, **kwargs)
 
         # DELETE ALL CHILD UAN OBJECT
-        BugReportUpdate.objects.filter(report_id=self.object.report_id).delete()
-        BugReportAppeal.objects.filter(report_id=self.object.report_id).delete()
-        BugReportNDA.objects.filter(report_id=self.object.report_id).delete()  
-        # if BugReportUpdate.objects.filter(report_id=self.object.report_id).exists():
-        #     BugReportUpdate.objects.filter(report_id=self.object.report_id).delete()
+        if BugReportUpdate.objects.filter(report_id=self.object.report_id).exists():
+            BugReportUpdate.objects.filter(report_id=self.object.report_id).delete()
 
-        # if BugReportAppeal.objects.filter(report_id=self.object.report_id).exists():
-        #     BugReportAppeal.objects.filter(report_id=self.object.report_id).delete()
+        if BugReportAppeal.objects.filter(report_id=self.object.report_id).exists():
+            BugReportAppeal.objects.filter(report_id=self.object.report_id).delete()
         
-        # if BugReportNDA.objects.filter(report_id=self.object.report_id).exists():
-        #     BugReportNDA.objects.filter(report_id=self.object.report_id).delete() 
+        if BugReportNDA.objects.filter(report_id=self.object.report_id).exists():
+            BugReportNDA.objects.filter(report_id=self.object.report_id).delete() 
 
     def get_success_url(self):
         if platform == "win32":
