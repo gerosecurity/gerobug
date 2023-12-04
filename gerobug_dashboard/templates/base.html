@@ -6,8 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=
-    , initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>{% block title %}Gerobug{% endblock title %}</title>
     <link rel="shortcut icon" href='{% static "favicon.ico" %}' type="image/x-icon">
@@ -26,7 +25,6 @@
 
     <!-- SCRIPTS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.js"></script>
-    <script src="{% static '/script/sidebar.js' %}"></script>
 </head>
 
 <body>
@@ -78,17 +76,7 @@
                             <li><a href="{% url 'report_status' 0 %}">Not Valid</a></li>
                         </ul>
                     </li>
-    
-                    <!-- <li>
-                        <a href="../admin/cvss.html">
-                            <i class='bx bx-pie-chart-alt-2'></i>
-                            <span class="link_name">CVSS calculator</span>
-                        </a>
-                        <ul class="sub-menu blank">
-                            <li><a class="link_name" href="../admin/cvss.html">CVSS Calculator</a></li>
-                        </ul>
-                    </li> -->
-    
+        
                     <li>
                         <a href="{% url 'setting' %}">
                             <i class='bx bx-cog'></i>
@@ -129,5 +117,7 @@
         {% endblock content %}
     <!-- </main> -->
 
+    <!-- SCRIPTS -->
+    <script src="{% static '/script/sidebar.js' %}"></script>
 </body>
 </html>
