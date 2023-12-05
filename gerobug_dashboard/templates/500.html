@@ -5,7 +5,7 @@
 <html lang="en" >
 <head>
   <meta charset="UTF-8">
-  <title>404 Not Found</title>
+  <title>500 Server Error</title>
   <link rel="shortcut icon" href='{% static "favicon.ico" %}' type="image/x-icon">
   <link rel="icon" href='{% static "favicon.ico" %}' type="image/x-icon">
 
@@ -44,10 +44,10 @@
   <div class="box__description">
     <div class="box__description-container">
       <div class="box__description-title">Whoops!</div>
-      <div class="box__description-text">It seems like we couldn't find the page you were looking for</div>
+      <div class="box__description-text">Something went wrong...</div>
     </div>
     
-    <a href="{% url 'rules' %}" class="box__button">Go back</a>
+    <a href="{% url 'dashboard' %}" class="box__button">Go back</a>
     
   </div>
   
