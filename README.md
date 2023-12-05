@@ -38,7 +38,7 @@ In the other hand, creating your own self-managed platform will take time and ef
 * <a href="https://support.google.com/accounts/answer/185833">Gmail</a> or <a href="https://support.microsoft.com/en-us/account-billing/using-app-passwords-with-apps-that-don-t-support-two-step-verification-5896ed9b-4263-e681-128a-a6f2979a7944">Outlook</a> Email with <b>App password</b> implemented
 * VPN Server (Recommended for Production Server)
 * Domain for HTTPS (Recommended for Production Server)
-* Port 80,443,6320
+* Port 80, 443, 6320
 * Python3.x
 * Docker and Docker-compose v1
 
@@ -60,7 +60,7 @@ cd gerobug
 3. Follow the setup instructions (Read the [documentation](https://gerobug.gitbook.io/documentation/) for details)
 4. By default, Gerobug Dashboard will listen at port __6320__
 
-Access the login page at `http://[Internal IP]:6320/login`<br>
+Access the login page at `http://[Domain/IP]:6320/login`<br>
 <br>__Credential__<br>
 Username&nbsp;&nbsp;: `geromin`<br>
 Password&nbsp;&nbsp;&nbsp;: Randomly generated at `gerobug/gerobug_dashboard/secrets/gerobug_secret.env`
