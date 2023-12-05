@@ -38,8 +38,11 @@ In the other hand, creating your own self-managed platform will take time and ef
 * <a href="https://support.google.com/accounts/answer/185833">Gmail</a> or <a href="https://support.microsoft.com/en-us/account-billing/using-app-passwords-with-apps-that-don-t-support-two-step-verification-5896ed9b-4263-e681-128a-a6f2979a7944">Outlook</a> Email with <b>App password</b> implemented
 * VPN Server (Recommended for Production Server)
 * Domain for HTTPS (Recommended for Production Server)
+* Port 80,443,6320
+* Python3.x
+* Docker and Docker-compose v1
 
-__(You don't need to install anything else, we'll do it for you!)__
+__(You don't need to install anything manually, we'll do it for you!)__
 
 <br>
 
@@ -70,7 +73,7 @@ You can read the __detailed documentation [here](https://gerobug.gitbook.io/docu
 
 ## Main Features
 - Network Segregation<br>
-All services are running on seperate containers. Public users only able to access the static page (Rules and guidelines).
+All services are running on seperate containers. Public users should only able to access the static page (Rules and guidelines).
 
 - Easy and Quick Installation<br>
 Use our run script to install Gerobug, its quick and easy!
@@ -91,7 +94,7 @@ Bug Hunter's inquiries will be automatically replied and notified if there any u
 Company will also be notified via Slack/Telegram if there any new report.
 
 - User Management<br>
-Gerobug has a simple Role-based user management.
+Gerobug has a role-based user management.
 
 - Report Management<br>
 Manage reports easily using a kanban model dashboard.
