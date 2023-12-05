@@ -98,8 +98,8 @@ class ReportDelete(LoginRequiredMixin,DeleteView):
     
     def delete(self, *args, **kwargs):
         self.object = self.get_object()
-        self.object.delete()
-        #super().delete(*args, **kwargs)
+        super().delete(*args, **kwargs)
+        #self.object.delete()
 
         # DELETE ALL CHILD UAN OBJECT
         if BugReportUpdate.objects.filter(report_id=self.object.report_id).exists():
