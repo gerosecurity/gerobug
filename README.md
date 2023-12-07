@@ -39,7 +39,7 @@ In the other hand, creating your own self-managed platform will take time and ef
 * VPN Server (Recommended for Production Server)
 * Domain for HTTPS (Recommended for Production Server)
 * Port 80, 443, 6320
-* Python3.x
+* Python 3.x
 * Docker and Docker-compose v1
 
 __(You don't need to install anything manually, we'll do it for you!)__
