@@ -407,10 +407,11 @@ def read_mail():
         else:
             logging.getLogger("Gerologger").debug('No new email...')            
 
+        mail.logout()
+
     except Exception as e:
         logging.getLogger("Gerologger").error("Failed to Login = " + str(e))
     
-    mail.logout()
 
 
 # PARSE COMPANY REQUEST geroparser.request(id, note, 701/702/703)
@@ -492,6 +493,10 @@ def run():
         # ONLY RUN WHILE MAILBOX READY
         while MAILBOX_READY:
             mailbox = MailBox.objects.get(mailbox_id=1)
+            if mailbox.email == "" or mailbox.password == "":
+                MAILBOX_READY = False
+                break
+
             EMAIL       = mailbox.email
             PWD         = mailbox.password
             TYPE        = mailbox.mailbox_type
@@ -503,7 +508,7 @@ def run():
                 IMAP_SERVER     = "imap.gmail.com"
                 IMAP_PORT       = 993
 
-            # TEST LOGIN
+            # TEST LOGIN (VALIDATE CREDENTIALS)
             if mailbox.mailbox_status == 0:
                 mail = imaplib.IMAP4_SSL(IMAP_SERVER)
                 try:
@@ -511,7 +516,7 @@ def run():
 
                 except Exception as e:
                     error_count+=1
-                    logging.getLogger("Gerologger").error("Failed to Login = " + str(e) + "("  + str(error_count) + ")")
+                    logging.getLogger("Gerologger").error("Credentials Failed = " + str(e) + "("  + str(error_count) + ")")
                     MAILBOX_READY = False
                     time.sleep(5)
                     break
@@ -522,7 +527,3 @@ def run():
 
             read_mail()
             time.sleep(30)
-
-def check_run():
-    global PARSER_RUNNING
-    return PARSER_RUNNING
