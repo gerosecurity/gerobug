@@ -194,7 +194,9 @@ fi
 
 if [ ! -f ./gerobug_dashboard/secrets/db_secret.env ]; then
     echo '[LOG] Creating New DB Secret...'
-    echo 'POSTGRES_PASSWORD="'$(tr -dc 'A-Za-z0-9!#$%&*?@' </dev/urandom | head -c 30)'"' > ./gerobug_dashboard/secrets/db_secret.env
+    POSTGRES_PASSWORD=$(tr -dc 'A-Za-z0-9!#$%&*?@' </dev/urandom | head -c 30)
+    export POSTGRES_PASSWORD
+    echo "POSTGRES_PASSWORD='$POSTGRES_PASSWORD'" > ./gerobug_dashboard/secrets/db_secret.env
     cp  ./gerobug_dashboard/secrets/db_secret.env ./gerobug_web/secrets/db_secret.env
 fi
 
@@ -202,7 +204,7 @@ if [ ! -f ./gerobug_dashboard/secrets/gerobug_secret.env ]; then
     echo '[LOG] Creating New Gerobug Secret...'
     DJANGO_SUPERUSER_PASSWORD=$(tr -dc 'A-Za-z0-9!#$%&*?@' </dev/urandom | head -c 30)
     export DJANGO_SUPERUSER_PASSWORD
-    echo 'DJANGO_SUPERUSER_PASSWORD="'$DJANGO_SUPERUSER_PASSWORD'"' > ./gerobug_dashboard/secrets/gerobug_secret.env
+    echo "DJANGO_SUPERUSER_PASSWORD='$DJANGO_SUPERUSER_PASSWORD'" > ./gerobug_dashboard/secrets/gerobug_secret.env
 fi
 
 echo -e "\n=============================="
