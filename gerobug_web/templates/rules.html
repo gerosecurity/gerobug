@@ -71,10 +71,10 @@
             <div class="col-4">
                 <div id="simple-list-example"
                     class="d-flex flex-column gap-4 simple-list-example-scrollspy text-left">
-                    <a class="p-1 rounded" href="#1">Responsible Disclosure Policy</a>
-                    <a class="p-1 rounded" href="#2">Bounty Terms</a>
-                    <a class="p-1 rounded" href="#3">In Scope</a>
-                    <a class="p-1 rounded" href="#4">Out Of Scope</a>
+                    <a class="p-1 rounded" href="#1">Bounty Terms</a>
+                    <a class="p-1 rounded" href="#2">In Scope</a>
+                    <a class="p-1 rounded" href="#3">Out Of Scope</a>
+                    <a class="p-1 rounded" href="#4">Responsible Disclosure Policy</a>
                     <a class="p-1 rounded" href="#5">Report Guidelines</a>
                     <a class="p-1 rounded" href="#6">FAQ</a>
                 </div>
@@ -84,15 +84,7 @@
                 <div data-bs-spy="scroll" data-bs-target="#simple-list-example" data-bs-offset="0"
                     data-bs-smooth-scroll="true" class="scrollspy-example" tabindex="0">
                     <br>
-                    <h4 id="1">Responsible Disclosure Policy</h4>
-                    {% block RDP %}
-                    {% if RDP %}
-                    {{ RDP|xsafe }}
-                    {% else %}
-                    
-                    {% endif %}
-                    {% endblock RDP %}
-                    <h4 id="2">Bounty Terms</h4>
+                    <h4 id="1">Bounty Terms</h4>
                     {% block bountyterms %}
                     {% if bountyterms %}
                     {{ bountyterms|xsafe }}
@@ -100,7 +92,8 @@
                     
                     {% endif %}
                     {% endblock bountyterms %}
-                    <h4 id="3">In Scope</h4>
+
+                    <h4 id="2">In Scope</h4>
                     {% block inscope %}
                     {% if inscope %}
                     {{ inscope|xsafe }}
@@ -108,13 +101,24 @@
                     
                     {% endif %}
                     {% endblock inscope %}
-                    <h4 id="4">Out Of Scope</h4>
+
+                    <h4 id="3">Out Of Scope</h4>
                     {% block outofscope %}
                     {% if outofscope %}
                     {{ outofscope|xsafe }}
                     {% else %}
                     {% endif %}
                     {% endblock outofscope %}
+
+                    <h4 id="4">Responsible Disclosure Policy</h4>
+                    {% block RDP %}
+                    {% if RDP %}
+                    {{ RDP|xsafe }}
+                    {% else %}
+                    
+                    {% endif %}
+                    {% endblock RDP %}
+
                     <h4 id="5">Report Guidelines</h4>
                     {% block reportguidelines %}
                     {% if reportguidelines %}
@@ -123,6 +127,7 @@
                     
                     {% endif %}
                     {% endblock reportguidelines %}
+                    
                     <h4 id="6">FAQ</h4>
                     {% block faq %}
                     {% if faq %}
