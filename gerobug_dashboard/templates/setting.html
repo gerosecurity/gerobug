@@ -298,11 +298,17 @@
                                 <h6>PERSONALIZATION</h6>
                                 <hr>
                                 <form method="POST" enctype="multipart/form-data">
-
+                                    {% csrf_token %}
+                                    {{ companyidentity.media}}
+                                    {{ companyidentity.as_p }}
+                                    <button class="btn btn-primary" type="submit">Update</button>
+                                </form>
+                                <hr>
+                                <h6>THEME</h6>                                
+                                <form method="POST" enctype="multipart/form-data">
                                     {% csrf_token %}
                                     {{ personalization.media}}
                                     {{ personalization.as_p }}
-                                    
                                     <button class="btn btn-primary" type="submit">Update</button>
                                 </form>
                             </div>
