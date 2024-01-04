@@ -18,7 +18,7 @@ from django.http import FileResponse
 from django.middleware.csrf import get_token
 from prerequisites.models import MailBox, Webhook
 from .models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization
-from .forms import Requestform, AdminSettingForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm, WebhookForm, BlacklistForm, TemplateReportForm, TemplateNDAForm, TemplateCertForm, CertDataForm, PersonalizationForm
+from .forms import Requestform, RulesGuidelineForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm, WebhookForm, BlacklistForm, TemplateReportForm, TemplateNDAForm, TemplateCertForm, CertDataForm, PersonalizationForm, CompanyIdentityForm
 from sys import platform
 from geromail import geromailer, gerofilter, geroparser, gerocalculator
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
@@ -369,7 +369,7 @@ def AdminSetting(request):
             messages.success(request,"User "+username+" updated successfully!")
             return redirect('setting')
 
-        form = AdminSettingForm(request.POST)
+        form = RulesGuidelineForm(request.POST)
         if form.is_valid():
             staticrules = StaticRules.objects.get(pk=1)
             staticrules.RDP = form.cleaned_data.get('RDP')
@@ -381,10 +381,7 @@ def AdminSetting(request):
             staticrules.save()
             logging.getLogger("Gerologger").info("Rules are updated successfully")
             messages.success(request,"Rules are updated successfully!")
-            return render(request,'setting.html',
-                          {'form': form, 'mailbox': MailboxForm(), 'account': AccountForm(),'reviewer': ReviewerForm(),'webhooks': WebhookForm(),'blacklistrule': BlacklistForm(),
-                           'templatereport': TemplateReportForm(), 'templatenda': TemplateNDAForm(), 'templatecert': TemplateCertForm(), 'certdata': CertDataForm(), 'personalization': PersonalizationForm(),
-                           'users':users,'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications,'bl':bl})
+            return redirect('setting')
         
         webhook = WebhookForm(request.POST)
         if webhook.is_valid():
@@ -477,8 +474,8 @@ def AdminSetting(request):
             messages.success(request,"Certificate Data updated successfully!")
             return redirect('setting')
         
-        personalization = PersonalizationForm(request.POST, request.FILES)
-        if personalization.is_valid():
+        companyidentity = CompanyIdentityForm(request.POST, request.FILES)
+        if companyidentity.is_valid():
             file = request.FILES['company_logo']
             path = os.path.join(BASE_DIR, "static", "logo.png")
 
@@ -488,7 +485,13 @@ def AdminSetting(request):
 
             gerocert.gerocert.generate_sample()
 
-            theme = Personalization.objects.get(personalize_id=1)
+            logging.info("Company Identity updated successfully")
+            messages.success(request,"Company Identity updated successfully!")
+            return redirect('setting')
+        
+        personalization = PersonalizationForm(request.POST)
+        if personalization.is_valid():
+            theme               = Personalization.objects.get(personalize_id=1)
             theme.main_1        = personalization.cleaned_data.get('main_1')    
             theme.main_2        = personalization.cleaned_data.get('main_2') 
             theme.secondary_1   = personalization.cleaned_data.get('secondary_1')  
@@ -497,18 +500,16 @@ def AdminSetting(request):
             theme.button_1      = personalization.cleaned_data.get('button_1')
             theme.save()
 
-            logging.getLogger("Gerologger").info("Personalization updated successfully")
+            logging.info("Personalization updated successfully")
             messages.success(request,"Personalization updated successfully!")
-            return render(request,'setting.html',
-                          {'form': AdminSettingForm(), 'mailbox': MailboxForm(), 'account': AccountForm(),'reviewer': ReviewerForm(),'webhooks': WebhookForm(),'blacklistrule': BlacklistForm(),
-                           'templatereport': TemplateReportForm(), 'templatenda': TemplateNDAForm(), 'templatecert': TemplateCertForm(), 'certdata': CertDataForm(), 'personalization': personalization,
-                           'users':users,'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications,'bl':bl})
+            return redirect('setting')
 
-
+    THEME = Personalization.objects.get(personalize_id=1)
+    RULES = StaticRules.objects.get(pk=1)
     return render(request,'setting.html',
-                  {'form': AdminSettingForm(), 'mailbox': MailboxForm(), 'account': AccountForm(),'reviewer': ReviewerForm(),'webhooks': WebhookForm(),'blacklistrule': BlacklistForm(),
-                    'templatereport': TemplateReportForm(), 'templatenda': TemplateNDAForm(), 'templatecert': TemplateCertForm(), 'certdata': CertDataForm(), 'personalization': PersonalizationForm(),
-                    'users':users,'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications,'bl':bl})
+                  {'form': RulesGuidelineForm(instance=RULES), 'mailbox': MailboxForm(), 'account': AccountForm(),'reviewer': ReviewerForm(),'webhooks': WebhookForm(),'blacklistrule': BlacklistForm(),
+                    'templatereport': TemplateReportForm(), 'templatenda': TemplateNDAForm(), 'templatecert': TemplateCertForm(), 'certdata': CertDataForm(), 'companyidentity': CompanyIdentityForm(),
+                    'personalization': PersonalizationForm(instance=THEME), 'users':users,'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications,'bl':bl})
 
 @login_required
 def ReviewerDelete(request,id):

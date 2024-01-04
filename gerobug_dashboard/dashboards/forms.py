@@ -12,30 +12,10 @@ class Requestform(forms.Form):
 class CompleteRequestform(forms.Form):
     completereasons = forms.CharField(widget=forms.Textarea(attrs={"id":"completereasons","name":"completereasons","placeholder":"Write the reason here ..."}),required=True)
 
-class AdminSettingForm(forms.Form):    
-    try:
-        RULES = StaticRules.objects.get(pk=1)
-        RDP = RULES.RDP
-        BT  = RULES.bountyterms
-        IS  = RULES.inscope
-        OOS = RULES.outofscope
-        RG  = RULES.reportguidelines
-        FAQ = RULES.faq
-
-    except:
-        RDP = RDP_template
-        BT  = bountyterms_template
-        IS  = inscope_templates
-        OOS = outofscope_templates
-        RG  = reportguidelines_templates
-        FAQ = faq_templates
-
-    RDP = forms.CharField(widget=CKEditorWidget(attrs={"id": "rdp"}),label="Responsible Disclosure Policy",initial=RDP)
-    bountyterms = forms.CharField(widget=CKEditorWidget(attrs={"id": "bountyterms"}),label="Bounty Terms",initial=BT)
-    inscope = forms.CharField(widget=CKEditorWidget(attrs={"id": "inscope"}),label="In Scope",initial=IS)
-    outofscope = forms.CharField(widget=CKEditorWidget(attrs={"id": "outofscope"}),label="Out of Scope",initial=OOS)
-    reportguidelines = forms.CharField(widget=CKEditorWidget(attrs={"id": "reportguidelines"}),label="Report Guidelines",initial=RG)
-    faq = forms.CharField(widget=CKEditorWidget(attrs={"id": "faq"}),label="Frequenly Asked Questions",initial=FAQ)
+class RulesGuidelineForm(forms.ModelForm):  
+    class Meta:
+        model = StaticRules
+        fields = ['bountyterms', 'inscope', 'outofscope', 'RDP', 'reportguidelines', 'faq']
 
 class MailboxForm(forms.Form):
     CHOICES = (('1', 'GMAIL'),('2', 'OUTLOOK'),)
@@ -77,29 +57,11 @@ class CertDataForm(forms.Form):
     template_name = forms.CharField(widget=forms.TextInput(attrs={'id':'template_name', 'placeholder': 'e.g. Billy Sudarsono', 'style': 'width: 100%;', 'class': 'form-control'}),label="Officer Name")
     template_title = forms.CharField(widget=forms.TextInput(attrs={'id':'template_title', 'placeholder': 'e.g. Founder of Gerobug', 'style': 'width: 100%;', 'class': 'form-control'}),label="Officer Title")
 
-class PersonalizationForm(forms.Form):
+class CompanyIdentityForm(forms.Form):
     company_logo = forms.FileField(widget=forms.FileInput(attrs={'id':'company_logo', 'placeholder': 'Company Logo (.png)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.png'}),label="Company Logo",validators=(validate_is_image,))
-    #company_name = forms.CharField(widget=forms.TextInput(attrs={'id':'company_name', 'placeholder': 'e.g. Gerobug Indonesia', 'style': 'width: 100%;', 'class': 'form-control'}),label="Company Name")
-    try:
-        THEME = Personalization.objects.get(personalize_id=1)
-        MAIN_1      = THEME.main_1
-        MAIN_2      = THEME.main_2
-        SECONDARY_1 = THEME.secondary_1
-        SECONDARY_2 = THEME.secondary_2
-        SECONDARY_3 = THEME.secondary_3
-        BUTTON_1    = THEME.button_1
+    # company_name = forms.CharField(widget=forms.TextInput(attrs={'id':'company_name', 'placeholder': 'e.g. Gerobug Indonesia', 'style': 'width: 100%;', 'class': 'form-control'}),label="Company Name")
 
-    except:
-        MAIN_1      = "#DA0037"
-        MAIN_2      = "#E8596A"
-        SECONDARY_1 = "#C82A3D"
-        SECONDARY_2 = "#FA8997"
-        SECONDARY_3 = "#FFE0E0"
-        BUTTON_1    = "#48409E"
-    
-    main_1 = forms.CharField(widget=ColorWidget, label="Main Color 1", initial=MAIN_1)
-    main_2 = forms.CharField(widget=ColorWidget, label="Main Color 2", initial=MAIN_2)
-    secondary_1 = forms.CharField(widget=ColorWidget, label="Secondary Color 1", initial=SECONDARY_1)
-    secondary_2 = forms.CharField(widget=ColorWidget, label="Secondary Color 2", initial=SECONDARY_2)
-    secondary_3 = forms.CharField(widget=ColorWidget, label="Secondary Color 3", initial=SECONDARY_3)
-    button_1 = forms.CharField(widget=ColorWidget, label="Button Color 1", initial=BUTTON_1)
+class PersonalizationForm(forms.ModelForm):
+    class Meta:
+        model = Personalization
+        fields = ['main_1', 'main_2', 'secondary_1', 'secondary_2', 'secondary_3', 'button_1']
