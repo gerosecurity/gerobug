@@ -157,6 +157,12 @@ def read_mail():
                         logging.getLogger("Gerologger").info('From : ' + str(hunter_email) + ' (' + str(hunter_name) + ')')
                         logging.getLogger("Gerologger").info('Subject : ' + str(email_subject))
                         
+                        # NO-REPLY EXCLUSIONS
+                        no_reply = re.search(r".*n.?t?.*reply.*@(.+\.)+.+", str(hunter_email))
+                        if no_reply != None:
+                            logging.getLogger("Gerologger").warning('No-reply emails, Igonring Mail!')
+                            continue
+
                         # SPOOF PREVENTION
                         spoof_check = re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", str(msg['return-path']))
                         if spoof_check != None:
