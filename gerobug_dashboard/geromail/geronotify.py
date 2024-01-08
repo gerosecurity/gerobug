@@ -123,40 +123,40 @@ def notify_telegram(title, hunter, action):
     # webhook = "https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={CHAT_ID}"
     webhook = Webhook.objects.get(webhook_service="TELEGRAM").webhook_handle # TELEGRAM WEBHOOK
     if action == "NEW_REPORT":
-        message = "\n\
-        *🚨 NEW REPORT RECEIVED 🚨*\n\
-        =========================\n\
-        Title       = *"+title+"*\n\
-        Reporter    = *"+hunter+"*"
+        message = \
+"*🚨 NEW REPORT RECEIVED 🚨*\n\
+=========================\n\
+Title        = *"+title+"*\n\
+Reporter = *"+hunter+"*"\
 
     elif action == "NEW_UPDATE":
         message = "\n\
-        *🚨 NEW UPDATE/AMEND RECEIVED 🚨*\n\
-        =========================\n\
-        Report ID   = *"+title+"*\n\
-        Reporter    = *"+hunter+"*"
+*🚨 NEW UPDATE/AMEND RECEIVED 🚨*\n\
+=========================\n\
+Report ID = *"+title+"*\n\
+Reporter  = *"+hunter+"*"\
     
     elif action == "NEW_APPEAL":
         message = "\n\
-        *🚨 NEW APPEAL RECEIVED 🚨*\n\
-        =========================\n\
-        Report ID   = *"+title+"*\n\
-        Reporter    = *"+hunter+"*"
+*🚨 NEW APPEAL RECEIVED 🚨*\n\
+=========================\n\
+Report ID = *"+title+"*\n\
+Reporter  = *"+hunter+"*"\
     
     elif action == "NEW_AGREE":
         message = "\n\
-        *🚨 HUNTER AGREEMENT RECEIVED 🚨*\n\
-        =========================\n\
-        Report ID   = *"+title+"*\n\
-        Reporter    = *"+hunter+"*\n\
-        Report will be automatically moved to the next phase."
+*🚨 HUNTER AGREEMENT RECEIVED 🚨*\n\
+=========================\n\
+Report ID = *"+title+"*\n\
+Reporter  = *"+hunter+"*\n\
+Report will be automatically moved to the next phase."
     
     elif action == "NEW_NDA":
         message = "\n\
-        *🚨 NEW NDA SUBMISSION RECEIVED 🚨*\n\
-        =========================\n\
-        Report ID   = *"+title+"*\n\
-        Reporter    = *"+hunter+"*"
+*🚨 NEW NDA SUBMISSION RECEIVED 🚨*\n\
+=========================\n\
+Report ID = *"+title+"*\n\
+Reporter  = *"+hunter+"*"\
 
     webhook = webhook+"&parse_mode=Markdown&text="+message
     return requests.get(webhook)
