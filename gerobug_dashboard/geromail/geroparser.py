@@ -157,10 +157,15 @@ def read_mail():
                         logging.getLogger("Gerologger").info('From : ' + str(hunter_email) + ' (' + str(hunter_name) + ')')
                         logging.getLogger("Gerologger").info('Subject : ' + str(email_subject))
                         
+                        # AVOID SELF LOOP                        
+                        if hunter_email == EMAIL:
+                            logging.getLogger("Gerologger").warning('Self Email, Ignoring Mail!')
+                            continue
+
                         # NO-REPLY EXCLUSIONS
                         no_reply = re.search(r".*n.?t?.*reply.*@(.+\.)+.+", str(hunter_email))
                         if no_reply != None:
-                            logging.getLogger("Gerologger").warning('No-reply emails, Igonring Mail!')
+                            logging.getLogger("Gerologger").warning('No-reply emails, Ignoring Mail!')
                             continue
 
                         # SPOOF PREVENTION
@@ -168,10 +173,10 @@ def read_mail():
                         if spoof_check != None:
                             spoof_check = spoof_check.group()
                             if hunter_email != spoof_check:
-                                logging.getLogger("Gerologger").warning('Possible Spoofing Attempt, Igonring Mail!')
+                                logging.getLogger("Gerologger").warning('Possible Spoofing Attempt, Ignoring Mail!')
                                 continue
                         else:
-                            logging.getLogger("Gerologger").warning('Possible Spoofing Attempt, Igonring Mail!')
+                            logging.getLogger("Gerologger").warning('Possible Spoofing Attempt, Ignoring Mail!')
                             continue
                         
                         # MONITOR SPAM ACTIVITY
