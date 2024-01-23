@@ -23,23 +23,28 @@ git pull
 sleep 3
 
 echo -e "\n=========================="
+echo "BACKUP CURRENT FILES"
+echo "=========================="
+GEROBUG_DASHBOARD=$(docker container ls  | grep 'gerobug_dashboard' | awk '{print $1}')
+
+rm gerobug_web/static/logo.png
+rm gerobug_dashboard/static/logo.png
+rm -rf gerobug_dashboard/static/templates
+
+docker cp $GEROBUG_DASHBOARD:/src/static/logo.png gerobug_web/static/logo.png
+docker cp $GEROBUG_DASHBOARD:/src/static/logo.png gerobug_dashboard/static/logo.png
+docker cp $GEROBUG_DASHBOARD:/src/static/templates gerobug_dashboard/static/templates
+docker cp $GEROBUG_DASHBOARD:/src/report_files gerobug_dashboard/report_files
+
+sleep 3
+
+
+echo -e "\n=========================="
 echo "STOPPING CURRENT PROCESS"
 echo "=========================="
 docker-compose down
-
-while [[ ! $ANS =~ ^$rx$ ]]; do
-    echo -e "\nUPDATE STATIC FILES?"
-    echo "If Y, any updates on static files will be applied, but you need to re-upload your logo and templates after the update"
-    echo "If N, Updates on static files will NOT be applied"
-    echo "(Y/N)"
-    read ANS
-    echo
-done
-
-if [[ $ANS == "Y" ]]; then
-    docker volume rm gerobug_static-content
-    sleep 3
-fi
+docker volume rm gerobug_static-content
+sleep 3
 
 echo -e "\n=========================="
 echo "REBUILD UPDATES"
