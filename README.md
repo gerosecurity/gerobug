@@ -40,7 +40,8 @@ In the other hand, creating your own self-managed platform will take time and ef
 * Domain for HTTPS (Recommended for Production Server)
 * Port 80, 443, 6320
 * Python 3.x
-* Docker and Docker-compose v1
+* Docker 
+* Docker Compose v1.29.2 or later
 
 __(You don't need to install anything manually, we'll do it for you!)__
 

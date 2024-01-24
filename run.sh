@@ -179,8 +179,37 @@ echo -e "\n================================"
 echo "CHECK AND INSTALL PREREQUISITES"
 echo "================================"
 apt-get install -y python3 docker docker.io docker-compose libmagic-dev
-systemctl restart docker
 
+extract_version() {
+    echo "$1" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'
+}
+CURRENT_COMPOSE_VERSION=$(extract_version "$(docker-compose --version)")
+MIN_COMPOSE_VERSION="1.29.2"
+
+if [ -z "$CURRENT_COMPOSE_VERSION" ]; then
+    echo "Unable to determine docker-compose version."
+    exit 1
+fi
+
+version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
+if version_gt $MIN_COMPOSE_VERSION $CURRENT_COMPOSE_VERSION; then
+    echo "=============================="
+    echo "Your docker-compose version ($CURRENT_COMPOSE_VERSION) is less than the minimum required version ($MIN_COMPOSE_VERSION)."
+    echo -e "Updating Docker Compose...\n"
+
+    DESTINATION=$(which docker-compose)
+    sudo wget "https://github.com/docker/compose/releases/download/v2.24.2/docker-compose-$(uname -s)-$(uname -m)" -O $DESTINATION
+    sudo chmod +x $DESTINATION
+
+    UPDATED_COMPOSE_VERSION=$(extract_version "$(docker-compose --version)")
+    echo "=============================="
+    echo "Docker Compose has been updated to version $UPDATED_COMPOSE_VERSION."
+else
+    echo "=============================="
+    echo -e "Your docker-compose version ($CURRENT_COMPOSE_VERSION) meets the minimum required version ($MIN_COMPOSE_VERSION)."
+fi
+
+systemctl restart docker
 
 echo -e "\n=============================="
 echo "CREATE SECRET FILES"
