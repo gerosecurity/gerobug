@@ -418,7 +418,7 @@ def AdminSetting(request):
         templatereport = TemplateReportForm(request.POST, request.FILES)
         if templatereport.is_valid():
             template_file = request.FILES['template_report']
-            path = os.path.join(BASE_DIR, "static/templates", "Template_Report.pdf")
+            path = os.path.join(BASE_DIR, "static/templates", "Template_Report.docx")
 
             with open(path, 'wb+') as destination:
                 for chunk in template_file.chunks():
@@ -485,7 +485,7 @@ def AdminSetting(request):
 
             gerocert.gerocert.generate_sample()
 
-            logging.info("Company Identity updated successfully")
+            logging.getLogger("Gerologger").info("Company Identity updated successfully")
             messages.success(request,"Company Identity updated successfully!")
             return redirect('setting')
         
@@ -500,7 +500,7 @@ def AdminSetting(request):
             theme.button_1      = personalization.cleaned_data.get('button_1')
             theme.save()
 
-            logging.info("Personalization updated successfully")
+            logging.getLogger("Gerologger").info("Personalization updated successfully")
             messages.success(request,"Personalization updated successfully!")
             return redirect('setting')
 

@@ -205,8 +205,7 @@ if version_gt $MIN_COMPOSE_VERSION $CURRENT_COMPOSE_VERSION; then
     echo "=============================="
     echo "Docker Compose has been updated to version $UPDATED_COMPOSE_VERSION."
 else
-    echo "=============================="
-    echo -e "Your docker-compose version ($CURRENT_COMPOSE_VERSION) meets the minimum required version ($MIN_COMPOSE_VERSION)."
+    echo -e "\nYour docker-compose version ($CURRENT_COMPOSE_VERSION) meets the minimum required version ($MIN_COMPOSE_VERSION)."
 fi
 
 systemctl restart docker

@@ -5,7 +5,7 @@
     margin-top: 20px;
     margin-bottom: 20px;
     height: 60px;
-    background: linear-gradient(91.75deg, #F53149 -9.31%, #171526 130.93%);
+    background: linear-gradient(91.75deg, var(--secondary-1) -9.31%, #171526 130.93%);
     box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
     border-radius: 30px;
     padding-left: 20px;
