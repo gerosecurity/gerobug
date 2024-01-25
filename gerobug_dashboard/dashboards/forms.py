@@ -43,22 +43,21 @@ class BlacklistForm(forms.Form):
     buffer_blacklist = forms.IntegerField(widget=forms.NumberInput(attrs={'id':'buffer_blacklist', 'placeholder': 'Blacklist duration before auto-release (Seconds)', 'style': 'width: 100%;', 'class': 'form-control'}),label="Blacklist Duration", initial=3600)
 
 class TemplateReportForm(forms.Form):
-    test = forms.HiddenInput()
-    template_report = forms.FileField(widget=forms.FileInput(attrs={'id':'template_report', 'placeholder': 'Report Template (.pdf)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.pdf'}),label="Report Template",validators=(validate_is_pdf,))
+    template_report = forms.FileField(widget=forms.FileInput(attrs={'id':'template_report', 'placeholder': 'Report Template (.docx)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.docx'}),label="Report Template (.docx)",validators=(validate_is_docx,))
 
 class TemplateNDAForm(forms.Form):
-    template_nda = forms.FileField(widget=forms.FileInput(attrs={'id':'template_nda', 'placeholder': 'NDA Template (.pdf)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.pdf'}),label="NDA Template",validators=(validate_is_pdf,))
+    template_nda = forms.FileField(widget=forms.FileInput(attrs={'id':'template_nda', 'placeholder': 'NDA Template (.pdf)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.pdf'}),label="NDA Template (.pdf)",validators=(validate_is_pdf,))
 
 class TemplateCertForm(forms.Form):
-    template_cert = forms.FileField(widget=forms.FileInput(attrs={'id':'template_cert', 'placeholder': 'Certificate Template (.jpg)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.jpg'}),label="Certificate Template",validators=(validate_is_image,))
+    template_cert = forms.FileField(widget=forms.FileInput(attrs={'id':'template_cert', 'placeholder': 'Certificate Template (.jpg)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.jpg'}),label="Certificate Template (.jpg)",validators=(validate_is_image,))
    
 class CertDataForm(forms.Form):
-    template_signature = forms.FileField(widget=forms.FileInput(attrs={'id':'template_signature', 'placeholder': 'Officer Signature (.jpg)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.jpg, .png'}),label="Officer Signature",validators=(validate_is_image,))
+    template_signature = forms.FileField(widget=forms.FileInput(attrs={'id':'template_signature', 'placeholder': 'Officer Signature (.jpg)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.jpg, .png'}),label="Officer Signature (.jpg, .png)",validators=(validate_is_image,))
     template_name = forms.CharField(widget=forms.TextInput(attrs={'id':'template_name', 'placeholder': 'e.g. Billy Sudarsono', 'style': 'width: 100%;', 'class': 'form-control'}),label="Officer Name")
     template_title = forms.CharField(widget=forms.TextInput(attrs={'id':'template_title', 'placeholder': 'e.g. Founder of Gerobug', 'style': 'width: 100%;', 'class': 'form-control'}),label="Officer Title")
 
 class CompanyIdentityForm(forms.Form):
-    company_logo = forms.FileField(widget=forms.FileInput(attrs={'id':'company_logo', 'placeholder': 'Company Logo (.png)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.png'}),label="Company Logo",validators=(validate_is_image,))
+    company_logo = forms.FileField(widget=forms.FileInput(attrs={'id':'company_logo', 'placeholder': 'Company Logo (.png)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.png'}),label="Company Logo (.png)",validators=(validate_is_image,))
     # company_name = forms.CharField(widget=forms.TextInput(attrs={'id':'company_name', 'placeholder': 'e.g. Gerobug Indonesia', 'style': 'width: 100%;', 'class': 'form-control'}),label="Company Name")
 
 class PersonalizationForm(forms.ModelForm):
