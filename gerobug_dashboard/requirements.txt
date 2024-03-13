@@ -3,10 +3,10 @@ PyPDF2<3.0
 crispy-bootstrap5
 cvss==2.6
 django-bleach
-django-ckeditor
 django-colorfield==0.10.1
 django-crispy-forms
-django==4.2.7
+django-quill-editor
+django==4.2.10
 gunicorn==21.0.0
 libmagic
 psycopg2

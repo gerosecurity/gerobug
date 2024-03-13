@@ -15,6 +15,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'dashboards.apps.DashboardsConfig',
+    'django_quill',
 ]
 
 MIDDLEWARE = [

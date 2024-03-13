@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     'prerequisites.apps.PrerequisitesConfig',
     'dashboards.apps.DashboardsConfig',
     'geromail.apps.GeromailConfig',
-    'ckeditor',
+    'django_quill',
     'colorfield',
 ]
 

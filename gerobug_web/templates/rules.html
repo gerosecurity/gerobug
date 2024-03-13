@@ -87,7 +87,7 @@
                     <h4 id="1">Bounty Terms</h4>
                     {% block bountyterms %}
                     {% if bountyterms %}
-                    {{ bountyterms|xsafe }}
+                    {{ bountyterms.html|safe }}
                     {% else %}
                     
                     {% endif %}
@@ -96,7 +96,7 @@
                     <h4 id="2">In Scope</h4>
                     {% block inscope %}
                     {% if inscope %}
-                    {{ inscope|xsafe }}
+                    {{ inscope.html|safe }}
                     {% else %}
                     
                     {% endif %}
@@ -105,15 +105,16 @@
                     <h4 id="3">Out Of Scope</h4>
                     {% block outofscope %}
                     {% if outofscope %}
-                    {{ outofscope|xsafe }}
+                    {{ outofscope.html|safe }}
                     {% else %}
+
                     {% endif %}
                     {% endblock outofscope %}
 
                     <h4 id="4">Responsible Disclosure Policy</h4>
                     {% block RDP %}
                     {% if RDP %}
-                    {{ RDP|xsafe }}
+                    {{ RDP.html|safe }}
                     {% else %}
                     
                     {% endif %}
@@ -122,7 +123,7 @@
                     <h4 id="5">Report Guidelines</h4>
                     {% block reportguidelines %}
                     {% if reportguidelines %}
-                    {{ reportguidelines|xsafe }}
+                    {{ reportguidelines.html|safe }}
                     {% else %}
                     
                     {% endif %}
@@ -131,8 +132,9 @@
                     <h4 id="6">FAQ</h4>
                     {% block faq %}
                     {% if faq %}
-                    {{ faq|xsafe }}
+                    {{ faq.html|safe }}
                     {% else %}
+
                     {% endif %}
                     {% endblock faq %}
                 </div>
