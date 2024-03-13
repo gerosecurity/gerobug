@@ -4,7 +4,7 @@ from unittest.util import _MAX_LENGTH
 from django.db import models
 from django.urls import reverse
 from django.core.validators import RegexValidator, MaxValueValidator, MinValueValidator, MinLengthValidator
-from ckeditor.fields import RichTextField
+from django_quill.fields import QuillField
 from .rulestemplate import *
 from colorfield.fields import ColorField
 
@@ -93,12 +93,12 @@ class ReportStatus(models.Model):
 
 
 class StaticRules(models.Model):
-    bountyterms = RichTextField(blank=False,default=bountyterms_template)
-    inscope = RichTextField(blank=False,default=inscope_templates)
-    outofscope = RichTextField(blank=False,default=outofscope_templates)
-    RDP = RichTextField(blank=False,default=RDP_template)
-    reportguidelines = RichTextField(blank=False,default=reportguidelines_templates)
-    faq = RichTextField(blank=False, default=faq_templates)
+    bountyterms = QuillField(blank=False,default=bountyterms_template)
+    inscope = QuillField(blank=False,default=inscope_templates)
+    outofscope = QuillField(blank=False,default=outofscope_templates)
+    RDP = QuillField(blank=False,default=RDP_template)
+    reportguidelines = QuillField(blank=False,default=reportguidelines_templates)
+    faq = QuillField(blank=False, default=faq_templates)
 
     def __str__(self):
         return self.RDP

@@ -1,5 +1,4 @@
 from django import forms
-from ckeditor.widgets import CKEditorWidget
 from dashboards.models import StaticRules, Personalization
 from dashboards.rulestemplate import *
 from dashboards.validators import *
@@ -16,6 +15,14 @@ class RulesGuidelineForm(forms.ModelForm):
     class Meta:
         model = StaticRules
         fields = ['bountyterms', 'inscope', 'outofscope', 'RDP', 'reportguidelines', 'faq']
+        labels = {
+            "bountyterms": "Bounty Terms",
+            "inscope": "In Scope",
+            "outofscope": "Out of Scope",
+            "RDP": "Responsible Disclosure Policy",
+            "reportguidelines": "Report Guidelines",
+            "faq": "Frequently Asked Questions"
+        }
 
 class MailboxForm(forms.Form):
     CHOICES = (('1', 'GMAIL'),('2', 'OUTLOOK'),)
