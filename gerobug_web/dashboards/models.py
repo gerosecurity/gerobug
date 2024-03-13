@@ -1,5 +1,6 @@
 from django.db import models
 from colorfield.fields import ColorField
+from django_quill.fields import QuillField
 
 
 
@@ -16,12 +17,12 @@ class DashboardsBughunter(models.Model):
 
 class DashboardsStaticrules(models.Model):
     id = models.BigAutoField(primary_key=True)
-    rdp = models.TextField(db_column='RDP')
-    bountyterms = models.TextField()
-    inscope = models.TextField()
-    outofscope = models.TextField()
-    reportguidelines = models.TextField()
-    faq = models.TextField()
+    rdp = QuillField(db_column='RDP')
+    bountyterms = QuillField()
+    inscope = QuillField()
+    outofscope = QuillField()
+    reportguidelines = QuillField()
+    faq = QuillField()
 
     class Meta:
         managed = False
