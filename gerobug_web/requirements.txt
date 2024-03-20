@@ -1,6 +1,6 @@
 django-bleach
 django-colorfield==0.10.1
 django-quill-editor
-django==4.2.7
+django==4.2.10
 gunicorn==21.0.0
 psycopg2
