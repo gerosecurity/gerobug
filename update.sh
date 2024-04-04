@@ -34,7 +34,7 @@ rm -rf gerobug_dashboard/static/templates
 docker cp $GEROBUG_DASHBOARD:/src/static/logo.png gerobug_web/static/logo.png
 docker cp $GEROBUG_DASHBOARD:/src/static/logo.png gerobug_dashboard/static/logo.png
 docker cp $GEROBUG_DASHBOARD:/src/static/templates gerobug_dashboard/static/templates
-docker cp $GEROBUG_DASHBOARD:/src/report_files gerobug_dashboard/report_files
+docker cp $GEROBUG_DASHBOARD:/src/report_files gerobug_dashboard
 
 sleep 3
 
