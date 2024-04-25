@@ -6,8 +6,8 @@ django-bleach
 django-colorfield==0.10.1
 django-crispy-forms
 django-quill-editor
-django==4.2.10
-gunicorn==21.0.0
+django==4.2.11
+gunicorn==22.0.0
 libmagic
 psycopg2
 python-magic
