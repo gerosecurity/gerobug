@@ -225,6 +225,7 @@ def read_mail():
                                     logging.getLogger("Gerologger").info('Type : ' + str(atk_type))
                                     logging.getLogger("Gerologger").info('Endpoint : ' + str(report_endpoint))
                                     code = 404
+                                    payload[3] = "Details are too short, make sure Title at least < 3, and Summary at least < 10"
                                     
                                 elif (len(report_title) > 100) or (len(atk_type) > 100) or (len(report_endpoint) > 100):
                                     logging.getLogger("Gerologger").warning('[ERROR 404] Report not valid (Details are too long)')
@@ -232,6 +233,7 @@ def read_mail():
                                     logging.getLogger("Gerologger").info('Type : ' + str(atk_type))
                                     logging.getLogger("Gerologger").info('Endpoint : ' + str(report_endpoint))
                                     code = 404
+                                    payload[3] = "Details are too long, make sure title, type, and endpoint are less than 100."
                                     
                                 else:
                                     saveuser(hunter_email, hunter_name, 0)
@@ -247,6 +249,7 @@ def read_mail():
                                 logging.getLogger("Gerologger").info('Body : ' + str(email_body) + '\n')
                                 logging.getLogger("Gerologger").warning('[ERROR 404] Report not valid (Does not have attachment)')
                                 code = 404
+                                payload[3] = "Don't forget to attach a valid PDF file."
                                 
                         # HUNTER CHECK STATUS
                         elif(code == 202): 
@@ -294,6 +297,7 @@ def read_mail():
 
                                 logging.getLogger("Gerologger").warning('[ERROR 404] Update not valid')
                                 code = 404
+                                payload[3] = "Update file not valid."
 
                         # HUNTER APPEAL REPORT
                         elif(code == 204):
@@ -340,6 +344,7 @@ def read_mail():
 
                                 logging.getLogger("Gerologger").warning('[ERROR 404] Appeal not valid')
                                 code = 404
+                                payload[3] = "Appeal not valid."
 
                         # HUNTER AGREE
                         elif(code == 205):
@@ -394,6 +399,7 @@ def read_mail():
 
                                 logging.getLogger("Gerologger").warning('[ERROR 404] NDA not valid')
                                 code = 404
+                                payload[3] = "NDA file not valid."
 
                         # HUNTER CHECK SCORE
                         elif(code == 207):
@@ -419,6 +425,7 @@ def read_mail():
                         # INVALID REPORT FORMAT
                         else:
                             logging.getLogger("Gerologger").warning('[ERROR 404] Report not valid')
+                            payload[3] = "Wrong formatting."
 
                         logging.getLogger("Gerologger").info('============================')
                         geromailer.write_mail(code, payload, hunter_email)
