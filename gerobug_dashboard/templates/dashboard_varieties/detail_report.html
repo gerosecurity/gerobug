@@ -156,25 +156,25 @@
             <div class="content">
                 <div id="left-div">
                     <h6>Report Title</h6>
-                    <h4>{{object.report_title}}</h4>
+                    <h4 id="title_overflow">{{object.report_title}}</h4>
                     <table>
                         <tr>
                           <td>Attack Type</td>
                           <td> : </td>
-                          <td>{{object.report_attack}}</td>
+                          <td id="string_overflow">{{object.report_attack}}</td>
                         </tr>
 
                         <tr>
                             <td>Affected Endpoint</td>
                             <td> : </td>
-                            <td>{{object.report_endpoint}}</td>
+                            <td id="string_overflow">{{object.report_endpoint}}</td>
                         </tr>
 
                         <tr>
                             <td>Severity String</td>
                             <td> : </td>
                             <td>
-                                <div id="severitystring">
+                                <div id="string_overflow">
                                 {% if object.report_severitytype == "OWASP" %} 
                                 <a href="{% url 'owasp-calculator' %}?vector={{object.report_severitystring}}" >{{object.report_severitystring}}</a>
 
