@@ -82,11 +82,16 @@ h4{
     padding: 4px;
 }
 
-#severitystring {
+#string_overflow {
     width: 600px;
     white-space: nowrap;
     overflow: hidden;         
     text-overflow: ellipsis;
+}
+
+#title_overflow {
+    width: 1000px;
+    overflow-wrap: anywhere;
 }
 
 #left-div table{

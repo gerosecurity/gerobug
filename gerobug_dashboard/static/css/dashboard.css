@@ -198,3 +198,10 @@ a:link, a:visited{
 	align-content: stretch;
     color: #2BA700;
 }
+
+#string_overflow {
+    width: 165px;
+    white-space: nowrap;
+    overflow: hidden;         
+    text-overflow: ellipsis;
+}

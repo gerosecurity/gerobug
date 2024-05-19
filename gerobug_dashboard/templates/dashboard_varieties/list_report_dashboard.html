@@ -24,7 +24,7 @@
                                 {% endif %}
                             </div>
                             <div class="report-status" id="needreview">Need to Review</div>
-                            <div class="card-type">{{ report.report_title }}</div>
+                            <div class="card-type" id="string_overflow">{{ report.report_title }}</div>
                             <div class="card-hunter">by: {{report.hunter_email}}</div>
                             <span class="card-time"><i class="bi bi-clock"></i> {{ report.report_datetime }}</span>
                             <!-- <button type="button" class="card-btn">Move to Fixing</button> -->
@@ -55,7 +55,7 @@
                             </div>
 
                             <div class="report-status" id="inreview">In Review</div>
-                            <div class="card-type">{{ report.report_title }}</div>
+                            <div class="card-type" id="string_overflow">{{ report.report_title }}</div>
                             <div class="card-hunter">by: {{report.hunter_email}}</div>
                             <span class="card-time" style="font-size: 10;"><i class="bi bi-clock"></i> {{ report.report_datetime }}</span>
                             <!-- <button type="button" class="card-btn">Done Fixing</button> -->
@@ -85,7 +85,7 @@
                                 {% endif %}
                             </div>
                             <div class="report-status" id="fixing">Fixing</div>
-                            <div class="card-type">{{ report.report_title }}</div>
+                            <div class="card-type" id="string_overflow">{{ report.report_title }}</div>
                             <div class="card-hunter">by: {{report.hunter_email}}</div>
                             <span class="card-time" style="font-size: 10;"><i class="bi bi-clock"></i> {{ report.report_datetime }}</span>
                             <!-- <button type="button" class="card-btn">Validate</button> -->
@@ -115,7 +115,7 @@
                                 {% endif %}
                             </div>
                             <div class="report-status" id="retest">Retest</div>
-                            <div class="card-type">{{ report.report_title }}</div>
+                            <div class="card-type" id="string_overflow">{{ report.report_title }}</div>
                             <div class="card-hunter">by: {{report.hunter_email}}</div>
                             <span class="card-time" style="font-size: 10;"><i class="bi bi-clock"></i> {{ report.report_datetime }}</span>
                             <!-- <button type="button" class="card-btn">Mark as Done</button> -->
@@ -149,7 +149,7 @@
                             {% elif report.report_status == 6 %}
                             <div class="report-status" id="prepare">Processing Bounty</div>
                             {% endif %}
-                            <div class="card-type">{{ report.report_title }}</div>
+                            <div class="card-type" id="string_overflow">{{ report.report_title }}</div>
                             <div class="card-hunter">by: {{report.hunter_email}}</div>
                             <span class="card-time" style="font-size: 10;"><i class="bi bi-clock"></i> {{ report.report_datetime }}</span>
                         </div>

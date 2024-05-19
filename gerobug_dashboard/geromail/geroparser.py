@@ -221,10 +221,18 @@ def read_mail():
                                 # VALIDATE REPORT
                                 if (len(report_title) < 3) or (atk_type == '') or (report_endpoint == '') or (len(report_summary) < 10):
                                     logging.getLogger("Gerologger").warning('[ERROR 404] Report not valid (Details are too short)')
+                                    logging.getLogger("Gerologger").info('Title : ' + str(report_title))
+                                    logging.getLogger("Gerologger").info('Type : ' + str(atk_type))
+                                    logging.getLogger("Gerologger").info('Endpoint : ' + str(report_endpoint))
                                     code = 404
+                                    
                                 elif (len(report_title) > 100) or (len(atk_type) > 100) or (len(report_endpoint) > 100):
                                     logging.getLogger("Gerologger").warning('[ERROR 404] Report not valid (Details are too long)')
+                                    logging.getLogger("Gerologger").info('Title : ' + str(report_title))
+                                    logging.getLogger("Gerologger").info('Type : ' + str(atk_type))
+                                    logging.getLogger("Gerologger").info('Endpoint : ' + str(report_endpoint))
                                     code = 404
+                                    
                                 else:
                                     saveuser(hunter_email, hunter_name, 0)
                                     savereport(report_id, hunter_email, email_date, report_title, atk_type, report_endpoint, report_summary)
