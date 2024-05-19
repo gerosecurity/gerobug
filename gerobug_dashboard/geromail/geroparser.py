@@ -425,7 +425,7 @@ def read_mail():
                         # INVALID REPORT FORMAT
                         else:
                             logging.getLogger("Gerologger").warning('[ERROR 404] Report not valid')
-                            payload[3] = "Wrong formatting."
+                            payload[3] = "Unknown subject format."
 
                         logging.getLogger("Gerologger").info('============================')
                         geromailer.write_mail(code, payload, hunter_email)
