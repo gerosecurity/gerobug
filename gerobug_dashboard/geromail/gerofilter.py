@@ -159,22 +159,24 @@ def parse_body(body):
     summary = ''
 
     try:
-        type = re.search('TYPE=(.*)(\n)', body)
+        type = re.search('(TYPE=|TYPE =|TYPE)((.|\n)*)(ENDPOINT=|ENDPOINT =|ENDPOINT)', body)
         if type != None:
-            type = type.group(1)
+            type = type.group(2)
+            type = str(type.replace("\n",""))
         else:
             type = ''
 
-        endpoint = re.search('ENDPOINT=(.*)(\n)', body)
+        endpoint = re.search('(ENDPOINT=|ENDPOINT =|ENDPOINT)((.|\n)*)(SUMMARY=|SUMMARY =|SUMMARY)', body)
         if endpoint != None:
-            endpoint = endpoint.group(1)
+            endpoint = endpoint.group(2)
             endpoint = re.sub(r"<.*>", "", str(endpoint))
+            endpoint = str(endpoint.replace("\n",""))
         else:
             endpoint = ''
 
-        summary = re.search('SUMMARY=(.*)', body.replace('\n', ' '))
+        summary = re.search('(SUMMARY=|SUMMARY =|SUMMARY)(.*)', body.replace('\n', ' '))
         if summary != None:
-            summary = summary.group(1)
+            summary = summary.group(2)
         else:
             summary = ''
 
