@@ -11,6 +11,9 @@ class Requestform(forms.Form):
 class CompleteRequestform(forms.Form):
     completereasons = forms.CharField(widget=forms.Textarea(attrs={"id":"completereasons","name":"completereasons","placeholder":"Write the reason here ..."}),required=True)
 
+class Invalidform(forms.Form):
+    invalidreasons = forms.CharField(widget=forms.Textarea(attrs={"id":"invalidreasons","name":"invalidreasons","placeholder":"Write the reason here ..."}),required=True)
+
 class RulesGuidelineForm(forms.ModelForm):  
     class Meta:
         model = StaticRules

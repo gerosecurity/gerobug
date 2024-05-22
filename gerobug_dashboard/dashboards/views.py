@@ -18,7 +18,7 @@ from django.http import FileResponse
 from django.middleware.csrf import get_token
 from prerequisites.models import MailBox, Webhook
 from .models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization
-from .forms import Requestform, RulesGuidelineForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm, WebhookForm, BlacklistForm, TemplateReportForm, TemplateNDAForm, TemplateCertForm, CertDataForm, PersonalizationForm, CompanyIdentityForm
+from .forms import Requestform, RulesGuidelineForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm, WebhookForm, BlacklistForm, TemplateReportForm, TemplateNDAForm, TemplateCertForm, CertDataForm, PersonalizationForm, CompanyIdentityForm, Invalidform
 from sys import platform
 from geromail import geromailer, gerofilter, geroparser, gerocalculator
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
@@ -68,6 +68,7 @@ class ReportDetails(LoginRequiredMixin,DetailView):
         context = super(ReportDetails, self).get_context_data(**kwargs)
         context['reportstatus'] = ReportStatus.objects.filter(status_id=BugReport.objects.get(report_id=self.kwargs.get('pk')).report_status)[0].status_name
         context['requestform'] = Requestform()
+        context['invalidform'] = Invalidform()
         context['completeform'] = CompleteRequestform()
         return context
 
@@ -214,23 +215,7 @@ def FormHandler(request, id, complete):
             if form.is_valid():
                 reasons = form.cleaned_data.get('reasons')
                 code = 0
-                if status == "Need to Review" and complete == "0":
-                    # MARK AS INVALID
-                    report.report_status = 0
-                    report.save()
-                    
-                    logging.getLogger("Gerologger").info("REPORT "+str(id)+" STATUS UPDATED (INVALID) BY "+str(request.user.username))
-                    
-                    def trigger_geromailer(report):
-                        payload = [report.report_id, report.report_title, report.report_status, reasons, report.report_severity]
-                        destination = report.hunter_email
-                        geromailer.notify(destination, payload) # TRIGGER GEROMAILER TO SEND UPDATE NOTIFICATION
-                    
-                    # SEND NOTIFICATION AND REASON WITH THREADING
-                    trigger = threading.Thread(target=trigger_geromailer, args=(report,))
-                    trigger.start()
-
-                elif (status == "In Review" or status == "Fixing" or status == "Fixing (Retest)") and complete == "0":
+                if (status == "In Review" or status == "Fixing" or status == "Fixing (Retest)") and complete == "0":
                     code = 701 #REQUEST AMEND
                     logging.getLogger("Gerologger").info("REPORT "+str(id)+" REQUESTED AMEND BY "+str(request.user.username))
 
@@ -256,12 +241,55 @@ def FormHandler(request, id, complete):
                     trigger.start()
                 
                 return redirect('dashboard')
+            else:
+                messages.error(request,"Form invalid. Please report to the Admin for checking the logs.")
+                logging.getLogger("Gerologger").error("Form invalid: "+str(request))
 
         return redirect('dashboard')
 
     else:
-        messages.error(request,"Something's wrong. Please report to the Admin for checking the logs.")
-        logging.getLogger("Gerologger").error(str(request))
+        messages.error(request,"Something's wrong with form handler. Please report to the Admin for checking the logs.")
+        logging.getLogger("Gerologger").error("Something's wrong with form handler: "+str(request))
+        return redirect('dashboard')
+
+
+@login_required
+def InvalidHandler(request, id):
+    if gerofilter.validate_id(id):
+        report = BugReport.objects.get(report_id=id)
+        status = ReportStatus.objects.get(status_id=report.report_status)
+        status = status.status_name
+
+        if request.method == "POST":
+            form = Invalidform(request.POST)
+            if form.is_valid():
+                reasons = form.cleaned_data.get('reasons')
+
+                # MARK AS INVALID
+                report.report_status = 0
+                report.save()
+                    
+                logging.getLogger("Gerologger").info("REPORT "+str(id)+" MARKED AS INVALID BY "+str(request.user.username))
+                    
+                def trigger_geromailer(report):
+                    payload = [report.report_id, report.report_title, report.report_status, reasons, report.report_severity]
+                    destination = report.hunter_email
+                    geromailer.notify(destination, payload) # TRIGGER GEROMAILER TO SEND UPDATE NOTIFICATION
+                    
+                # SEND NOTIFICATION AND REASON WITH THREADING
+                trigger = threading.Thread(target=trigger_geromailer, args=(report,))
+                trigger.start()
+
+                messages.success(request,"Email is successfully being processed and sent to the bug hunter with your reason.")
+            else:
+                messages.error(request,"Form invalid. Please report to the Admin for checking the logs.")
+                logging.getLogger("Gerologger").error("Form invalid: "+str(request))
+
+        return redirect('dashboard')
+
+    else:
+        messages.error(request,"Something's wrong with invalid handler. Please report to the Admin for checking the logs.")
+        logging.getLogger("Gerologger").error("Something's wrong with invalid handler: "+str(request))
         return redirect('dashboard')
 
 
