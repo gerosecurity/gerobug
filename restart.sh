@@ -17,13 +17,13 @@ fi
 echo -e "\n=========================="
 echo "STOPPING CURRENT PROCESS"
 echo "=========================="
-docker-compose down
+docker compose down
 sleep 1
 
 echo -e "\n=========================="
 echo "REBUILD UPDATES"
 echo "=========================="
-docker-compose up --build --force-recreate -d
+docker compose up --build --force-recreate -d
 sleep 1
 
 echo -e "\n=============================="
@@ -31,4 +31,4 @@ echo "VIEWING GEROBUG LOG"
 echo "=============================="
 
 echo "(To Exit The Log Viewer, Use Ctrl + C)"
-docker-compose logs -f
+docker compose logs -f
