@@ -239,7 +239,7 @@ echo -e "\n=============================="
 echo "BUILDING GEROBUG"
 echo "=============================="
 
-docker compose up --build --force-recreate -d
+docker-compose up --build --force-recreate -d
 
 
 echo -e "\n=============================="
@@ -247,4 +247,4 @@ echo "VIEWING GEROBUG LOG"
 echo "=============================="
 
 echo "(To Exit The Log Viewer, Use Ctrl + C)"
-docker compose logs -f
+docker-compose logs -f

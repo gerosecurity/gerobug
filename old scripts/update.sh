@@ -25,7 +25,7 @@ sleep 3
 echo -e "\n=========================="
 echo "BACKUP CURRENT FILES"
 echo "=========================="
-GEROBUG_DASHBOARD=$(docker container ls  | grep 'gerobug-dashboard' | awk '{print $1}')
+GEROBUG_DASHBOARD=$(docker container ls  | grep 'gerobug_dashboard' | awk '{print $1}')
 
 if [[ $GEROBUG_DASHBOARD == "" ]]; then
     echo "No running Gerobug container found, use run.sh instead."
@@ -47,14 +47,14 @@ sleep 3
 echo -e "\n=========================="
 echo "STOPPING CURRENT PROCESS"
 echo "=========================="
-docker compose down
+docker-compose down
 docker volume rm gerobug_static-content
 sleep 3
 
 echo -e "\n=========================="
 echo "REBUILD UPDATES"
 echo "=========================="
-docker compose up --build --force-recreate -d
+docker-compose up --build --force-recreate -d
 sleep 3
 
 echo -e "\n=============================="
@@ -62,4 +62,4 @@ echo "VIEWING GEROBUG LOG"
 echo "=============================="
 
 echo "(To Exit The Log Viewer, Use Ctrl + C)"
-docker compose logs -f
+docker-compose logs -f
