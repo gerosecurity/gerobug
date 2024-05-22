@@ -27,7 +27,7 @@ In the other hand, creating your own self-managed platform will take time and ef
 <br>
 
 ## (Minimum) Recommended Specification
-* Ubuntu 20.04
+* Ubuntu 24.04
 * vCPU 2 Core
 * RAM 2 GB
 * HDD 16 GB
@@ -41,7 +41,7 @@ In the other hand, creating your own self-managed platform will take time and ef
 * Port 80, 443, 6320
 * Python 3.x
 * Docker 
-* Docker Compose v1.29.2 or later
+* Docker Compose v2
 
 __(You don't need to install anything manually, we'll do it for you!)__
 
@@ -56,7 +56,7 @@ cd gerobug
 ```
 2. Run the Setup Script: 
 ```bash
-./run.sh
+./gerobug.sh
 ```
 3. Follow the setup instructions (Read the [documentation](https://gerobug.gitbook.io/documentation/) for details)
 4. By default, Gerobug Dashboard will listen at port __6320__
