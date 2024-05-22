@@ -45,6 +45,28 @@
 <body>
     <script>
         $(document).ready(function () {
+            $("#invalid-button").click(function () {
+                var patched = "{% url 'invalid_handler' 0 %}".replace('0', "{{object.pk}}");
+                $.ajax({
+                    type: 'POST',
+                    url: patched,
+                    data: {
+                        csrfmiddlewaretoken: '{{ csrf_token }}',
+                        invalidreasons: $("#invalidreasons").val(),
+                    },
+                    success: function (data) {
+                        console.log(data)
+                    },
+                    error: function (error) {
+                        console.log(error)
+                    },
+                });
+
+            });
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
             $("#reasons-button").click(function () {
                 var patched = "{% url 'form_handler' 0 '0' %}".replace('0', "{{object.pk}}");
                 $.ajax({
@@ -289,28 +311,55 @@
             </div>
 
             <div id="report-download">
-                <!-- REQUEST BUTTON -->
-                {% if reportstatus == 'Need to Review' %}
-                <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#staticBackdropLeft">Mark as Invalid</button>
-                {% elif reportstatus == 'In Review' or reportstatus == 'Fixing' or reportstatus == 'Fixing (Retest)' %}
-                <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#staticBackdropLeft">Request Amend</button>
-                {% elif reportstatus == 'Bounty Calculation' %}
-                <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#staticBackdropLeft">Send Calculations</button>
-                {% elif reportstatus == 'Bounty in Process' %}
-                <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#staticBackdropLeft">Request NDA</button>
+                <!-- INVALID BUTTON -->
+                {% if reportstatus == 'Need to Review' or reportstatus == 'In Review'%}
+                <button class="delete-btn" data-bs-toggle="modal" type="button" data-bs-target="#invalid_button">Mark as Invalid</button>
                 {% endif %}
 
-                <!-- REQUEST BUTTON MODAL -->
-                <div class="modal fade" id="staticBackdropLeft" data-bs-backdrop="static"
+                <!-- INVALID BUTTON MODAL -->
+                <div class="modal fade" id="invalid_button" data-bs-backdrop="static"
                     data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel"
                     aria-hidden="true">
                     {% if reportstatus != 'Not Valid' %}
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content">
                             <div class="modal-header">
-                                {% if reportstatus == 'Need to Review' %}
                                 <h1 class="modal-title fs-5" id="staticBackdropLabel">Mark as Invalid</h1>
-                                {% elif reportstatus == 'In Review' or reportstatus == 'Fixing' or reportstatus == 'Fixing (Retest)' %}
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form method="POST" action="{% url 'invalid_handler' object.pk %}">
+                                    {% csrf_token %}
+                                    {{ invalidform.invalidreasons }}
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" id="invalid-button" class="ok-btn" data-bs-dismiss="modal">OK</button>
+                                <button type="button" class="cancel-btn" data-bs-dismiss="modal">CANCEL</button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- REQUEST BUTTON -->
+                {% if reportstatus == 'In Review' or reportstatus == 'Fixing' or reportstatus == 'Fixing (Retest)' %}
+                <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#request_button">Request Amend</button>
+                {% elif reportstatus == 'Bounty Calculation' %}
+                <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#request_button">Send Calculations</button>
+                {% elif reportstatus == 'Bounty in Process' %}
+                <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#request_button">Request NDA</button>
+                {% endif %}
+
+                <!-- REQUEST BUTTON MODAL -->
+                <div class="modal fade" id="request_button" data-bs-backdrop="static"
+                    data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel"
+                    aria-hidden="true">
+                    {% if reportstatus != 'Not Valid' %}
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                {% if reportstatus == 'In Review' or reportstatus == 'Fixing' or reportstatus == 'Fixing (Retest)' %}
                                 <h1 class="modal-title fs-5" id="staticBackdropLabel">Request Amend</h1>
                                 {% elif reportstatus == 'Bounty Calculation' %}
                                 <h1 class="modal-title fs-5" id="staticBackdropLabel">Send Calculations</h1>
@@ -336,8 +385,8 @@
 
                 <!-- COMPLETE BUTTON -->
                 {% if reportstatus == 'Bounty in Process' %}
-                <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#staticBackdropRight">Complete</button>
-                <div class="modal fade" id="staticBackdropRight" data-bs-backdrop="static"
+                <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#close_button">Complete</button>
+                <div class="modal fade" id="close_button" data-bs-backdrop="static"
                     data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel"
                     aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered">
@@ -361,8 +410,8 @@
                 </div>
 
                 {% elif reportstatus == 'Not Valid' %}
-                <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#staticBackdropRight">Delete</button>
-                <div class="modal fade" id="staticBackdropRight" data-bs-backdrop="static"
+                <button class="delete-btn" data-bs-toggle="modal" type="button" data-bs-target="#close_button">Delete</button>
+                <div class="modal fade" id="close_button" data-bs-backdrop="static"
                     data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel"
                     aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered">
@@ -386,8 +435,8 @@
 
                 <!-- MOVE BUTTON -->
                 {% elif reportstatus == 'Need to Review' or reportstatus == 'In Review' or reportstatus == 'Fixing' or reportstatus == 'Fixing (Retest)' %}
-                <button class="update-btn" data-bs-toggle="modal" type="button" data-bs-target="#staticBackdropRight">Move</button>
-                <div class="modal fade" id="staticBackdropRight" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                <button class="update-btn" data-bs-toggle="modal" type="button" data-bs-target="#move_button">Move</button>
+                <div class="modal fade" id="move_button" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content">
                             <div class="modal-header">

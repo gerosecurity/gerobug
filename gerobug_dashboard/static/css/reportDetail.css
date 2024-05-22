@@ -318,6 +318,18 @@ label {
     padding-right: 10px;
 }
 
+.delete-btn{
+    background-color: red;
+    border-width: 0;
+    color: #f9f3f3;
+    border-radius: 20px;
+    margin: 28px;
+    height: 42px;
+    min-width: 150px;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
 .update-btn{
     background-color: var(--button-1);
     border-width: 0;

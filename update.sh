@@ -27,6 +27,11 @@ echo "BACKUP CURRENT FILES"
 echo "=========================="
 GEROBUG_DASHBOARD=$(docker container ls  | grep 'gerobug_dashboard' | awk '{print $1}')
 
+if [[ $GEROBUG_DASHBOARD == "" ]]; then
+    echo "No running Gerobug container found, use run.sh instead."
+    exit 1
+fi
+
 rm gerobug_web/static/logo.png
 rm gerobug_dashboard/static/logo.png
 rm -rf gerobug_dashboard/static/templates
