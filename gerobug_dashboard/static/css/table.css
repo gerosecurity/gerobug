@@ -101,3 +101,10 @@ td {
 #invalid{
   background: #f43737;
 }
+
+#string_overflow {
+  width: 500px;
+  white-space: nowrap;
+  overflow: hidden;         
+  text-overflow: ellipsis;
+}
