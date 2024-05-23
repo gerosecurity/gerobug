@@ -7,6 +7,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="Gerobug-signature" content="97de67b8d672c51c158247f398b85d31">
 
     <title>Rules and Guidelines</title>
     <link rel="shortcut icon" href='{% static "favicon.ico" %}' type="image/x-icon">
@@ -37,6 +38,18 @@
             } else {
             x.className = "topnav";
             }
+        }
+    </script>
+    <script>
+        function copytext(id) {
+          var copyText = document.getElementById(id);
+        
+          copyText.select();
+          copyText.setSelectionRange(0, 99999); // For mobile devices
+        
+          navigator.clipboard.writeText(copyText.value);
+          
+          alert("Copied: \n" + copyText.value);
         }
     </script>
 </head>
@@ -79,16 +92,31 @@
                 <div id="panelsStayOpen-collapseOne" class="accordion-collapse collapse show"
                     aria-labelledby="panelsStayOpen-headingOne">
                     <div class="accordion-body">
-                        Subject: SUBMIT_<b>Report Title</b> <br>
-                        Body: <br><b>
-                        TYPE= Bug Type <br>
-                        ENDPOINT= Affected Endpoint <br>
-                        SUMMARY= Summary<br><br></b>
-                        Attachment: <b>*PDF Report File*</b>
+                        <b>Subject: </b>
+                        <br>
+                        <div class="text-wrap">
+                        <textarea readonly id="Subject_1" rows="1" cols="40">SUBMIT_Report Title</textarea>
+                        <div id="copyToClipboard-a" class="clipboard icon" onclick="copytext('Subject_1')"><i class="fa fa-copy"></i></div>
+                        </div>
+
+                        <b>Body:</b> 
+                        <br>
+                        <div class="text-wrap">
+                        <textarea readonly id="Body_1" rows="3" cols="40">
+TYPE= <font color="#9900FF">Bug Type</font>
+ENDPOINT= Affected Endpoint
+SUMMARY= Summary</textarea>
+                        <div id="copyToClipboard-a" class="clipboard icon" onclick="copytext('Body_1')"><i class="fa fa-copy"></i></div>
+                        </div>
+
+                        <b>Attachment:</b> 
+                        <br>
+                        PDF REPORT FILE
                         (<a href="{% static 'templates/Template_Report.docx' %}">Report Template</a>)<br>
 
                         <br>
-                        Sample:<br>
+                        <b>Sample:</b>
+                        <br>
                         <img src="{% static 'sample/submit.png' %}" width="35%">
                     </div>
                 </div>
@@ -104,10 +132,16 @@
                 <div id="panelsStayOpen-collapseTwo" class="accordion-collapse collapse"
                     aria-labelledby="panelsStayOpen-headingTwo">
                     <div class="accordion-body">
-                        Subject: CHECK_<b>Report ID</b> <br>
+                        <b>Subject: </b>
+                        <br>
+                        <div class="text-wrap">
+                        <textarea readonly id="Subject_2" rows="1" cols="40">CHECK_Report ID</textarea>
+                        <div id="copyToClipboard-a" class="clipboard icon" onclick="copytext('Subject_2')"><i class="fa fa-copy"></i></div>
+                        </div>
 
                         <br>
-                        Sample:<br>
+                        <b>Sample:</b>
+                        <br>
                         <img src="{% static 'sample/check.png' %}" width="35%">
                     </div>
                 </div>
@@ -123,10 +157,16 @@
                 <div id="panelsStayOpen-collapseTwo1" class="accordion-collapse collapse"
                     aria-labelledby="panelsStayOpen-headingTwo1">
                     <div class="accordion-body">
-                        Subject: STATUS_OVERVIEW<br>
+                        <b>Subject: </b>
+                        <br>
+                        <div class="text-wrap">
+                        <textarea readonly id="Subject_3" rows="1" cols="40">STATUS_OVERVIEW</textarea>
+                        <div id="copyToClipboard-a" class="clipboard icon" onclick="copytext('Subject_3')"><i class="fa fa-copy"></i></div>
+                        </div>
 
                         <br>
-                        Sample:<br>
+                        <b>Sample:</b>
+                        <br>
                         <img src="{% static 'sample/overview.png' %}" width="35%">
                     </div>
                 </div>
@@ -142,13 +182,27 @@
                 <div id="panelsStayOpen-collapseThree" class="accordion-collapse collapse"
                     aria-labelledby="panelsStayOpen-headingThree">
                     <div class="accordion-body">
-                        Subject: UPDATE_<b>Report ID</b> <br>
-                        Body: <br><b>
-                        Summary<br><br></b>
-                        Attachment: <b>*PDF Report File*</b><br>
+                        <b>Subject: </b>
+                        <br>
+                        <div class="text-wrap">
+                        <textarea readonly id="Subject_4" rows="1" cols="40">UPDATE_Report ID</textarea>
+                        <div id="copyToClipboard-a" class="clipboard icon" onclick="copytext('Subject_4')"><i class="fa fa-copy"></i></div>
+                        </div>
+
+                        <b>Body:</b> 
+                        <br>
+                        Summary of your updates
+                        <br>
 
                         <br>
-                        Sample:<br>
+                        <b>Attachment:</b> 
+                        <br>
+                        PDF REPORT FILE
+                        (<a href="{% static 'templates/Template_Report.docx' %}">Report Template</a>)<br>
+
+                        <br>
+                        <b>Sample:</b>
+                        <br>
                         <img src="{% static 'sample/update.png' %}" width="35%">
                     </div>
                 </div>
@@ -164,12 +218,21 @@
                 <div id="panelsStayOpen-collapseFour" class="accordion-collapse collapse"
                     aria-labelledby="panelsStayOpen-headingFour">
                     <div class="accordion-body">
-                        Subject: APPEAL_<b>Report ID</b> <br>
-                        Body: <br><b>
-                        Reasons<br><br></b>
+                        <b>Subject: </b>
+                        <br>
+                        <div class="text-wrap">
+                        <textarea readonly id="Subject_5" rows="1" cols="40">APPEAL_Report ID</textarea>
+                        <div id="copyToClipboard-a" class="clipboard icon" onclick="copytext('Subject_5')"><i class="fa fa-copy"></i></div>
+                        </div>
+
+                        <b>Body:</b> 
+                        <br>
+                        Reason of your appeal
+                        <br>
 
                         <br>
-                        Sample:<br>
+                        <b>Sample:</b>
+                        <br>
                         <img src="{% static 'sample/appeal.png' %}" width="35%">
                     </div>
                 </div>
@@ -186,10 +249,16 @@
                 <div id="panelsStayOpen-collapseFive" class="accordion-collapse collapse"
                     aria-labelledby="panelsStayOpen-headingFive">
                     <div class="accordion-body">
-                        Subject: AGREE_<b>Report ID</b> <br>
-                        
+                        <b>Subject: </b>
                         <br>
-                        Sample:<br>
+                        <div class="text-wrap">
+                        <textarea readonly id="Subject_6" rows="1" cols="40">AGREE_Report ID</textarea>
+                        <div id="copyToClipboard-a" class="clipboard icon" onclick="copytext('Subject_6')"><i class="fa fa-copy"></i></div>
+                        </div>
+
+                        <br>
+                        <b>Sample:</b>
+                        <br>
                         <img src="{% static 'sample/agree.png' %}" width="35%">
                     </div>
                 </div>
@@ -205,13 +274,27 @@
                 <div id="panelsStayOpen-collapseSix" class="accordion-collapse collapse"
                     aria-labelledby="panelsStayOpen-headingSix">
                     <div class="accordion-body">
-                        Subject: NDA_<b>Report ID</b> <br>
-                        Body: <br><b>
-                        Requested Information<br><br></b>
-                        Attachment: <b>*PDF Signed NDA File*</b><br>
+                        <b>Subject: </b>
+                        <br>
+                        <div class="text-wrap">
+                        <textarea readonly id="Subject_7" rows="1" cols="40">NDA_Report ID</textarea>
+                        <div id="copyToClipboard-a" class="clipboard icon" onclick="copytext('Subject_7')"><i class="fa fa-copy"></i></div>
+                        </div>
+
+                        <b>Body:</b> 
+                        <br>
+                        Requested Information
+                        <br>
 
                         <br>
-                        Sample:<br>
+                        <b>Attachment:</b> 
+                        <br>
+                        PDF SIGNED NDA FILE
+                        <br>
+
+                        <br>
+                        <b>Sample:</b>
+                        <br>
                         <img src="{% static 'sample/nda.png' %}" width="35%">
                     </div>
                 </div>
@@ -227,10 +310,16 @@
                 <div id="panelsStayOpen-collapseSeven" class="accordion-collapse collapse"
                     aria-labelledby="panelsStayOpen-headingSeven">
                     <div class="accordion-body">
-                        Subject: MY_SCORE <br>
+                        <b>Subject: </b>
+                        <br>
+                        <div class="text-wrap">
+                        <textarea readonly id="Subject_8" rows="1" cols="40">MY_SCORE</textarea>
+                        <div id="copyToClipboard-a" class="clipboard icon" onclick="copytext('Subject_8')"><i class="fa fa-copy"></i></div>
+                        </div>
                         
                         <br>
-                        Sample:<br>
+                        <b>Sample:</b>
+                        <br>
                         <img src="{% static 'sample/score.png' %}" width="35%">
                     </div>
                 </div>
@@ -244,6 +333,8 @@
             <p>&copy; {%now "Y"%} GEROBUG</p>
         </div>
     </footer>
+
+    <div style="display:none;">97de67b8d672c51c158247f398b85d31</div>
 </body>
 
 </html>

@@ -150,8 +150,7 @@
                         <div class="report-status" id="complete">{{reportstatus}}</div>
                     {% elif object.report_status == 8 %}
                         <div class="report-status" id="invalid">{{reportstatus}}</div>
-                    {% endif %}
-                        
+                    {% endif %}            
                 </div>
 
                 {% if object.report_severity == 0 %} 
@@ -171,13 +170,13 @@
 
                 {% else %}
                 <div class="severity-type" id="none">NONE</div>
-                
                 {% endif %}
             </div>
-
+            <h6><i class="bi bi-clock"></i> {{object.report_datetime}}</h6>   
+            <br>
             <div class="content">
                 <div id="left-div">
-                    <h6>Report Title</h6>
+                    
                     <h4 id="title_overflow">{{object.report_title}}</h4>
                     <table>
                         <tr>

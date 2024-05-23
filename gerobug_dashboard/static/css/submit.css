@@ -16,3 +16,54 @@ body{
 main{
     padding: 40px;
 }
+
+.text-wrap {
+    position: relative;
+    padding: 5px 0px;
+    width: 30%;
+}
+
+textarea {
+    min-width: 100%;
+    max-width: 100%;
+    padding: 10px 10px;
+    border-radius: 4px;
+    resize: none !important;
+}
+textarea::-webkit-scrollbar {
+    width: 4px;
+}
+textarea::-webkit-scrollbar-track {
+    background: #f1f1f1; 
+}
+textarea::-webkit-scrollbar-thumb {
+    background: #888; 
+}
+textarea::-webkit-scrollbar-thumb:hover {
+    background: #555; 
+}
+
+.clipboard.icon {
+    position: absolute;
+        top: 11px;
+        right: 5%;
+    margin-top: 4px;
+    margin-left: 4px;
+    cursor: pointer;
+}
+.clipboard.icon:before {
+    top: -1px;
+    left: 2px;
+    width: 5px;
+    height: 1px;
+}
+.clipboard.icon:after {
+    width: 3px;
+    height: 1px;
+}
+
+.icon:before, .icon:after {
+    content: '';
+    position: absolute;
+    display: block;
+}

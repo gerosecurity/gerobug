@@ -207,6 +207,7 @@ case $ACTION in
     sudo apt-get update
     sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
+    systemctl enable docker.service
     systemctl stop docker
     systemctl start docker
 
