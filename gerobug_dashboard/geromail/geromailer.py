@@ -28,6 +28,9 @@ def write_mail(code, payload, Destination):
                 status = ReportStatus.objects.get(status_id=payload[2])
                 status = status.status_name
 
+        if payload[3] == None:
+            payload[3] = "-"
+            
         # REPLACE WILD CARDS
         subject = subject.replace("~ID~", payload[0])       #REPORT ID
         body = body.replace("~ID~", payload[0])             #REPORT ID
