@@ -20,7 +20,7 @@ main{
 .text-wrap {
     position: relative;
     padding: 5px 0px;
-    width: 30%;
+    width: 60%;
 }
 
 textarea {
@@ -46,7 +46,7 @@ textarea::-webkit-scrollbar-thumb:hover {
 .clipboard.icon {
     position: absolute;
         top: 11px;
-        right: 5%;
+        right: 2%;
     margin-top: 4px;
     margin-left: 4px;
     cursor: pointer;
