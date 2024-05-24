@@ -74,3 +74,6 @@ class PersonalizationForm(forms.ModelForm):
     class Meta:
         model = Personalization
         fields = ['main_1', 'main_2', 'secondary_1', 'secondary_2', 'secondary_3', 'button_1']
+
+class TroubleshootForm(forms.Form):
+    troubleshoot_1 = forms.BooleanField(label="Recover Loss Report Files", required=False)

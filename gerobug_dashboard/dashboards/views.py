@@ -18,7 +18,7 @@ from django.http import FileResponse
 from django.middleware.csrf import get_token
 from prerequisites.models import MailBox, Webhook
 from .models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization
-from .forms import Requestform, RulesGuidelineForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm, WebhookForm, BlacklistForm, TemplateReportForm, TemplateNDAForm, TemplateCertForm, CertDataForm, PersonalizationForm, CompanyIdentityForm, Invalidform
+from .forms import Requestform, RulesGuidelineForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm, WebhookForm, BlacklistForm, TemplateReportForm, TemplateNDAForm, TemplateCertForm, CertDataForm, PersonalizationForm, CompanyIdentityForm, Invalidform, TroubleshootForm
 from sys import platform
 from geromail import geromailer, gerofilter, geroparser, gerocalculator
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
@@ -517,6 +517,41 @@ def AdminSetting(request):
             messages.success(request,"Company Identity updated successfully!")
             return redirect('setting')
         
+        troubleshoot = TroubleshootForm(request.POST)
+        if troubleshoot.is_valid():
+            if troubleshoot.cleaned_data.get('troubleshoot_1')  == True:
+                for report in BugReport.objects.all():
+                    id = report.report_id
+
+                    # CHECK REPORT FILE
+                    report_name = id + ".pdf"
+                    FILEPATH = os.path.join(MEDIA_ROOT,id,report_name)
+                    if not os.path.isfile(FILEPATH):
+                        logging.getLogger("Gerologger").info("Recovering = " + str(report_name))
+                        geroparser.recover_loss_file(id, None)    
+
+                    # CHECK UPDATE FILE 
+                    if report.report_update > 0:
+                        update_id = str(id) + "U" + str(report.report_update)
+                        update_file = update_id + ".pdf"
+                        FILEPATH = os.path.join(MEDIA_ROOT,id,update_file)
+                        if not os.path.isfile(FILEPATH):
+                            logging.getLogger("Gerologger").info("Recovering = " + str(update_file))
+                            geroparser.recover_loss_file(update_id, "U")  
+
+                    # CHECK NDA FILE 
+                    if report.report_nda > 0:
+                        nda_id = str(id) + "NDA" + str(report.report_nda)
+                        nda_file = nda_id + ".pdf"
+                        FILEPATH = os.path.join(MEDIA_ROOT,id,nda_file)
+                        if not os.path.isfile(FILEPATH):
+                            logging.getLogger("Gerologger").info("Recovering = " + str(nda_file))
+                            geroparser.recover_loss_file(nda_id, "N")  
+                    
+                logging.getLogger("Gerologger").info("Troubleshoot Executed: RECOVER LOSS REPORT FILES")
+            
+            return redirect("setting")
+        
         personalization = PersonalizationForm(request.POST)
         if personalization.is_valid():
             theme               = Personalization.objects.get(personalize_id=1)
@@ -537,7 +572,7 @@ def AdminSetting(request):
     return render(request,'setting.html',
                   {'form': RulesGuidelineForm(instance=RULES), 'mailbox': MailboxForm(), 'account': AccountForm(),'reviewer': ReviewerForm(),'webhooks': WebhookForm(),'blacklistrule': BlacklistForm(),
                     'templatereport': TemplateReportForm(), 'templatenda': TemplateNDAForm(), 'templatecert': TemplateCertForm(), 'certdata': CertDataForm(), 'companyidentity': CompanyIdentityForm(),
-                    'personalization': PersonalizationForm(instance=THEME), 'users':users,'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications,'bl':bl})
+                    'personalization': PersonalizationForm(instance=THEME), 'troubleshoot': TroubleshootForm(), 'users':users, 'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications,'bl':bl})
 
 @login_required
 def ReviewerDelete(request,id):
