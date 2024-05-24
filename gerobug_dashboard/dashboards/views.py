@@ -541,7 +541,7 @@ def AdminSetting(request):
 
                     # CHECK NDA FILE 
                     if report.report_nda > 0:
-                        nda_id = str(id) + "NDA" + str(report.report_nda)
+                        nda_id = str(id) + "N" + str(report.report_nda)
                         nda_file = nda_id + ".pdf"
                         FILEPATH = os.path.join(MEDIA_ROOT,id,nda_file)
                         if not os.path.isfile(FILEPATH):
