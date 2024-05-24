@@ -522,13 +522,18 @@ def AdminSetting(request):
             if troubleshoot.cleaned_data.get('troubleshoot_1')  == True:
                 for report in BugReport.objects.all():
                     id = report.report_id
+                    
+                    # FILE RECOVERY THREAD
+                    def trigger_recovery(report_name, id, type):
+                        logging.getLogger("Gerologger").info("Recovering = " + str(report_name))
+                        geroparser.recover_loss_file(id, type) 
 
                     # CHECK REPORT FILE
                     report_name = id + ".pdf"
                     FILEPATH = os.path.join(MEDIA_ROOT,id,report_name)
                     if not os.path.isfile(FILEPATH):
-                        logging.getLogger("Gerologger").info("Recovering = " + str(report_name))
-                        geroparser.recover_loss_file(id, None)    
+                        trigger = threading.Thread(target=trigger_recovery, args=(report_name,id,None,))
+                        trigger.start()
 
                     # CHECK UPDATE FILE 
                     if report.report_update > 0:
@@ -536,8 +541,8 @@ def AdminSetting(request):
                         update_file = update_id + ".pdf"
                         FILEPATH = os.path.join(MEDIA_ROOT,id,update_file)
                         if not os.path.isfile(FILEPATH):
-                            logging.getLogger("Gerologger").info("Recovering = " + str(update_file))
-                            geroparser.recover_loss_file(update_id, "U")  
+                            trigger = threading.Thread(target=trigger_recovery, args=(update_file,update_id,"U",))
+                            trigger.start()
 
                     # CHECK NDA FILE 
                     if report.report_nda > 0:
@@ -545,8 +550,8 @@ def AdminSetting(request):
                         nda_file = nda_id + ".pdf"
                         FILEPATH = os.path.join(MEDIA_ROOT,id,nda_file)
                         if not os.path.isfile(FILEPATH):
-                            logging.getLogger("Gerologger").info("Recovering = " + str(nda_file))
-                            geroparser.recover_loss_file(nda_id, "N")  
+                            trigger = threading.Thread(target=trigger_recovery, args=(nda_file,nda_id,"N",))
+                            trigger.start()
                     
                 logging.getLogger("Gerologger").info("Troubleshoot Executed: RECOVER LOSS REPORT FILES")
             
