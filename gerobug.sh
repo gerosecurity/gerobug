@@ -291,6 +291,7 @@ case $ACTION in
     docker cp $GEROBUG_DASHBOARD:/src/static/logo.png gerobug_dashboard/static/
     docker cp $GEROBUG_DASHBOARD:/src/static/templates gerobug_dashboard/static/
     docker cp $GEROBUG_DASHBOARD:/src/report_files gerobug_dashboard
+    docker cp $GEROBUG_DASHBOARD:/src/gerobug_host gerobug_dashboard
 
     sleep 1
 
