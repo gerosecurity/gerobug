@@ -422,7 +422,7 @@ def read_mail():
                         # INVALID REPORT FORMAT
                         else:
                             logging.getLogger("Gerologger").warning('[ERROR 404] Report not valid')
-                            payload[3] = "Unknown subject format."
+                            payload[3] = "Wrong formatting."
 
                         logging.getLogger("Gerologger").info('============================')
                         geromailer.write_mail(code, payload, hunter_email)
@@ -550,3 +550,57 @@ def run():
 
             read_mail()
             time.sleep(30)
+
+# RECOVER LOSS FILES
+def recover_loss_file(id, type):
+    report_id = str(id[:12])
+    recover = False
+
+    report = BugReport.objects.get(report_id=report_id)
+    hunter_email = str(report.hunter_email)
+    report_title = str(report.report_title)
+
+    if type == None:
+        SEARCH = '(FROM "'+hunter_email+'" SUBJECT "SUBMIT_'+report_title+'")'
+    elif type == "U":
+        SEARCH = '(FROM "'+hunter_email+'" SUBJECT "UPDATE_'+str(report_id)+'")'
+    elif type == "N":
+        SEARCH = '(FROM "'+hunter_email+'" SUBJECT "NDA_'+str(report_id)+'")'
+
+    try:
+        # LOGIN TO IMAP / MAIL SERVER
+        mail = imaplib.IMAP4_SSL(IMAP_SERVER)
+        mail.login(EMAIL,PWD)
+
+        # READ DATA FROM INBOX
+        mail.select('inbox')
+        data = mail.search(None, SEARCH)
+        mail_ids = data[1]
+        id_list = mail_ids[0].split()   
+
+        # ITERATE THROUGH LIST OF EMAILS
+        if(id_list):
+            latest_email_id = int(id_list[-1])
+            data = mail.fetch(str(latest_email_id), '(RFC822)' )
+
+            for response_part in data:
+                arr = response_part[0]
+
+                # EMAIL EXISTS
+                if isinstance(arr, tuple):
+                    msg = email.message_from_string(str(arr[1],'utf-8'))
+                    recover = gerofilter.validate_attachment(msg, id, MEDIA_ROOT) 
+        else:
+            logging.getLogger("Gerologger").error('SEARCHED EMAIL NOT FOUND = ' + str(SEARCH))  
+
+        mail.logout()  
+
+    except Exception as e:
+        logging.getLogger("Gerologger").error("Failed to Login = " + str(e))
+
+    if recover:
+        logging.getLogger("Gerologger").info("Recovery Successful = " + str(id))
+    else:
+        logging.getLogger("Gerologger").error("Recovery Failed = " + str(id))
+
+    return recover
