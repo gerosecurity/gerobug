@@ -66,11 +66,10 @@
           </thead>
           <tbody>
             {% for attributes in bugreportlists %}
-            <tr data-href="{% url 'report_detail' attributes.report_id %}">
-                <td>{{ attributes.report_id }}</td>
+            <tr>
+                <td><a target="_blank" href="{% url 'report_detail' attributes.report_id %}">{{ attributes.report_id }}</a></td>
                 <td><div id="string_overflow">{{ attributes.report_title }}</div></td>
                 <td>{{ attributes.hunter_email }}</td>
-                <!-- <td><p class="max-text">{{attributes.report_summary }}</p> </td> -->
                 <td><a target="_blank" href="{% url 'report_files' attributes.report_id %}">Report File</a></td>
                 <td>
                     {% if attributes.report_status == 1 %}
