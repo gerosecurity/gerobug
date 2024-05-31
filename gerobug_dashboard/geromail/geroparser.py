@@ -209,8 +209,11 @@ def read_mail():
                             have_attachment = gerofilter.validate_attachment(msg, report_id, MEDIA_ROOT)
                             if have_attachment:
                                 msg_body = msg.get_payload()[0].get_payload()
-                                email_body = str(msg_body[0])
-
+                                if type(msg_body) is list:
+                                    email_body = str(msg_body[0])
+                                else:
+                                    email_body = str(msg_body)
+                                    
                                 # CLEAN ENCODING FROM OUTLOOK
                                 email_body = email_body.replace('=\n','')
                                 email_body = email_body.replace('=3D','=')
