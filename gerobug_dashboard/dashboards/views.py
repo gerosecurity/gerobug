@@ -585,11 +585,12 @@ def ReviewerDelete(request,id):
         try:
             if User.objects.filter(id=id).count() != 0:
                 User.objects.filter(id=id).delete()
-                messages.success(request,"User is deleted successfully!")
+                # messages.success(request,"User is deleted successfully!")
+                messages.success(request,"Хэрэглэгчийг амжилттай устгалаа!")
                 return redirect('setting')
         except Exception as e:
             logging.getLogger("Gerologger").error(str(e))
-            messages.error(request,"Something wrong. The delete operation is unsuccessful. Please report to the Admin!")
+            messages.error(request,"Something wrong. Устгах үйлдэл амжилтгүй болсон. Админдаа мэдэгдэнэ үү!")
             return redirect('setting')
         return redirect('setting')
     return render(request,'setting.html')
@@ -600,11 +601,13 @@ def NotificationDelete(request,service):
         try:
             if Webhook.objects.filter(webhook_service=service).count() != 0:
                 Webhook.objects.filter(webhook_service=service).delete()
-                messages.success(request,"Notification Media is deleted successfully!")
+                # messages.success(request,"Notification Media is deleted successfully!")
+                messages.success(request,"Notification Media амжилттай устгагдлаа!")
                 return redirect('setting')
         except Exception as e:
             logging.getLogger("Gerologger").error(str(e))
-            messages.error(request,"Something wrong. The delete operation is unsuccessful. Please report to the Admin!")
+            # messages.error(request,"Something wrong. The delete operation is unsuccessful. Please report to the Admin!")
+            messages.error(request,"Something wrong. Устгах үйлдэл амжилтгүй болсон. Админдаа мэдэгдэнэ үү!")
             return redirect('setting')
         return redirect('setting')
     return render(request,'setting.html')
@@ -628,9 +631,11 @@ def rulescontext(request,):
 def emailcontext(request,):
     if MailBox.objects.filter(mailbox_id=1)[0].email != "":
         email = MailBox.objects.filter(mailbox_id=1)[0].email
-        template = "Submit your email to <strong>"+ email +"</strong> using the templates below..."
+        # template = "Submit your email to <strong>"+ email +"</strong> using the templates below..."
+        template = "Доорх загваруудыг ашиглан <strong>"+ email +"</strong> руу тайлангаа илгээнэ үү..."
     else:
-        template = "Currently the company hasn't set their email yet. Please contact the admin/wait for the mailbox setup."
+        # template = "Currently the company hasn't set their email yet. Please contact the admin/wait for the mailbox setup."
+        template = "Одоогоор имэйл хаягаа хараахан тохируулаагүй байна. Админтай холбогдоно уу."
     return render(request, 'submit.html',{'template':template})
 
 def halloffame(request,):

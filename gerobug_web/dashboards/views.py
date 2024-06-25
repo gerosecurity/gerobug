@@ -10,9 +10,11 @@ def rulescontext(request,):
 def emailcontext(request,):
     if PrerequisitesMailbox.objects.filter(mailbox_id=1)[0].email != "":
         email = PrerequisitesMailbox.objects.filter(mailbox_id=1)[0].email
-        template = "Submit your email to <strong>"+ email +"</strong> using the templates below..."
+        # template = "Submit your email to <strong>"+ email +"</strong> using the templates below..."
+        template = "Доорх загваруудыг ашиглан <strong>"+ email +"</strong> руу тайлангаа илгээнэ үү..."
     else:
-        template = "Currently the company hasn't set their email yet. Please contact the admin/wait for the mailbox setup."
+        # template = "Currently the company hasn't set their email yet. Please contact the admin/wait for the mailbox setup."
+        template = "Одоогоор имэйл хаягаа хараахан тохируулаагүй байна. Админтай холбогдоно уу."
     return render(request, 'submit.html',{'template':template})
 
 def halloffame(request,):

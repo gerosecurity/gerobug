@@ -1,136 +1,136 @@
-# MAIL TEMPLATES FOR GEROBUG
-subject_201 = "Your Bug Report Submission is Received"
+# MAIL TEMPLATES FOR GEROBUG 
+# subject_201 = "Your Bug Report Submission is Received"
+subject_201 = "Таны тайланг амжилттай хүлээн авлаа."
 message_201 = """\
         <html><body>
             <p>
-                Hi there,<br>
-                Your submission with title "~TITLE~" has been received with Report ID <b>~ID~</b>
+                Сайн байна уу,<br>
+                Таны "~TITLE~" гэх тайланг амжилттай хүлээн авлаа, таны тайлангийн ID <b>~ID~</b>
                 <br>
-                Please wait for further update, thank you.<br>
+                Тун удахгүй тань руу хариу имэйл илгээх учир та түр хүлээнэ үү.<br>
 
                 <br><br>
 
-                Best regards,<br>
-                Gerobug Bounty System
+                Хүндэтгэсэн,<br>
+                Bugbounty.mn
             </p>
         </body></html>
         """
 
-subject_202 = "Status of Report ID ~ID~"
+subject_202 = "~ID~ тайлангийн төлөв"
 message_202 = """\
         <html><body>
             <p>
-                Hi there,<br>
-                Thank you for your submission<br><br>
+                Сайн байна уу,<br>
+                Имэйл илгээсэнд тань баярлалаа<br><br>
 
-                The status of Report ID <b>~ID~</b> (~TITLE~) is <b>~STATUS~</b>
+                Таны <b>~ID~</b> (~TITLE~) тайлангийн статус нь <b>~STATUS~</b> шатанд явж байна
                 <br>
-                Please wait for further update<br>
+                Тун удахгүй тань руу хариу имэйл илгээх учир та түр хүлээнэ үү.<br>
 
                 <br><br>
 
-                Best regards,<br>
-                Gerobug Bounty System
+                Хүндэтгэсэн,<br>
+                Bugbounty.mn
             </p>
         </body></html>
         """
 
-subject_203 = "Report Update for ~ID~ Received."
+subject_203 = "~ID~ тайлангийн шинэчлэлтийг амжилттай хүлээн авлаа."
 message_203 = """\
         <html><body>
             <p>
-                Hi there,<br>
-                Your <b>Update</b> on Report ID <b>~ID~</b> (~TITLE~) has been received.
+                Сайн байна уу,<br>
+                Таны <b>~ID~</b> (~TITLE~) тайланг амжилттай шинэчиллээ.
                 <br>
-                Please wait for further update, thank you.<br>
+                Тун удахгүй тань руу хариу имэйл илгээх учир та түр хүлээнэ үү.<br>
 
                 <br><br>
 
-                Best regards,<br>
-                Gerobug Bounty System
+                Хүндэтгэсэн,<br>
+                Bugbounty.mn
             </p>
         </body></html>
         """
 
-subject_204 = "Appeal Request for ~ID~ Received."
+subject_204 = "~ID~ тайлангийн талаарх гомдлыг хүлээн авлаа."
 message_204 = """\
         <html><body>
             <p>
-                Hi there,<br>
-                Your <b>Appeal</b> request for Report ID <b>~ID~</b> (~TITLE~) has been received.
+                Сайн байна уу,<br>
+                Таны <b>~ID~</b> (~TITLE~) тайлангийн талаарх гомдлыг хүлээн авлаа.
                 <br>
-                Please wait for further update, thank you.<br>
+                Тун удахгүй тань руу хариу имэйл илгээх учир та түр хүлээнэ үү.<br>
 
                 <br><br>
 
-                Best regards,<br>
-                Gerobug Bounty System
+                Хүндэтгэсэн,<br>
+                Bugbounty.mn
             </p>
         </body></html>
         """
 
-subject_205 = "Agree Submission for ~ID~ Received."
+subject_205 = "~ID~ тайлангийн bounty-г зөвшөөрсөнд баярлалаа."
 message_205 = """\
         <html><body>
             <p>
-                Hi there,<br>
-                Thank you for your agreement on our Bounty Calculation<br>
-                Your bounty will be processed immediately.
+                Сайн байна уу,<br>
+                Бидний тооцоолсон bounty-г хүлээн зөвшөөрсөнд баярлалаа<br>
                 <br>
-                Please wait for further update, thank you.<br>
+                Тун удахгүй тань руу хариу имэйл илгээх учир та түр хүлээнэ үү.<br>
 
                 <br><br>
 
-                Best regards,<br>
-                Gerobug Bounty System
+                Хүндэтгэсэн,<br>
+                Bugbounty.mn
             </p>
         </body></html>
-        """
+        """    
 
-subject_206 = "Bounty Prerequisites for ~ID~ Received."
+subject_206 = "~ID~ нууцыг задруулахгүй байх гэрээг зөвшөөрсөнд баярлалаа."
 message_206 = """\
         <html><body>
             <p>
-                Hi there,<br>
-                NDA and Bounty Prerequisites for Report ID <b>~ID~</b> has been received.
+                Сайн байна уу,<br>
+                <b>~ID~</b> тайлангийн нууцыг задруулахгүй байх гэрээг амжилттай хүлээн авлаа.
                 <br>
-                Please wait for further update, thank you.<br>
+                Тун удахгүй тань руу хариу имэйл илгээх учир та түр хүлээнэ үү.<br>
 
                 <br><br>
 
-                Best regards,<br>
-                Gerobug Bounty System
+                Хүндэтгэсэн,<br>
+                Bugbounty.mn
             </p>
         </body></html>
         """
 
-subject_207 = "Your Current Score"
+subject_207 = "Таны одоогийн оноо"
 message_207 = """\
         <html><body>
             <p>
-                Hi there,<br>
-                Your current score in our Bug Bounty Program is <b>~NOTE~</b>
+                Сайн байна уу,<br>
+                Манай Bug bounty хөтөлбөрт таны одоогийн оноо <b>~NOTE~</b> байна
                 <br>
-                You can check the overall rank in our Wall of Fame page.
+                Та манай Hall of Fame хуудаснаас нийт оноонуудыг шалгаж болно.
                 
                 <br><br>
                 <b>Stay hungry, stay hunting!</b>
                 <br><br>
 
-                Best regards,<br>
-                Gerobug Bounty System
+                Хүндэтгэсэн,<br>
+                Bugbounty.mn
             </p>
         </body></html>
         """
 
-subject_208 = "Report Status Overview"
+subject_208 = "Тайлангийн статусын тойм"
 message_208 = """\
         <html><body>
             <p>
-                Hi there,<br>
-                Currently you have <b>~ID~</b> reports submitted to our system.
+                Сайн байна уу,<br>
+                Одоогоор танд манай системд илгээсэн <b>~ID~</b> тайлан байна.
                 <br>
-                Here are the details:
+                Дэлгэрэнгүй мэдээлэл:
                 <br><br>
                 
                 <table border="1">
@@ -144,54 +144,55 @@ message_208 = """\
                 
                 <br><br>
 
-                Best regards,<br>
-                Gerobug Bounty System
+                Хүндэтгэсэн,<br>
+                Bugbounty.mn
             </p>
         </body></html>
         """
 
 # ERROR TEMPLATES FOR GEROBUG
-subject_403 = "This email are not Authorized!"
+subject_403 = "Таны имэйл хандах эрхгүй байна!"
 message_403 = """\
         <html><body>
             <p>
-                Hi there,<br>
-                Thank you for your submission<br><br>
+                Сайн байна уу,<br>
+                Имэйл илгээсэн тань баярлалаа<br><br>
 
-                However, this email address is <b>NOT AUTHORIZED</b><br>
-                to perform the requested action for Report ID: <b>~ID~</b>
+                Таны имэйл хаяг <b>~ID~</b> тайланд хандах <b>эрхгүй</b> байна.<br>
+                Тайлангийн ID 
                 <br><br>
                 Keep in mind:<br> 
-                1. Use the proper email for the Report ID<br>
-                2. Re-check your submitted Report ID<br>
-                3. Wait for prior instruction before submitting specific request<br>
+                1. Тайлан илгээсэн имэйл ашиглана уу<br>
+                2. Илгээсэн тайлангийн ID-г дахин шалгана уу<br>
+                3. Тодорхой хүсэлт гаргахаас өмнө урьдчилсан зааварчилгааг хүлээнэ үү<br>
 
                 <br><br>
 
-                Best regards,<br>
-                Gerobug Bounty System
+                Хүндэтгэсэн,<br>
+                Bugbounty.mn
             </p>
         </body></html>
         """
 
-subject_404 = "INVALID REPORT"
+subject_404 = "ХҮЧИНГҮЙ REPORT"
 message_404 = """\
         <html><body>
             <p>
-                Hi there,<br>
-                Thank you for your submission<br><br>
+                Сайн байна уу,<br>
+                Имэйл илгээсэнд тань баярлалаа<br><br>
 
-                However, your submission is <b>NOT VALID</b>
+                Таны илгээсэн имэйл амжилтгүй боллоо
                 <br>
-                The reason was:<br> 
+                Учир нь:<br> 
                 <b>~NOTE~</b>
                 <br>
-                Please re-check your format, make sure you are following the required format as defined <a href="https://gerobug.gitbook.io/documentation/filter-and-validation" target="_blank">here</a><br>
+                Таны имэйл стандарт, форматыг хангаж байгаа эсэхийг <a href="https://bugbounty.mn/submit" target="_blank">эндээс</a> шалгана уу <br>
+
 
                 <br><br>
 
-                Best regards,<br>
-                Gerobug Bounty System
+                Хүндэтгэсэн,<br>
+                Bugbounty.mn
             </p>
         </body></html>
         """
@@ -200,79 +201,80 @@ subject_405 = "INVALID REPORT ID"
 message_405 = """\
         <html><body>
             <p>
-                Hi there,<br>
-                Thank you for your submission<br><br>
-
-                However, your submitted Report ID (<b>~ID~</b>) is <b>NOT VALID</b>
+                Сайн байна уу,<br>
+                Имэйл илгээсэнд тань баярлалаа<br><br>
+                Таны илгээсэн (<b>~ID~</b>) тайлан ХҮЧИНГҮЙ байна
                 <br> 
-                Please re-check your <b>REPORT ID</b>, make sure it is correct.<br>
+                Тайлангийн ID-аа зөв ​​эсэхийг шалгана уу.<br>
 
                 <br><br>
 
-                Best regards,<br>
-                Gerobug Bounty System
+                Хүндэтгэсэн,<br>
+                Bugbounty.mn
             </p>
         </body></html>
         """
 
-subject_406 = "This Email is Blacklisted"
+subject_406 = "Энэ имэйл хар жагсаалтад орсон байна"
 message_406 = """\
         <html><body>
             <p>
-                Hi there,<br>
-                This email is <b>BLACKLISTED</b> due to SPAM ACTIVITY<br><br>
+                Сайн байна уу,<br>
+                Энэ имэйл SPAM ACTIVITY-ийн улмаас <b>ХАР ЖАГСААЛТАД</b> орсон байна
 
-                Blacklist period will end in <b>~NOTE~</b> seconds.
+                Та <b>~NOTE~</b> секундийн дараа хар жагсаалтаас гарах болно.
                 <br> 
-                Try to submit again after the blacklist period ends.<br>
+                Дээрх хугацаа дууссаны дараа дахин имэйл илгээх боломжтой.<br>
 
                 <br><br>
 
-                Best regards,<br>
-                Gerobug Bounty System
+                Хүндэтгэсэн,<br>
+                Bugbounty.mn
             </p>
         </body></html>
         """
 
 
 # NOTIFICATION TEMPLATES FOR GEROBUG
-subject_300 = "Notification for Report ID ~ID~"
+subject_300 = "~ID~ тайланд зориулсан мэдэгдэл"
 message_300 = """\
         <html><body>
             <p>
-                Hi there,<br>
-                With this email, we want to notify you that the current status<br>
-                of Report ID <b>~ID~</b> (~TITLE~)<br>
-                is <b>~STATUS~</b>
+                Сайн байна уу,<br>
+
+                Энэхүү имэйлээрээ бид танд (~TITLE~)<br>
+                <b>~ID~</b> тайлангийн статусыг танилцуулж байна.<br>
+                Таны тайлангийн статус: <b>~STATUS~</b>
                 <br>
-                The reason was:<br> 
+                Учир нь:<br> 
                 <b>~NOTE~</b>
 
                 <br><br>
-                Thank you for your effort in keeping our system safe.
+                Манай системийг аюулгүй ажиллагаанд хувь нэмрээ оруулсанд тань баярлалаа.
                 <br><br>
                 
-                Best regards,<br>
-                Gerobug Bounty System
+                Хүндэтгэсэн,<br>
+                Bugbounty.mn
             </p>
         </body></html>
         """
 
-subject_301 = "Notification for Report ID ~ID~"
+subject_301 = "~ID~ тайланд зориулсан мэдэгдэл"
 message_301 = """\
         <html><body>
             <p>
-                Hi there,<br>
-                With this email, we want to notify you that the current status<br>
-                of Report ID <b>~ID~</b> (~TITLE~)<br>
-                is <b>~STATUS~</b>
+                Сайн байна уу,<br>
+
+                Энэхүү имэйлээрээ бид танд (~TITLE~)<br>
+                <b>~ID~</b> тайлангийн статусыг танилцуулж байна.<br>
+                Таны тайлангийн статус: <b>~STATUS~</b>
                 <br> 
-                Please wait for further update<br>
+                Тун удахгүй тань руу хариу имэйл илгээх учир та түр хүлээнэ үү.<br>
 
                 <br><br>
 
-                Best regards,<br>
-                Gerobug Bounty System
+                Хүндэтгэсэн,<br>
+                Bugbounty.mn
             </p>
         </body></html>
         """
@@ -280,90 +282,90 @@ message_301 = """\
 
 
 # REQUEST TEMPLATES FOR GEROBUG
-subject_701 = "Request More Information for Report ID ~ID~"
+subject_701 = "~ID~ тайлангийн талаар нэмэлт мэдээлэл хүсэх нь"
 message_701 = """\
         <html><body>
             <p>
-                Hi there,<br>
-                With this email, we want to request more information/details<br>
-                for Report ID <b>~ID~</b> (~TITLE~)<br>
+                Сайн байна уу,<br>
+                Энэхүү имэйлээрээ бид <b>~ID~</b> (~TITLE~) тайлангийн<br>
+                талаар илүү дэлгэрэнгүй мэдээлэл авахыг хүсэж байна.<br>
 
                 <br>
-                Note:<br> 
+                Тайлбар:<br> 
                 <b>~NOTE~</b>
                 
                 <br><br>
-                You may submit your updated report with subject "<b>UPDATE_~ID~</b>" using this email address<br>
-                Add a <b>Summary</b> of the update in the email body (text only)<br>
-                Do not forget to attach a <b>PDF File</b><br>
+                Та одоогийн имэйл хаягаа ашиглан "<b>UPDATE_~ID~</b>" гарчигтайгаар шинэчилсэн тайлангаа илгээж болно<br>
+                Имэйлийн үндсэн хэсэгт шинэчлэлтүүдийг <b>нэгтгэн</b>-г оруулна уу (зөвхөн текст)<br>
+                <b>PDF файлаа хавсаргахаа бүү мартаарай</b><br>
                 
-                <br>For more information about email format, you may refer to our guideline page<br>
+                <br>Имэйлийн форматын талаар нэмэлт мэдээлэл авахыг хүсвэл манай нүүр хуудаснаас харж болно<br>
                 
                 <br><br>
-                We look forward to hearing from you<br>
-                Best regards,<br>
-                Gerobug Bounty System
+                Бид таны санал хүсэлтийг хүлээж байна<br>
+                Хүндэтгэсэн,<br>
+                Bugbounty.mn
             </p>
         </body></html>
         """
 
-subject_702 = "Bounty Calculation for Report ID ~ID~"
+subject_702 = "~ID~ тайлангийн bounty-г тооцоолох"
 message_702 = """\
         <html><body>
             <p>
-                Hi there,<br>
-                With this email, we want to inform you about Bounty Calculation<br>
-                for Report ID <b>~ID~</b> (~TITLE~)<br>
+                Сайн байна уу,<br>
+                Энэхүү имэйлээр бид танд <b>~ID~</b> (~TITLE~) тайлангийн
+                шагналын тооцооны талаар мэдэгдэхийг хүсэж байна.<br>
                 
                 <br>
-                Severity: <b>~SEVERITY~</b><br>
+                Эмзэг байдлын зэрэг (Severity): <b>~SEVERITY~</b><br>
 
                 <br>
-                Note:<br> 
+                Тайлбар:<br> 
                 <b>~NOTE~</b>
                 
                 <br><br>
-                If you <b>Agree</b>, submit an email with subject "<b>AGREE_~ID~</b>" without any text in the body using this email address<br>
+                Хэрэв та bounty-ний тооцооллыг хүлээн зөвшөөрч байвал subject хэсэгт "<b>AGREE_~ID~</b>" гэсэн имэйлийг ямар нэгэн илүү текстийг үндсэн хэсэгт агуулалгүй илгээнэ үү.<br>
                 <br>
-                If you <b>Disagree</b>, submit your complaint with subject "<b>APPEAL_~ID~</b>" using this email address<br>
-                Add a <b>Reason/Explanation</b> of your complaint in the email body (text only)<br>
+                Хэрэв та bounty-ний тооцоололтой санал нийлэхгүй байвал subject хэсэгт "<b>APPEAL_~ID~</b>" гэсэн имэйлийг илгээх ба үндсэн хэсэгт шалтгаан/тайлбарыг нэмнэ үү (зөвхөн текст)<br>
 
-                <b>You have a limit of <b>3 times</b> to submit any complaint, otherwise we will consider that you agreed and process the bounty</b>
+                Та <b>3 удаа</b> заргалдах хязгаартай, эс тэгвээс бид таныг зөвшөөрсөн гэж үзэн асуудлыг шийдвэрлэнэ.
                 <br>
                 
-                <br>For more information about email format, you may refer to our guideline page<br>
+                <br>Имэйлийн форматын талаар нэмэлт мэдээлэл авахыг хүсвэл манай нүүр хуудаснаас харж болно<br>
 
                 <br><br>
-                We look forward to hearing from you<br>
-                Best regards,<br>
-                Gerobug Bounty System
+                Бид таны санал хүсэлтийг хүлээж байна<br>
+                Хүндэтгэсэн,<br>
+                Bugbounty.mn
             </p>
         </body></html>
         """
 
-subject_703 = "Bounty Prerequisites for Report ID ~ID~"
+subject_703 = "~ID~ урьдчилсан нөхцөл, нууцыг задруулахгүй байх гэрээ (NDA)"
 message_703 = """\
         <html><body>
             <p>
-                Hi there,<br>
-                With this email, we want to request information that we need to process bounty<br>
-                for Report ID <b>~ID~</b> (~TITLE~)<br>
+                Сайн байна уу,<br>
+                Энэхүү имэйлээр бид танд <b>~ID~</b> (~TITLE~) тайлангийн
+                шагналыг тооцоолоход шаардлагатай мэдээллийг хүсэхийг хүсэж байна.<br>
 
                 <br>
-                Note:<br> 
+                Тайлбар:<br> 
                 <b>~NOTE~</b>
                 
                 <br><br>
-                Submit an email with subject "<b>NDA_~ID~</b>" using this email address<br>
-                Add the requested information in the email body (text only)<br>
-                Do not forget to attach the <b>signed NDA</b><br>
+
+                Та одоогийн имэйл хаягаа ашиглан "<b>NDA_~ID~</b>" гарчигтайгаар имэйл илгээнэ үү<br>
+                Нэмэлт хүсэлтийг имэйлийн үндсэн хэсэгт нэмнэ үү (зөвхөн текст)<br>
+                <b>signed NDA</b> буюу гарын үзэг зурсан файлаа хавсаргахаа бүү мартаарай<br>
                 
-                <br>For more information about email format, you may refer to our guideline page<br>
+                <br>Имэйлийн форматын талаар нэмэлт мэдээлэл авахыг хүсвэл манай нүүр хуудаснаас харж болно<br>
 
                 <br><br>
-                We look forward to hearing from you<br>
-                Best regards,<br>
-                Gerobug Bounty System
+                Бид таны санал хүсэлтийг хүлээж байна<br>
+                Хүндэтгэсэн,<br>
+                Bugbounty.mn
             </p>
         </body></html>
         """
@@ -372,20 +374,22 @@ subject_704 = "Thank you for your contribution"
 message_704 = """\
         <html><body>
             <p>
-                Hi there,<br>
-                With this email, we want to inform that your bounty have been processed<br>
+                Сайн байна уу,<br>
+                Энэхүү имэйлээр бид таны bounty-г боловсруулж дууссаныг мэдэгдэхийг хүсэж байна<br>
                 <br>
-                Note:<br> 
+                Тайлбар:<br> 
                 <b>~NOTE~</b>
                 
                 <br><br>
-                Thank you for your contribution to our security with Report ID <b>~ID~</b> (~TITLE~)<br>
+
+                Таны <b>~ID~</b> (~TITLE~) тайлан бидний аюулгүй байдалд үнэтэй хувь нэмэр оруулсанд талархаж байна.
+                
                 <br> 
                 Stay hungry, Stay hunting!<br>
 
                 <br><br>
-                Best regards,<br>
-                Gerobug Bounty System
+                Хүндэтгэсэн,<br>
+                Bugbounty.mn
             </p>
         </body></html>
         """

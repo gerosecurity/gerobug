@@ -228,7 +228,7 @@ def read_mail():
                                 if (len(report_title) < 3) or (atk_type == '') or (report_endpoint == '') or (len(report_summary) < 10):
                                     logging.getLogger("Gerologger").warning('[ERROR 404] Report not valid (Details are too short)')
                                     code = 404
-                                    payload[3] = "Details are too short, make sure Title at least < 3, and Summary at least < 10"
+                                    payload[3] = "Details are too short, make sure Title at least < 3, and Summary at least < 10" 
                                     
                                 elif (len(report_title) > 100) or (len(atk_type) > 100) or (len(report_endpoint) > 100):
                                     logging.getLogger("Gerologger").warning('[ERROR 404] Report not valid (Details are too long)')
@@ -425,7 +425,7 @@ def read_mail():
                         # INVALID REPORT FORMAT
                         else:
                             logging.getLogger("Gerologger").warning('[ERROR 404] Report not valid')
-                            payload[3] = "Wrong formatting."
+                            payload[3] = "Формат буруу байна."
 
                         logging.getLogger("Gerologger").info('============================')
                         geromailer.write_mail(code, payload, hunter_email)

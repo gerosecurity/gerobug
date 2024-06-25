@@ -9,7 +9,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="Gerobug-signature" content="97de67b8d672c51c158247f398b85d31">
 
-    <title>Rules and Guidelines</title>
+    <!-- <title>Rules and Guidelines</title> -->
+    <title>Дүрэм ба Зааварчилгаа</title>
     <link rel="shortcut icon" href='{% static "favicon.ico" %}' type="image/x-icon">
     <link rel="icon" href='{% static "favicon.ico" %}' type="image/x-icon">
 
@@ -61,13 +62,16 @@
                 <div class="nav-content"><img src="{% static 'logo.png' %}"></div>
             </a></li>
             <li><a href="{% url 'rules' %}">
-                <div class="nav-content">Rules & Guidelines</div>
+                <!-- <div class="nav-content">Rules & Guidelines</div> -->
+                <div class="nav-content">Дүрэм ба Зааварчилгаа</div>
             </a></li>
             <li><a href="{% url 'halloffame' %}">
-                <div class="nav-content">Hall Of Fame</div>
+                <!-- <div class="nav-content">Hall Of Fame</div> -->
+                <div class="nav-content">Алдрын танхим</div>
             </a></li>
             <li><a class="active" href="{% url 'submit' %}">
-                <div class="nav-content">Submit</div>
+                <!-- <div class="nav-content">Submit</div> -->
+                <div class="nav-content">Тайлан илгээх</div>
             </a></li>
             <li class="icon"><a href="javascript:void(0);" onclick="myFunction()">
                 <div class="nav-content"><i class="fa fa-bars"></i></div>
@@ -76,9 +80,13 @@
     </header>
 
     <main>
-        <h1>How To Submit</h1>
+        <!-- <h1>How To Submit</h1> -->
+        <h1>Тайлан илгээх зааварчилгаа</h1>
         <p>{{ template|safe }}</p>
-        <p>Join Gerobug community on <a href="https://discord.gg/VhU4X4TQ5F" target="_blank">Discord</a></p>
+
+        <!-- Хэрэв Discord байгаа бол -->
+        <!-- <p>Join our community on <a href="https://discord.gg/VhU4X4TQ5F" target="_blank">Discord</a></p> -->
+        <p>Join our community on <a href="https://discord.gg" target="_blank">Discord</a></p>
 
         <div class="accordion" id="accordionPanelsStayOpenExample">
             <div class="accordion-item">
@@ -86,7 +94,10 @@
                     <button class="accordion-button" type="button" data-bs-toggle="collapse"
                         data-bs-target="#panelsStayOpen-collapseOne" aria-expanded="true"
                         aria-controls="panelsStayOpen-collapseOne">
-                        Submit Bug Bounty Report
+
+                        <!-- Submit Bug Bounty Report -->
+                        Тайлан илгээх
+
                     </button>
                 </h2>
                 <div id="panelsStayOpen-collapseOne" class="accordion-collapse collapse show"
@@ -95,7 +106,7 @@
                         <b>Subject: </b>
                         <br>
                         <div class="text-wrap">
-                        <textarea readonly id="Subject_1" rows="1" cols="40">SUBMIT_Report Title</textarea>
+                        <textarea readonly id="Subject_1" rows="1" cols="40">SUBMIT_(Тайлангийн гарчиг)</textarea>
                         <div id="copyToClipboard-a" class="clipboard icon" onclick="copytext('Subject_1')"><i class="fa fa-copy"></i></div>
                         </div>
 
@@ -104,20 +115,22 @@
                         <div class="text-wrap">
                         <textarea readonly id="Body_1" rows="3" cols="40">
 TYPE= Bug Type (example: XSS, SQL Injection, IDOR, etc.)
-ENDPOINT= Affected Endpoint (example: https://demo.gerobug.com/submit) [max 100 characters]
+ENDPOINT= Affected Endpoint (example: https://bugbounty.mn/submit) [max 100 characters]
 SUMMARY= Summary of your finding</textarea>
                         <div id="copyToClipboard-a" class="clipboard icon" onclick="copytext('Body_1')"><i class="fa fa-copy"></i></div>
                         </div>
 
                         <b>Attachment:</b> 
                         <br>
-                        PDF REPORT FILE
+                        <!-- PDF REPORT FILE -->
+                        PDF ТАЙЛАН
                         (<a href="{% static 'templates/Template_Report.docx' %}">Report Template</a>)<br>
 
                         <br>
-                        <b>Sample:</b>
+                        <!-- <b>Sample:</b> -->
+                        <b>Загвар:</b>
                         <br>
-                        <img src="{% static 'sample/submit.png' %}" width="35%">
+                        <img src="{% static 'sample/submit1.png' %}" width="35%">
                     </div>
                 </div>
             </div>
@@ -126,7 +139,8 @@ SUMMARY= Summary of your finding</textarea>
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                         data-bs-target="#panelsStayOpen-collapseTwo" aria-expanded="false"
                         aria-controls="panelsStayOpen-collapseTwo">
-                        Check Report Status
+                        <!-- Check Report Status -->
+                        Тайлангийн статусыг шалгах
                     </button>
                 </h2>
                 <div id="panelsStayOpen-collapseTwo" class="accordion-collapse collapse"
@@ -135,14 +149,15 @@ SUMMARY= Summary of your finding</textarea>
                         <b>Subject: </b>
                         <br>
                         <div class="text-wrap">
-                        <textarea readonly id="Subject_2" rows="1" cols="40">CHECK_Report ID</textarea>
+                        <textarea readonly id="Subject_2" rows="1" cols="40">CHECK_(Тайлангийн ID)</textarea>
                         <div id="copyToClipboard-a" class="clipboard icon" onclick="copytext('Subject_2')"><i class="fa fa-copy"></i></div>
                         </div>
 
                         <br>
-                        <b>Sample:</b>
+                        <!-- <b>Sample:</b> -->
+                        <b>Загвар:</b>
                         <br>
-                        <img src="{% static 'sample/check.png' %}" width="35%">
+                        <img src="{% static 'sample/check1.png' %}" width="35%">
                     </div>
                 </div>
             </div>
@@ -151,7 +166,8 @@ SUMMARY= Summary of your finding</textarea>
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                         data-bs-target="#panelsStayOpen-collapseTwo1" aria-expanded="false"
                         aria-controls="panelsStayOpen-collapseTwo1">
-                        Check All Report Status (Overview)
+                        <!-- Check All Report Status (Overview) -->
+                        Тайлангийн статусыг шалгах (Тойм)
                     </button>
                 </h2>
                 <div id="panelsStayOpen-collapseTwo1" class="accordion-collapse collapse"
@@ -165,9 +181,10 @@ SUMMARY= Summary of your finding</textarea>
                         </div>
 
                         <br>
-                        <b>Sample:</b>
+                        <!-- <b>Sample:</b> -->
+                        <b>Загвар:</b>
                         <br>
-                        <img src="{% static 'sample/overview.png' %}" width="35%">
+                        <img src="{% static 'sample/overview1.png' %}" width="35%">
                     </div>
                 </div>
             </div>
@@ -176,7 +193,8 @@ SUMMARY= Summary of your finding</textarea>
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                         data-bs-target="#panelsStayOpen-collapseThree" aria-expanded="false"
                         aria-controls="panelsStayOpen-collapseThree">
-                        Update Report
+                        <!-- Update Report -->
+                        Тайлангаа шинэчлэх
                     </button>
                 </h2>
                 <div id="panelsStayOpen-collapseThree" class="accordion-collapse collapse"
@@ -185,25 +203,28 @@ SUMMARY= Summary of your finding</textarea>
                         <b>Subject: </b>
                         <br>
                         <div class="text-wrap">
-                        <textarea readonly id="Subject_4" rows="1" cols="40">UPDATE_Report ID</textarea>
+                        <textarea readonly id="Subject_4" rows="1" cols="40">UPDATE_(Тайлангийн ID)</textarea>
                         <div id="copyToClipboard-a" class="clipboard icon" onclick="copytext('Subject_4')"><i class="fa fa-copy"></i></div>
                         </div>
 
                         <b>Body:</b> 
                         <br>
-                        Summary of your updates
+                        <!-- Summary of your updates -->
+                        Шинэчилсэн зүйлсийн талаарх хураангуй мэдээлэл
                         <br>
 
                         <br>
                         <b>Attachment:</b> 
                         <br>
-                        PDF REPORT FILE
+                        <!-- PDF REPORT FILE -->
+                        ШИНЭЧИЛСЭН PDF ТАЙЛАН
                         (<a href="{% static 'templates/Template_Report.docx' %}">Report Template</a>)<br>
 
                         <br>
-                        <b>Sample:</b>
+                        <!-- <b>Sample:</b> -->
+                        <b>Загвар:</b>
                         <br>
-                        <img src="{% static 'sample/update.png' %}" width="35%">
+                        <img src="{% static 'sample/update1.png' %}" width="35%">
                     </div>
                 </div>
             </div>
@@ -212,7 +233,8 @@ SUMMARY= Summary of your finding</textarea>
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                         data-bs-target="#panelsStayOpen-collapseFour" aria-expanded="false"
                         aria-controls="panelsStayOpen-collapseFour">
-                        Appeal to Bounty Calculations
+                        Bounty-ний тооцоолоолтой санал нийлэхгүй, гомдол гаргах
+
                     </button>
                 </h2>
                 <div id="panelsStayOpen-collapseFour" class="accordion-collapse collapse"
@@ -221,19 +243,20 @@ SUMMARY= Summary of your finding</textarea>
                         <b>Subject: </b>
                         <br>
                         <div class="text-wrap">
-                        <textarea readonly id="Subject_5" rows="1" cols="40">APPEAL_Report ID</textarea>
+                        <textarea readonly id="Subject_5" rows="1" cols="40">APPEAL_(Тайлангийн ID)</textarea>
                         <div id="copyToClipboard-a" class="clipboard icon" onclick="copytext('Subject_5')"><i class="fa fa-copy"></i></div>
                         </div>
 
                         <b>Body:</b> 
                         <br>
-                        Reason of your appeal
+                        Яагаад санал нийлэхгүй байгаа шалтгаан
                         <br>
 
                         <br>
-                        <b>Sample:</b>
+                        <!-- <b>Sample:</b> -->
+                        <b>Загвар:</b>
                         <br>
-                        <img src="{% static 'sample/appeal.png' %}" width="35%">
+                        <img src="{% static 'sample/appeal1.png' %}" width="35%">
                     </div>
                 </div>
             </div>
@@ -243,7 +266,8 @@ SUMMARY= Summary of your finding</textarea>
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                         data-bs-target="#panelsStayOpen-collapseFive" aria-expanded="false"
                         aria-controls="panelsStayOpen-collapseFive">
-                        Agree to Bounty Calculations
+                        <!-- Agree to Bounty Calculations -->
+                        Bounty-ний тооцоололтой санал нийлэх
                     </button>
                 </h2>
                 <div id="panelsStayOpen-collapseFive" class="accordion-collapse collapse"
@@ -252,14 +276,15 @@ SUMMARY= Summary of your finding</textarea>
                         <b>Subject: </b>
                         <br>
                         <div class="text-wrap">
-                        <textarea readonly id="Subject_6" rows="1" cols="40">AGREE_Report ID</textarea>
+                        <textarea readonly id="Subject_6" rows="1" cols="40">AGREE_(Тайлангийн ID)</textarea>
                         <div id="copyToClipboard-a" class="clipboard icon" onclick="copytext('Subject_6')"><i class="fa fa-copy"></i></div>
                         </div>
 
                         <br>
-                        <b>Sample:</b>
+                        <!-- <b>Sample:</b> -->
+                        <b>Загвар:</b>
                         <br>
-                        <img src="{% static 'sample/agree.png' %}" width="35%">
+                        <img src="{% static 'sample/agree1.png' %}" width="35%">
                     </div>
                 </div>
             </div>
@@ -268,7 +293,8 @@ SUMMARY= Summary of your finding</textarea>
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                         data-bs-target="#panelsStayOpen-collapseSix" aria-expanded="false"
                         aria-controls="panelsStayOpen-collapseSix">
-                        Submit Data and NDA
+                        <!-- Submit Data and NDA -->
+                        Нууцлалын гэрээ болон хувийн мэдээлэл
                     </button>
                 </h2>
                 <div id="panelsStayOpen-collapseSix" class="accordion-collapse collapse"
@@ -277,13 +303,13 @@ SUMMARY= Summary of your finding</textarea>
                         <b>Subject: </b>
                         <br>
                         <div class="text-wrap">
-                        <textarea readonly id="Subject_7" rows="1" cols="40">NDA_Report ID</textarea>
+                        <textarea readonly id="Subject_7" rows="1" cols="40">NDA_(Тайлангийн ID)</textarea>
                         <div id="copyToClipboard-a" class="clipboard icon" onclick="copytext('Subject_7')"><i class="fa fa-copy"></i></div>
                         </div>
 
                         <b>Body:</b> 
                         <br>
-                        Requested Information
+                        Компани талаас хүссэн мэдээллүүд
                         <br>
 
                         <br>
@@ -293,9 +319,10 @@ SUMMARY= Summary of your finding</textarea>
                         <br>
 
                         <br>
-                        <b>Sample:</b>
+                        <!-- <b>Sample:</b> -->
+                        <b>Загвар:</b>
                         <br>
-                        <img src="{% static 'sample/nda.png' %}" width="35%">
+                        <img src="{% static 'sample/nda1.png' %}" width="35%">
                     </div>
                 </div>
             </div>
@@ -304,7 +331,7 @@ SUMMARY= Summary of your finding</textarea>
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                         data-bs-target="#panelsStayOpen-collapseSeven" aria-expanded="false"
                         aria-controls="panelsStayOpen-collapseSeven">
-                        Check Score
+                        Оноогоо шалгах
                     </button>
                 </h2>
                 <div id="panelsStayOpen-collapseSeven" class="accordion-collapse collapse"
@@ -318,9 +345,10 @@ SUMMARY= Summary of your finding</textarea>
                         </div>
                         
                         <br>
-                        <b>Sample:</b>
+                        <!-- <b>Sample:</b> -->
+                        <b>Загвар:</b>
                         <br>
-                        <img src="{% static 'sample/score.png' %}" width="35%">
+                        <img src="{% static 'sample/score1.png' %}" width="35%">
                     </div>
                 </div>
             </div>
@@ -330,7 +358,7 @@ SUMMARY= Summary of your finding</textarea>
 
     <footer>
         <div id="copyright">
-            <p>&copy; {%now "Y"%} GEROBUG</p>
+            <p>&copy; {%now "Y"%} BUGBOUNTY</p>
         </div>
     </footer>
 
