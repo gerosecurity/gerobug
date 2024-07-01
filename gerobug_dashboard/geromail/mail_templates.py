@@ -390,6 +390,28 @@ message_704 = """\
         </body></html>
         """
 
+subject_9999 = "Gerobug Password Reset"
+message_9999 = """\
+        <html><body>
+            <p>
+                Hi there,<br>
+                This is an automated message for you due to your request to reset your password
+                associated with this email account. 
+                <br><br>
+                
+                <b>To continue, please click the link below to initiate the password reset process:</b><br>
+                <a href="~DOMAIN~:6320/login/reset/~UID~/~TOKEN~/">~DOMAIN~:6320/login/reset/~UID~/~TOKEN~/</a>
+                <br><br>
+
+                This is a one-time link so it can only be used once!<br>
+                If you didn't make this request, please ignore this email.<br>
+                <br><br>
+
+                Best regards,<br>
+                Gerobug Bounty System
+            </p>
+        </body></html>
+        """
 
 
 # DICTIONARY VARIABLES
@@ -414,7 +436,9 @@ subjectlist = {
     701: subject_701,   # REQUEST UPDATE/AMEND (TITLE, ID, NOTE, URL)
     702: subject_702,   # SEND BOUNTY CALCULATIONS (TITLE, ID, NOTE, URL)
     703: subject_703,   # REQUEST NDA (TITLE, ID, NOTE, URL)
-    704: subject_704    # SEND BOUNTY + PROOF (TITLE, ID)
+    704: subject_704,   # SEND BOUNTY + PROOF (TITLE, ID)
+
+    9999: subject_9999
 }
 
 messagelist = {
@@ -438,5 +462,7 @@ messagelist = {
     701: message_701,
     702: message_702,
     703: message_703,
-    704: message_704
+    704: message_704,
+
+    9999: message_9999
 }
