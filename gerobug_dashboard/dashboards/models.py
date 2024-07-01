@@ -77,7 +77,7 @@ class BugReportNDA(models.Model):
 
 class BugHunter(models.Model):
     hunter_email = models.EmailField()
-    hunter_username = models.CharField(max_length=30)
+    hunter_username = models.CharField(max_length=50)
     hunter_scores = models.IntegerField()
 
     def __str__(self):
