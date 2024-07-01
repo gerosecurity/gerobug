@@ -8,14 +8,16 @@ from django.contrib.auth.models import User
 from django.utils.http import urlsafe_base64_encode
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes
-from django.core.mail import send_mail, BadHeaderError
-from django.http import HttpResponse
 from django.urls import reverse
 from django.contrib import messages
 from django.template.loader import render_to_string
-from gerobug.settings import EMAIL_HOST_USER, EMAIL_HOST_PASSWORD
 from prerequisites.models import MailBox
 
+import smtplib
+import logging
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from geromail import mail_templates
 
 def LoginForm(request):
     if request.user.is_authenticated:
@@ -42,45 +44,78 @@ def LoginForm(request):
     form = AuthenticationForm()
     return render(request=request, template_name="login.html", context={"login_form":form})
 
+
 def PasswordReset(request):
     if request.method == "POST":
         password_resets = PasswordResetForm(request.POST)
+
         if password_resets.is_valid():
             param = password_resets.cleaned_data['email']
             check_email = User.objects.filter(Q(email=param))
+
             if MailBox.objects.filter(mailbox_id=1)[0].email == "":
                 messages.error(request,"Admin has not set up the mailbox setting. Please contact them/wait for the setup is finished!")
                 return redirect("password_reset")
+            
             else:
                 if check_email.exists():
                     for user in check_email:
-                        subject = "Gerobug Password Reset"
-                        body = "password_reset_forms/email_template.txt"
                         url = request.build_absolute_uri(reverse('rules'))
                         domain = url[:len(url)-1]
-                        c = {
-                            "email": user.email,
-                            "domain": domain,
-                            "site_name": "Gerobug",
-                            "uid": urlsafe_base64_encode(force_bytes(user.pk)),
-                            "user": user,
-                            "token": default_token_generator.make_token(user),
-                        }
-                        email = render_to_string(body, c)
-                        try:
-                            mailbox = MailBox.objects.get(mailbox_id=1)
-                            EMAIL_USE_TLS = True
-                            EMAIL_HOST_USER = mailbox.email
-                            EMAIL_HOST_PASSWORD = mailbox.password
-                            
-                            send_mail(subject, email, EMAIL_HOST_USER, [user.email], fail_silently=False, auth_user=EMAIL_HOST_USER, auth_password=EMAIL_HOST_PASSWORD)
+                        uid = urlsafe_base64_encode(force_bytes(user.pk))
+                        token = default_token_generator.make_token(user)
 
-                        except BadHeaderError:
-                            return HttpResponse('Invalid header found.')
+                        subject = mail_templates.subjectlist[9999]
+                        body = mail_templates.messagelist[9999]
+                        body = body.replace("~DOMAIN~", str(domain))
+                        body = body.replace("~UID~", str(uid))
+                        body = body.replace("~TOKEN~", str(token))
+ 
+                        # SEND EMAIL
+                        mailbox     = MailBox.objects.get(mailbox_id=1)
+                        EMAIL       = mailbox.email
+                        PWD         = mailbox.password
+                        TYPE        = mailbox.mailbox_type
 
+                        message = MIMEMultipart("alternative")
+                        message["From"] = mailbox.email
+                        message["To"] = user.email
+                        message["Subject"] = subject
+                        message_body = MIMEText(body, "html")
+                        message.attach(message_body)
+
+                        # SMTP CONFIG
+                        if TYPE == "2":
+                            SMTP_SERVER = "smtp.office365.com"
+                            SMTP_PORT   = 587
+                        else:
+                            SMTP_SERVER = "smtp.gmail.com"
+                            SMTP_PORT   = 465
+
+                        if EMAIL == "" or PWD == "":
+                            pass
+
+                        else:
+                            try:
+                                connection = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT)
+                                connection.login(EMAIL, PWD)
+                                connection.sendmail(EMAIL, user.email, message.as_string())
+                                connection.close()
+                                
+                            except Exception as e:
+                                with smtplib.SMTP(host=SMTP_SERVER, port=SMTP_PORT) as server:
+                                    server.starttls()
+                                    server.login(EMAIL, PWD)
+                                    server.sendmail(EMAIL, user.email, message.as_string())
+                                    server.close()
+                    
+                        logging.getLogger("Gerologger").info('Password Reset: Sent Link Successfully')
                         return redirect("/login/password_reset/sent")
+                    
                 else:
-                    messages.error(request,"Email does not exists!")
+                    logging.getLogger("Gerologger").info('Password Reset: Email Not Found')
+                    return redirect("/login/password_reset/sent")
+                
     password_resets = PasswordResetForm()
     return render(request=request, template_name="password_reset_forms/password_reset.html", context={"password_reset_form":password_resets})
 
