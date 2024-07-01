@@ -20,7 +20,7 @@ services:
     build: ./gerobug_web
     expose:
       - 8000
-    command: gunicorn gerobug_web.wsgi:application --bind 0.0.0.0:8000
+    command: gunicorn gerobug_web.wsgi:application --bind 0.0.0.0:8000 --timeout 300
     env_file:
       - ./gerobug_dashboard/secrets/db_secret.env
     environment:
@@ -38,7 +38,7 @@ services:
     # command: python manage.py runserver 0.0.0.0:6320 --insecure
     expose:
       - 8001
-    command: gunicorn gerobug.wsgi --bind 0.0.0.0:8001
+    command: gunicorn gerobug.wsgi --bind 0.0.0.0:8001 --timeout 300
     env_file:
       - ./gerobug_dashboard/secrets/gerobug_secret.env
       - ./gerobug_dashboard/secrets/db_secret.env
