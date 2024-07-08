@@ -29,6 +29,10 @@ class BugReport(models.Model):
     report_update = models.IntegerField(default=0)
     report_appeal = models.IntegerField(default=0)
     report_nda  = models.IntegerField(default=0)
+
+    class Meta:
+      ordering = ['-report_datetime']
+      # order_with_respect_to = "report_datetime"
     
     def __str__(self):
         return self.hunter_email
