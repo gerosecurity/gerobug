@@ -6,7 +6,7 @@
             <div id="col1" class="col-sm">
                 <div class="col-header">Need to Review ({{ total_unreviewed }})</div>
                 <div class="scroll-div">
-                    {% for report in bugposts|dictsortreversed:"report_datetime" %}
+                    {% for report in bugposts|dictsort:"report_datetime" %}
                     {% if report.report_status == 1 and report.report_attack != '' %}
                     <a href="{%  url 'report_detail' report.pk %}" style="text-decoration:none">
                         <div class="card">
@@ -35,7 +35,7 @@
             <div id="col2" class="col-sm">
                 <div class="col-header">In Review ({{ total_inreview }})</div>
                 <div class="scroll-div">
-                    {% for report in bugposts|dictsortreversed:"report_datetime" %}
+                    {% for report in bugposts|dictsort:"report_datetime" %}
                     {% if report.report_status == 2 and report.report_attack != '' %}
                     <a href="{%  url 'report_detail' report.pk %}" style="text-decoration:none">
                         <div class="card">
@@ -65,7 +65,7 @@
             <div id="col3" class="col-sm">
                 <div class="col-header">Fixing ({{ total_fixing }})</div>
                 <div class="scroll-div">
-                    {% for report in bugposts|dictsortreversed:"report_datetime" %}
+                    {% for report in bugposts|dictsort:"report_datetime" %}
                     {% if report.report_status == 3 and report.report_attack != '' %}
                     <a href="{%  url 'report_detail' report.pk %}" style="text-decoration:none">
                         <div class="card">
@@ -94,7 +94,7 @@
             <div id="col4" class="col-sm">
                 <div class="col-header">Retest ({{ total_retest }})</div>
                 <div class="scroll-div">
-                    {% for report in bugposts|dictsortreversed:"report_datetime" %}
+                    {% for report in bugposts|dictsort:"report_datetime" %}
                     {% if report.report_status == 4 and report.report_attack != '' %}
                     <a href="{%  url 'report_detail' report.pk %}" style="text-decoration:none">
                         <div class="card">
@@ -123,7 +123,7 @@
             <div id="col5" class="col-sm">
                 <div class="col-header">Bounty Preparation ({{ total_bounty }})</div>
                 <div class="scroll-div">
-                    {% for report in bugposts|dictsortreversed:"report_datetime" %}
+                    {% for report in bugposts|dictsort:"report_datetime" %}
                     {% if report.report_status == 5 and report.report_attack != '' or report.report_status == 6 and report.report_attack != '' %}
                     <a href="{%  url 'report_detail' report.pk %}" style="text-decoration:none">
                         <div class="card">
