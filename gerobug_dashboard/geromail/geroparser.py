@@ -558,10 +558,6 @@ def run():
 
 # RECOVER LOSS FILES
 def recover_loss_file(id, type):
-    mailbox = MailBox.objects.get(mailbox_id=1)
-    if mailbox.email == "" or mailbox.password == "":
-        logging.getLogger("Gerologger").error("Mailbox Has Not Been Setup!")
-    
     report_id = str(id[:12])
     recover = False
 
@@ -576,6 +572,7 @@ def recover_loss_file(id, type):
 
         # READ DATA FROM INBOX
         mail.select('inbox')
+        mailbox = MailBox.objects.get(mailbox_id=1)
         if mailbox.mailbox_type == "1": # GMAIL
             if type == None:
                 SEARCH = "from:" + hunter_email + " subject:SUBMIT_" + report_title
