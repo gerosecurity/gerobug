@@ -558,19 +558,16 @@ def run():
 
 # RECOVER LOSS FILES
 def recover_loss_file(id, type):
+    mailbox = MailBox.objects.get(mailbox_id=1)
+    if mailbox.email == "" or mailbox.password == "":
+        logging.getLogger("Gerologger").error("Mailbox Has Not Been Setup!")
+    
     report_id = str(id[:12])
     recover = False
 
     report = BugReport.objects.get(report_id=report_id)
     hunter_email = str(report.hunter_email)
     report_title = str(report.report_title)
-
-    if type == None:
-        SEARCH = '(FROM "'+hunter_email+'" SUBJECT "SUBMIT_'+report_title+'")'
-    elif type == "U":
-        SEARCH = '(FROM "'+hunter_email+'" SUBJECT "UPDATE_'+str(report_id)+'")'
-    elif type == "N":
-        SEARCH = '(FROM "'+hunter_email+'" SUBJECT "NDA_'+str(report_id)+'")'
 
     try:
         # LOGIN TO IMAP / MAIL SERVER
@@ -579,7 +576,26 @@ def recover_loss_file(id, type):
 
         # READ DATA FROM INBOX
         mail.select('inbox')
-        data = mail.search(None, SEARCH)
+        if mailbox.mailbox_type == "1": # GMAIL
+            if type == None:
+                SEARCH = "from:" + hunter_email + " subject:SUBMIT_" + report_title
+            elif type == "U":
+                SEARCH = "from:" + hunter_email + " subject:UPDATE_" + report_title
+            elif type == "N":
+                SEARCH = "from:" + hunter_email + " subject:NDA_" + report_title
+
+            data = mail.search(None, r'X-GM-RAW "'+SEARCH+'"')
+
+        else:
+            if type == None:
+                SEARCH = '(FROM "' + hunter_email + '" SUBJECT "SUBMIT_' + report_title + '")'
+            elif type == "U":
+                SEARCH = '(FROM "' + hunter_email + '" SUBJECT "UPDATE_' + str(report_id) + '")'
+            elif type == "N":
+                SEARCH = '(FROM "' + hunter_email + '" SUBJECT "NDA_' + str(report_id) + '")'
+
+            data = mail.search(None, SEARCH)
+
         mail_ids = data[1]
         id_list = mail_ids[0].split()   
 

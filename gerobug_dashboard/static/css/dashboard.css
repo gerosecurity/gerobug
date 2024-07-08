@@ -1,5 +1,5 @@
 
-.notification{
+.notification {
     margin-left: 64px;
     margin-right: 64px;
     margin-top: 20px;
@@ -49,28 +49,28 @@
     color: black;
   }
 
-  #needreview{
+  #needreview {
     background: #FFA9B3;
   }
 
-  #inreview{
+  #inreview {
     background: #f5d28c;
   }
 
-  #fixing{
+  #fixing {
     background: #ffbf58;
   }
 
-  #retest{
+  #retest {
     background: #ffbf58;
   }
 
-  #prepare{
+  #prepare {
     background: #92caff;
     ;
   }
 
-.duplicate{
+.duplicate {
     display: flex;
 	flex-direction: row;
 	flex-wrap: nowrap;
@@ -79,29 +79,30 @@
 	align-content: stretch;
 }
 
-#duplicate-symbol svg{
+#duplicate-symbol svg {
     width: 16px;
     height: 16px;
     color: rgb(211, 150, 47);
 }
-.notification svg{
+
+.notification svg {
     width: 24px;
     height: 24px;
     color: white;
 }
 
-.notification .notif-details{
+.notification .notif-details {
     font-size: 20px;
     color: white;
     padding-left: 20px;
 }
 
-.col-header{
+.col-header {
     font-size: 20;
     font-weight: bold;
 }
 
-.scroll-div{
+.scroll-div {
     overflow-y: auto;
     margin-top: 8px;
     max-height: 500px;
@@ -139,11 +140,12 @@
   /* scrollbar-width: none;   */
   /* Firefox */
 /* } */
-a:link, a:visited{
-    text-decoration: none!important;
-  }
 
-.card{
+a:link, a:visited {
+    text-decoration: none!important;
+}
+
+.card {
     margin: 10px;
     margin-bottom: 20px;
     padding-top: 12px;
@@ -154,33 +156,33 @@ a:link, a:visited{
     text-decoration: none;
 }
 
-.card .card-title{
+.card .card-title {
     font-size: 16px;
     font-weight: bold;
     color: #171526;
 }
 
-.card .card-type{
+.card .card-type {
     font-weight: 16px;
     padding-top: 4px;
     color: #171526;
 }
 
-.card .card-time{
+.card .card-time {
     font-size: 10px;
     padding-top: 8px;
     padding-bottom: 8px;
     color: #171526;
 }
 
-.card .card-hunter{
+.card .card-hunter {
     font-size: 10px;
     padding-top: 8px;
     padding-bottom: 8px;
     color: #171526;
 }
 
-.card button{
+.card button {
     background-color: var(--button-1);
     border-width: 0;
     border-radius: 20px;
@@ -189,7 +191,7 @@ a:link, a:visited{
     font-size: 12px;
 }
 
-.card .finished{
+.card .finished {
     display: flex;
 	flex-direction: row;
 	flex-wrap: nowrap;
