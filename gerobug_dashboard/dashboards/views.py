@@ -516,7 +516,22 @@ def AdminSetting(request):
             logging.getLogger("Gerologger").info("Company Identity updated successfully")
             messages.success(request,"Company Identity updated successfully!")
             return redirect('setting')
-        
+             
+        personalization = PersonalizationForm(request.POST)
+        if personalization.is_valid():
+            theme               = Personalization.objects.get(personalize_id=1)
+            theme.main_1        = personalization.cleaned_data.get('main_1')    
+            theme.main_2        = personalization.cleaned_data.get('main_2') 
+            theme.secondary_1   = personalization.cleaned_data.get('secondary_1')  
+            theme.secondary_2   = personalization.cleaned_data.get('secondary_2')
+            theme.secondary_3   = personalization.cleaned_data.get('secondary_3')
+            theme.button_1      = personalization.cleaned_data.get('button_1')
+            theme.save()
+
+            logging.getLogger("Gerologger").info("Personalization updated successfully")
+            messages.success(request,"Personalization updated successfully!")
+            return redirect('setting')
+    
         troubleshoot = TroubleshootForm(request.POST)
         if troubleshoot.is_valid():
             if troubleshoot.cleaned_data.get('troubleshoot_1')  == True:
@@ -560,21 +575,6 @@ def AdminSetting(request):
                     logging.getLogger("Gerologger").info("Troubleshoot Executed: RECOVER LOSS REPORT FILES")
             
             return redirect("setting")
-        
-        personalization = PersonalizationForm(request.POST)
-        if personalization.is_valid():
-            theme               = Personalization.objects.get(personalize_id=1)
-            theme.main_1        = personalization.cleaned_data.get('main_1')    
-            theme.main_2        = personalization.cleaned_data.get('main_2') 
-            theme.secondary_1   = personalization.cleaned_data.get('secondary_1')  
-            theme.secondary_2   = personalization.cleaned_data.get('secondary_2')
-            theme.secondary_3   = personalization.cleaned_data.get('secondary_3')
-            theme.button_1      = personalization.cleaned_data.get('button_1')
-            theme.save()
-
-            logging.getLogger("Gerologger").info("Personalization updated successfully")
-            messages.success(request,"Personalization updated successfully!")
-            return redirect('setting')
 
     THEME = Personalization.objects.get(personalize_id=1)
     RULES = StaticRules.objects.get(pk=1)
@@ -590,12 +590,16 @@ def ReviewerDelete(request,id):
             if User.objects.filter(id=id).count() != 0:
                 User.objects.filter(id=id).delete()
                 messages.success(request,"User is deleted successfully!")
-                return redirect('setting')
+                logging.getLogger("Gerologger").info("USER ID " + str(id) + " SUCCESSFULLY DELETED BY " + str(request.user.username))
+                return redirect('dashboard')
+            
         except Exception as e:
             logging.getLogger("Gerologger").error(str(e))
             messages.error(request,"Something wrong. The delete operation is unsuccessful. Please report to the Admin!")
             return redirect('setting')
+        
         return redirect('setting')
+    
     return render(request,'setting.html')
 
 @login_required
