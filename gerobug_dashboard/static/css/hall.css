@@ -41,7 +41,7 @@ body {
 }
 
 #table-scroll {
-    overflow-y: scroll;
+    overflow-y: auto;
     height: 420px;
 }
 
