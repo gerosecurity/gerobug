@@ -71,9 +71,9 @@
     <table id="leaderboard">
       <thead>
         <tr>
-          <th>Rank</th>
-          <th>Bounty Hunter</th>
-          <th>Points</th>
+          <th style="width:20%">Rank</th>
+          <th style="width:50%">Bounty Hunter</th>
+          <th style="width:30%">Points</th>
         </tr>
       </thead>
     </table>
@@ -82,9 +82,9 @@
       <table id="leaderboard">
         {% for bughunter in bughunters|slice:":1000" %}
         <tr>
-          <td>{{ forloop.counter }}</td>
-          <td>{{ bughunter.hunter_username }}</td>
-          <td>{{ bughunter.hunter_scores }}</td>
+          <td style="width:20%">{{ forloop.counter }}</td>
+          <td style="width:52%">{{ bughunter.hunter_username }}</td>
+          <td style="width:28%">{{ bughunter.hunter_scores }}</td>
         </tr>
         {% endfor %}
       </table>
