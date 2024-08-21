@@ -231,7 +231,6 @@ def FormHandler(request, id, complete):
                     code = 704 #COMPLETE
                     logging.getLogger("Gerologger").info("REPORT "+str(id)+" STATUS UPDATED (COMPLETE) BY "+str(request.user.username))
 
-                messages.success(request,"Email is successfully being processed and sent to the bug hunter with your reason.")
                 # TRIGGER COMPANY ACTION WITH THREADING
                 def trigger_company_action(report):
                     geroparser.company_action(report.report_id, reasons, code)
@@ -240,10 +239,12 @@ def FormHandler(request, id, complete):
                     trigger = threading.Thread(target=trigger_company_action, args=(report,))
                     trigger.start()
                 
+                messages.success(request,"Email is successfully being processed and sent to the bug hunter with your reason.")
                 return redirect('dashboard')
+            
             else:
-                messages.error(request,"Form invalid. Please report to the Admin for checking the logs.")
                 logging.getLogger("Gerologger").error("Form invalid: "+str(request))
+                messages.error(request,"Form invalid. Please report to the Admin for checking the logs.")
 
         return redirect('dashboard')
 
@@ -540,37 +541,38 @@ def AdminSetting(request):
                     logging.getLogger("Gerologger").error("Mailbox Has Not Been Setup!")
                 else:
                     for report in BugReport.objects.all():
-                        id = report.report_id
-                        
-                        # FILE RECOVERY THREAD
-                        def trigger_recovery(report_name, id, type):
-                            logging.getLogger("Gerologger").info("Recovering = " + str(report_name))
-                            geroparser.recover_loss_file(id, type) 
+                        if report.report_status != 0: #EXCLUDE INVALID REPORTS
+                            id = report.report_id
+                            report_name = id + ".pdf"
 
-                        # CHECK REPORT FILE
-                        report_name = id + ".pdf"
-                        FILEPATH = os.path.join(MEDIA_ROOT,id,report_name)
-                        if not os.path.isfile(FILEPATH):
-                            trigger = threading.Thread(target=trigger_recovery, args=(report_name,id,None,))
-                            trigger.start()
+                            # FILE RECOVERY THREAD
+                            def trigger_recovery(report_name, id, type):
+                                logging.getLogger("Gerologger").info("Recovering = " + str(report_name))
+                                geroparser.recover_loss_file(id, type) 
 
-                        # CHECK UPDATE FILE 
-                        if report.report_update > 0:
-                            update_id = str(id) + "U" + str(report.report_update)
-                            update_file = update_id + ".pdf"
-                            FILEPATH = os.path.join(MEDIA_ROOT,id,update_file)
+                            # CHECK REPORT FILE
+                            FILEPATH = os.path.join(MEDIA_ROOT,id,report_name)
                             if not os.path.isfile(FILEPATH):
-                                trigger = threading.Thread(target=trigger_recovery, args=(update_file,update_id,"U",))
+                                trigger = threading.Thread(target=trigger_recovery, args=(report_name,id,None,))
                                 trigger.start()
 
-                        # CHECK NDA FILE 
-                        if report.report_nda > 0:
-                            nda_id = str(id) + "N" + str(report.report_nda)
-                            nda_file = nda_id + ".pdf"
-                            FILEPATH = os.path.join(MEDIA_ROOT,id,nda_file)
-                            if not os.path.isfile(FILEPATH):
-                                trigger = threading.Thread(target=trigger_recovery, args=(nda_file,nda_id,"N",))
-                                trigger.start()
+                            # CHECK UPDATE FILE 
+                            if report.report_update > 0:
+                                update_id = str(id) + "U" + str(report.report_update)
+                                update_file = update_id + ".pdf"
+                                FILEPATH = os.path.join(MEDIA_ROOT,id,update_file)
+                                if not os.path.isfile(FILEPATH):
+                                    trigger = threading.Thread(target=trigger_recovery, args=(update_file,update_id,"U",))
+                                    trigger.start()
+
+                            # CHECK NDA FILE 
+                            if report.report_nda > 0:
+                                nda_id = str(id) + "N" + str(report.report_nda)
+                                nda_file = nda_id + ".pdf"
+                                FILEPATH = os.path.join(MEDIA_ROOT,id,nda_file)
+                                if not os.path.isfile(FILEPATH):
+                                    trigger = threading.Thread(target=trigger_recovery, args=(nda_file,nda_id,"N",))
+                                    trigger.start()
                     
                     logging.getLogger("Gerologger").info("Troubleshoot Executed: RECOVER LOSS REPORT FILES")
             
