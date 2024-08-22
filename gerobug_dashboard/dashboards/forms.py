@@ -2,17 +2,18 @@ from django import forms
 from dashboards.models import StaticRules, Personalization
 from dashboards.rulestemplate import *
 from dashboards.validators import *
+from django.core.validators import *
 from colorfield.widgets import ColorWidget
 
 
 class Requestform(forms.Form):
-    reasons = forms.CharField(widget=forms.Textarea(attrs={"id":"reasons","name":"reasons","placeholder":"Write the reason here ..."}),required=True)
+    reasons = forms.CharField(widget=forms.Textarea(attrs={"id":"reasons","name":"reasons","placeholder":"Explain what you need (Minimum 10 Characters)"}),validators=[MinLengthValidator(10)],required=True)
 
 class CompleteRequestform(forms.Form):
-    completereasons = forms.CharField(widget=forms.Textarea(attrs={"id":"completereasons","name":"completereasons","placeholder":"Write the reason here ..."}),required=True)
+    completereasons = forms.CharField(widget=forms.Textarea(attrs={"id":"completereasons","name":"completereasons","placeholder":"Write something inspiring (Minimum 10 Characters)"}),validators=[MinLengthValidator(10)],required=True)
 
 class Invalidform(forms.Form):
-    invalidreasons = forms.CharField(widget=forms.Textarea(attrs={"id":"invalidreasons","name":"invalidreasons","placeholder":"Write the reason here ..."}),required=True)
+    invalidreasons = forms.CharField(widget=forms.Textarea(attrs={"id":"invalidreasons","name":"invalidreasons","placeholder":"Please provide the reason (Minimum 10 Characters)"}),validators=[MinLengthValidator(10)],required=True)
 
 class RulesGuidelineForm(forms.ModelForm):  
     class Meta:

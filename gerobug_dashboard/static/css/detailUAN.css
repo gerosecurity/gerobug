@@ -395,3 +395,11 @@ h6{
     border-radius: 4px;
     font-size: 10px;
 }
+
+textarea {
+    width: 100%;
+    padding: 12px 20px;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    resize: none !important;
+}
