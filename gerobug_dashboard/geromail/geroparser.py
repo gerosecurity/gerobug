@@ -503,6 +503,7 @@ def run():
         # LIMIT ERRORS TO AVOID BLACKLISTED BY MAIL SERVER
         if error_count >= 3:
             logging.getLogger("Gerologger").warning("Error Limit Reached!")
+            error_count = 0
             mailbox = MailBox.objects.get(mailbox_id=1)
             mailbox.email = ""
             mailbox.password = ""
