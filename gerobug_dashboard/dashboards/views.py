@@ -264,7 +264,7 @@ def InvalidHandler(request, id):
         if request.method == "POST":
             form = Invalidform(request.POST)
             if form.is_valid():
-                reasons = form.cleaned_data.get('reasons')
+                reasons = form.cleaned_data.get('invalidreasons')
 
                 # MARK AS INVALID
                 report.report_status = 0
