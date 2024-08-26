@@ -5,6 +5,7 @@ import hashlib
 import random
 import re
 import logging
+import os
 from logging.handlers import TimedRotatingFileHandler
 from email.utils import parsedate_tz, mktime_tz
 from datetime import datetime
@@ -558,13 +559,65 @@ def run():
             time.sleep(30)
 
 # RECOVER LOSS FILES
+def recover_loss_file_handler(BUGREPORTS):
+    success = 0
+    failed = 0
+    logging.getLogger("Gerologger").info("Troubleshoot Started: RECOVER LOSS REPORT FILES")
+
+    for report in BUGREPORTS:
+        if report.report_status != 0: #EXCLUDE INVALID REPORTS
+            id = report.report_id
+            report_name = id + ".pdf"
+
+            # CHECK REPORT FILE
+            FILEPATH = os.path.join(MEDIA_ROOT,id,report_name)
+            if not os.path.isfile(FILEPATH):
+                logging.getLogger("Gerologger").info("Recovering = " + str(report_name))
+                if recover_loss_file(id,None):
+                    success += 1
+                else:
+                    failed += 1
+
+            # CHECK UPDATE FILE 
+            if report.report_update > 0:
+                update_id = str(id) + "U" + str(report.report_update)
+                update_file = update_id + ".pdf"
+                FILEPATH = os.path.join(MEDIA_ROOT,id,update_file)
+                if not os.path.isfile(FILEPATH):
+                    logging.getLogger("Gerologger").info("Recovering = " + str(update_file))
+                    if recover_loss_file(update_id,"U"):
+                        success += 1
+                    else:
+                        failed += 1
+
+            # CHECK NDA FILE 
+            if report.report_nda > 0:
+                nda_id = str(id) + "N" + str(report.report_nda)
+                nda_file = nda_id + ".pdf"
+                FILEPATH = os.path.join(MEDIA_ROOT,id,nda_file)
+                if not os.path.isfile(FILEPATH):
+                    logging.getLogger("Gerologger").info("Recovering = " + str(nda_file))
+                    if recover_loss_file(nda_id,"N"):
+                        success += 1
+                    else:
+                        failed += 1
+            
+    total = success + failed
+    if total == 0 :
+        logging.getLogger("Gerologger").info("NO LOSS REPORT FILES")
+    else:
+        success_rate = int(success / total * 100)
+        logging.getLogger("Gerologger").info("RECOVERED " + str(success) + " / " + str(total) + " LOSS REPORT FILES")
+        logging.getLogger("Gerologger").info("SUCCESS RATE: " +  str(success_rate) + "%")
+
+
 def recover_loss_file(id, type):
     report_id = str(id[:12])
     recover = False
 
     report = BugReport.objects.get(report_id=report_id)
     hunter_email = str(report.hunter_email)
-    report_title = str(report.report_title)
+    report_title = str(report.report_title).replace('\r\n','')
 
     try:
         # LOGIN TO IMAP / MAIL SERVER
@@ -578,10 +631,10 @@ def recover_loss_file(id, type):
             if type == None:
                 SEARCH = "from:" + hunter_email + " subject:SUBMIT_" + report_title
             elif type == "U":
-                SEARCH = "from:" + hunter_email + " subject:UPDATE_" + report_title
+                SEARCH = "from:" + hunter_email + " subject:UPDATE_" + str(report_id)
             elif type == "N":
-                SEARCH = "from:" + hunter_email + " subject:NDA_" + report_title
-
+                SEARCH = "from:" + hunter_email + " subject:NDA_" + str(report_id)
+                
             data = mail.search(None, r'X-GM-RAW "'+SEARCH+'"')
 
         else:
