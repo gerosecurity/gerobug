@@ -181,24 +181,28 @@ def ReportStatusView(request, id):
 @login_required
 def ReportUpdateStatus(request,id):
     if request.method == "POST" and gerofilter.validate_id(id):
-        report = BugReport.objects.get(report_id=id)
-        max = ReportStatus.objects.count() - 2 # LIMITED TO "BOUNTY PROCESS"
+        if geroparser.check_mailbox_status():
+            report = BugReport.objects.get(report_id=id)
+            max = ReportStatus.objects.count() - 2 # LIMITED TO "BOUNTY PROCESS"
 
-        if report.report_status < max:
-           report.report_status += 1
-           report.save()
+            if report.report_status < max:
+                report.report_status += 1
+                report.save()
 
-        logging.getLogger("Gerologger").info("REPORT "+str(id)+" STATUS UPDATED ("+str(report.report_status)+") BY "+str(request.user.username))
-        messages.success(request,"Report Status is updated!")
+            logging.getLogger("Gerologger").info("REPORT "+str(id)+" STATUS UPDATED ("+str(report.report_status)+") BY "+str(request.user.username))
+            messages.success(request,"Report Status is updated!")
 
-        def trigger_geromailer(report):
-            payload = [report.report_id, report.report_title, report.report_status, "", report.report_severity]
-            destination = report.hunter_email
-            geromailer.notify(destination, payload) #TRIGGER GEROMAILER TO SEND UPDATE NOTIFICATION
+            def trigger_geromailer(report):
+                payload = [report.report_id, report.report_title, report.report_status, "", report.report_severity]
+                destination = report.hunter_email
+                geromailer.notify(destination, payload) #TRIGGER GEROMAILER TO SEND UPDATE NOTIFICATION
 
-        trigger = threading.Thread(target=trigger_geromailer, args=(report,))
-        trigger.start()
+            trigger = threading.Thread(target=trigger_geromailer, args=(report,))
+            trigger.start()
 
+        else:
+            logging.getLogger("Gerologger").error("Mailbox is not ready.")
+        
     return redirect('dashboard')
 
 
@@ -230,17 +234,22 @@ def FormHandler(request, id, complete):
                 elif status == "Bounty in Process" and complete == "1":
                     code = 704 #COMPLETE
                     logging.getLogger("Gerologger").info("REPORT "+str(id)+" STATUS UPDATED (COMPLETE) BY "+str(request.user.username))
-
-                # TRIGGER COMPANY ACTION WITH THREADING
-                def trigger_company_action(report):
-                    geroparser.company_action(report.report_id, reasons, code)
-
-                if code != 0:
-                    trigger = threading.Thread(target=trigger_company_action, args=(report,))
-                    trigger.start()
                 
-                messages.success(request,"Email is successfully being processed and sent to the bug hunter with your reason.")
-                return redirect('dashboard')
+                if geroparser.check_mailbox_status():
+                    # TRIGGER COMPANY ACTION WITH THREADING
+                    def trigger_company_action(report):
+                        geroparser.company_action(report.report_id, reasons, code)
+
+                    if code != 0:
+                        trigger = threading.Thread(target=trigger_company_action, args=(report,))
+                        trigger.start()
+                        messages.success(request,"Email is successfully being processed and sent to the bug hunter with your reason.")
+
+                    else:
+                        logging.getLogger("Gerologger").error("CODE = 0")
+                
+                else:
+                    logging.getLogger("Gerologger").error("Mailbox is not ready.")
             
             else:
                 logging.getLogger("Gerologger").error("Form invalid: "+str(request))
@@ -264,24 +273,29 @@ def InvalidHandler(request, id):
         if request.method == "POST":
             form = Invalidform(request.POST)
             if form.is_valid():
-                reasons = form.cleaned_data.get('invalidreasons')
+                if geroparser.check_mailbox_status():
+                    reasons = form.cleaned_data.get('invalidreasons')
 
-                # MARK AS INVALID
-                report.report_status = 0
-                report.save()
-                    
-                logging.getLogger("Gerologger").info("REPORT "+str(id)+" MARKED AS INVALID BY "+str(request.user.username))
-                    
-                def trigger_geromailer(report):
-                    payload = [report.report_id, report.report_title, report.report_status, reasons, report.report_severity]
-                    destination = report.hunter_email
-                    geromailer.notify(destination, payload) # TRIGGER GEROMAILER TO SEND UPDATE NOTIFICATION
-                    
-                # SEND NOTIFICATION AND REASON WITH THREADING
-                trigger = threading.Thread(target=trigger_geromailer, args=(report,))
-                trigger.start()
+                    # MARK AS INVALID
+                    report.report_status = 0
+                    report.save()
+                        
+                    logging.getLogger("Gerologger").info("REPORT "+str(id)+" MARKED AS INVALID BY "+str(request.user.username))
+                        
+                    def trigger_geromailer(report):
+                        payload = [report.report_id, report.report_title, report.report_status, reasons, report.report_severity]
+                        destination = report.hunter_email
+                        geromailer.notify(destination, payload) # TRIGGER GEROMAILER TO SEND UPDATE NOTIFICATION
+                        
+                    # SEND NOTIFICATION AND REASON WITH THREADING
+                    trigger = threading.Thread(target=trigger_geromailer, args=(report,))
+                    trigger.start()
 
-                messages.success(request,"Email is successfully being processed and sent to the bug hunter with your reason.")
+                    messages.success(request,"Email is successfully being processed and sent to the bug hunter with your reason.")
+
+                else:
+                    logging.getLogger("Gerologger").error("Mailbox is not ready.")
+
             else:
                 messages.error(request,"Form invalid. Please report to the Admin for checking the logs.")
                 logging.getLogger("Gerologger").error("Form invalid: "+str(request))
@@ -381,8 +395,8 @@ def AdminSetting(request):
             mailbox_account.mailbox_status = 0
             mailbox_account.mailbox_type = mailbox.cleaned_data.get('mailbox_type')
             mailbox_account.save()
-            logging.getLogger("Gerologger").info("Mailbox updated successfully")
-            messages.success(request,"Mailbox updated successfully!")
+            logging.getLogger("Gerologger").info("Mailbox updated successfully.")
+            messages.success(request,"Mailbox updated successfully.")
             return redirect('setting')
 
         account = AccountForm(request.POST)
@@ -536,16 +550,16 @@ def AdminSetting(request):
         troubleshoot = TroubleshootForm(request.POST)
         if troubleshoot.is_valid():
             if troubleshoot.cleaned_data.get('troubleshoot_1')  == True:
-                mailbox = MailBox.objects.get(mailbox_id=1)
-                if mailbox.email == "" or mailbox.password == "":
-                    logging.getLogger("Gerologger").error("Mailbox Has Not Been Setup!")
-                else:
+                if geroparser.check_mailbox_status():
                     # FILE RECOVERY THREAD
                     def trigger_recovery(BUGREPORTS):
                         geroparser.recover_loss_file_handler(BUGREPORTS) 
                     
                     trigger = threading.Thread(target=trigger_recovery, args=(BugReport.objects.all(),))
                     trigger.start()
+                    
+                else:
+                    logging.getLogger("Gerologger").error("Mailbox is not ready.")
             
             return redirect("setting")
 

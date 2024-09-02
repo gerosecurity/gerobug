@@ -29,7 +29,7 @@ IMAP_PORT       = 0
 
 MAILBOX_READY   = False
 PARSER_RUNNING  = False
-
+ERROR_COUNT     = 0
 
 # GENERATE REPORT ID
 def generate_id(email, ts):
@@ -112,6 +112,7 @@ def save_uan(type, id, report_id, date, summary, file):
 
 # READ INBOX (UNSEEN) AND PARSE DATA
 def read_mail():
+    global ERROR_COUNT
     try:
         # LOGIN TO IMAP / MAIL SERVER
         mail = imaplib.IMAP4_SSL(IMAP_SERVER)
@@ -439,7 +440,8 @@ def read_mail():
         mail.logout()
 
     except Exception as e:
-        logging.getLogger("Gerologger").error("Failed to Login = " + str(e))
+        logging.getLogger("Gerologger").error("Failed to Login = " + str(e) + "("  + str(ERROR_COUNT) + ")")
+        ERROR_COUNT+=1
     
 
 
@@ -486,12 +488,16 @@ def company_action(id, note, code):
 
     geromailer.write_mail(code, payload, destination)
 
+def check_mailbox_status():
+    global MAILBOX_READY
+        
+    return MAILBOX_READY
 
 # RUN GEROMAIL MODULES
 def run():
-    global EMAIL, PWD, MAILBOX_READY, PARSER_RUNNING, IMAP_SERVER, IMAP_PORT
+    global EMAIL, PWD, MAILBOX_READY, PARSER_RUNNING, IMAP_SERVER, IMAP_PORT, ERROR_COUNT
     MAILBOX_READY = False
-    error_count = 0
+    ERROR_COUNT = 0
 
     if PARSER_RUNNING:
         logging.getLogger("Gerologger").warning("Geroparser already started.")
@@ -499,12 +505,12 @@ def run():
     else:
         PARSER_RUNNING = True
         logging.getLogger("Gerologger").debug("[LOG] Geroparser started.")
-
+    
     while PARSER_RUNNING:
         # LIMIT ERRORS TO AVOID BLACKLISTED BY MAIL SERVER
-        if error_count >= 3:
+        if ERROR_COUNT >= 3:
             logging.getLogger("Gerologger").warning("Error Limit Reached!")
-            error_count = 0
+            ERROR_COUNT = 0
             mailbox = MailBox.objects.get(mailbox_id=1)
             mailbox.email = ""
             mailbox.password = ""
@@ -522,6 +528,9 @@ def run():
         
         # ONLY RUN WHILE MAILBOX READY
         while MAILBOX_READY:
+            if ERROR_COUNT >= 3:
+                MAILBOX_READY = False
+                
             mailbox = MailBox.objects.get(mailbox_id=1)
             if mailbox.email == "" or mailbox.password == "":
                 MAILBOX_READY = False
@@ -545,8 +554,8 @@ def run():
                     mail.login(EMAIL,PWD)
 
                 except Exception as e:
-                    error_count+=1
-                    logging.getLogger("Gerologger").error("Credentials Failed = " + str(e) + "("  + str(error_count) + ")")
+                    ERROR_COUNT+=1
+                    logging.getLogger("Gerologger").error("Credentials Failed = " + str(e) + "("  + str(ERROR_COUNT) + ")")
                     MAILBOX_READY = False
                     time.sleep(5)
                     break

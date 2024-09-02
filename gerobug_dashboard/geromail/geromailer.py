@@ -30,7 +30,7 @@ def write_mail(code, payload, Destination):
 
         if payload[3] == None:
             payload[3] = "-"
-            
+
         # REPLACE WILD CARDS
         subject = subject.replace("~ID~", payload[0])       #REPORT ID
         body = body.replace("~ID~", payload[0])             #REPORT ID
@@ -95,13 +95,16 @@ def write_mail(code, payload, Destination):
             SMTP_PORT   = 465
 
         if EMAIL == "" or PWD == "":
+            logging.getLogger("Gerologger").error("Mailbox is not ready.")
             pass
+        
         else:
             try:
                 connection = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT)
                 connection.login(EMAIL, PWD)
                 connection.sendmail(EMAIL, Destination, message.as_string())
                 connection.close()
+                logging.getLogger("Gerologger").info('Sent Email Successfully')
                 
             except Exception as e:
                 with smtplib.SMTP(host=SMTP_SERVER, port=SMTP_PORT) as server:
@@ -109,11 +112,10 @@ def write_mail(code, payload, Destination):
                     server.login(EMAIL, PWD)
                     server.sendmail(EMAIL, Destination, message.as_string())
                     server.close()
+                    logging.getLogger("Gerologger").info('Sent Email Successfully')
     
-        logging.getLogger("Gerologger").info('Sent Email Successfully')
-
     except Exception as e: 
-        logging.getLogger("Gerologger").error(str(e))
+        logging.getLogger("Gerologger").error("Failed to Send Email = " + str(e))
 
 
 # WRITE EMAIL NOTIFICATION / UPDATES
