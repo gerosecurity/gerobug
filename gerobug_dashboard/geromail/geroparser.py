@@ -124,6 +124,8 @@ def read_mail():
         mail_ids = data[1]
         id_list = mail_ids[0].split()   
 
+        ERROR_COUNT = 0
+
         # ITERATE THROUGH LIST OF EMAILS
         if(id_list):
             first_email_id = int(id_list[0])
