@@ -8,6 +8,7 @@ import logging
 import os
 from logging.handlers import TimedRotatingFileHandler
 from email.utils import parsedate_tz, mktime_tz
+from email.header import decode_header
 from datetime import datetime
 
 import gerocert.gerocert
@@ -110,6 +111,16 @@ def save_uan(type, id, report_id, date, summary, file):
         newNDA.save()
 
 
+def mail_header_decode(text):
+    decoded_text = decode_header(text)
+    return u"".join([str(part.decode(encoding or 'utf-8')) if isinstance(part, bytes) else part for part, encoding in decoded_text])
+
+
+def rm_html_tags(text):
+    text = text.replace('<br>', '\n').replace('<div>', '\n').replace('</div>', '')
+    clean = re.sub(r'<.*?>', '', text)
+    return clean
+
 # READ INBOX (UNSEEN) AND PARSE DATA
 def read_mail():
     global ERROR_COUNT
@@ -150,12 +161,16 @@ def read_mail():
                         raw_from = str(msg['from'])
                         separator = raw_from.find(' <')
 
-                        hunter_email = re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", raw_from).group()
+                        hunter_email = re.search(r"[\w\.\-+_]+@[\w\.\-+_]+\.[\w]+", raw_from).group()
                         hunter_name = raw_from[:separator]
                         if len(hunter_name) < 3:
                             at = hunter_email.find('@')
                             hunter_name = hunter_email[:at]
-                        email_subject = msg['subject']
+
+                        hunter_name = re.sub(r'[^\w\s\-]', '', hunter_name, flags=re.UNICODE)
+                        
+                        # email_subject = msg['subject']
+                        email_subject = mail_header_decode(msg['subject'])
 
                         logging.getLogger("Gerologger").info('============================')
                         logging.getLogger("Gerologger").info('NEW EMAIL RECEIVED!')
@@ -214,18 +229,45 @@ def read_mail():
                             # CHECK ATTACHMENT AND PARSE BODY
                             have_attachment = gerofilter.validate_attachment(msg, report_id, MEDIA_ROOT)
                             if have_attachment:
-                                msg_body = msg.get_payload()[0].get_payload()
-                                if type(msg_body) is list:
-                                    email_body = str(msg_body[0])
-                                else:
-                                    email_body = str(msg_body)
+                                # msg_body = msg.get_payload()[0].get_payload()
+                                # if type(msg_body) is list:
+                                #     email_body = str(msg_body[0])
+                                # else:
+                                #     email_body = str(msg_body)
                                     
                                 # CLEAN ENCODING FROM OUTLOOK
-                                email_body = email_body.replace('=\n','')
-                                email_body = email_body.replace('=3D','=')
+                                # email_body = email_body.replace('=\n','')
+                                # email_body = email_body.replace('=3D','=')
+                                
+                                if msg.is_multipart():
+                                    for part in msg.walk():
+                                        content_type = part.get_content_type()
+                                        content_disp = str(part.get("Content-Disposition"))
 
-                                logging.getLogger("Gerologger").info('Body : ' + str(email_body) + '\n')
-                                atk_type, report_endpoint, report_summary = gerofilter.parse_body(email_body)
+                                        if "attachment" not in content_disp:
+                                            email_body = part.get_payload(decode=True)
+                                            charset = part.get_content_charset()
+                                            if charset:
+                                                email_body = email_body.decode(charset)
+                                else:
+                                    email_body = msg.get_payload(decode=True).decode("utf-8", errors='ignore')
+
+                                clean_text = rm_html_tags(email_body)
+
+                                logging.getLogger("Gerologger").info('Body : ' + str(clean_text) + '\n')
+
+                                atk_type = ''
+                                report_endpoint = ''
+                                report_summary = ''
+                                
+                                for line in clean_text.splitlines():
+                                    if line.startswith("TYPE="):
+                                        atk_type = line.split("=", 1)[1].strip()
+                                    elif line.startswith("ENDPOINT="):
+                                        report_endpoint = line.split("=", 1)[1].strip()
+                                    elif line.startswith("SUMMARY="):
+                                        report_summary = line.split("=", 1)[1].strip()
+
                                 logging.getLogger("Gerologger").info('Title : ' + str(report_title))
                                 logging.getLogger("Gerologger").info('Type : ' + str(atk_type))
                                 logging.getLogger("Gerologger").info('Endpoint : ' + str(report_endpoint))
@@ -251,8 +293,8 @@ def read_mail():
                                     logging.getLogger("Gerologger").info('[CODE 201] Bug Hunter Report Saved Successfully')
 
                             else: 
-                                email_body = msg.get_payload()[0].get_payload()
-                                logging.getLogger("Gerologger").info('Body : ' + str(email_body) + '\n')
+                                # email_body = msg.get_payload()[0].get_payload()
+                                # logging.getLogger("Gerologger").info('Body : ' + str(email_body) + '\n')
                                 logging.getLogger("Gerologger").warning('[ERROR 404] Report not valid (Does not have attachment)')
                                 code = 404
                                 payload[3] = "Don't forget to attach a valid PDF file."
@@ -287,9 +329,23 @@ def read_mail():
                                 report.save()
 
                                 payload[1] = report.report_title
+                                # msg_body = msg.get_payload()[0].get_payload()
+                                # update_summary = re.sub(r"Content-T.*\n", "", str(msg_body[0]))
 
-                                msg_body = msg.get_payload()[0].get_payload()
-                                update_summary = re.sub(r"Content-T.*\n", "", str(msg_body[0]))
+                                if msg.is_multipart():
+                                    for part in msg.walk():
+                                        content_type = part.get_content_type()
+                                        content_disp = str(part.get("Content-Disposition"))
+
+                                        if "attachment" not in content_disp:
+                                            email_body = part.get_payload(decode=True)
+                                            charset = part.get_content_charset()
+                                            if charset:
+                                                email_body = email_body.decode(charset)
+                                else:
+                                    email_body = msg.get_payload(decode=True).decode("utf-8", errors='ignore')
+
+                                update_summary = rm_html_tags(email_body)
                                 logging.getLogger("Gerologger").info('Update Summary : ' + str(update_summary) + '\n')
 
                                 save_uan('U', update_id, str(payload[0]), email_date, update_summary, 0)
@@ -323,14 +379,28 @@ def read_mail():
                             # CHECK ATTACHMENT AND PARSE BODY
                             have_attachment = gerofilter.validate_attachment(msg, appeal_id, MEDIA_ROOT)
                             if have_attachment:
-                                msg_body = msg.get_payload()[0].get_payload()
-                                appeal_summary = msg_body[0]
+                                # msg_body = msg.get_payload()[0].get_payload()
+                                # appeal_summary = msg_body[0]
                                 appeal_file = 1
                             else: 
-                                appeal_summary = msg.get_payload()[0].get_payload()
+                                # appeal_summary = msg.get_payload()[0].get_payload()
                                 appeal_file = 0
 
-                            appeal_summary = re.sub(r"Content-T.*\n", "", str(appeal_summary))
+                            if msg.is_multipart():
+                                for part in msg.walk():
+                                    content_type = part.get_content_type()
+                                    content_disp = str(part.get("Content-Disposition"))
+
+                                    if "attachment" not in content_disp:
+                                        email_body = part.get_payload(decode=True)
+                                        charset = part.get_content_charset()
+                                        if charset:
+                                            email_body = email_body.decode(charset)
+                            else:
+                                email_body = msg.get_payload(decode=True).decode("utf-8", errors='ignore')
+
+                            appeal_summary = rm_html_tags(email_body)
+                            # appeal_summary = re.sub(r"Content-T.*\n", "", str(appeal_summary))
                             logging.getLogger("Gerologger").info('Appeal Summary : ' + str(appeal_summary) + '\n')
 
                             # VALIDATE APPEAL
@@ -390,8 +460,23 @@ def read_mail():
                                 report.report_permission = report.report_permission - 1
                                 report.save()
 
-                                msg_body = msg.get_payload()[0].get_payload()
-                                nda_summary = re.sub(r"Content-T.*\n", "", str(msg_body[0]))
+                                # msg_body = msg.get_payload()[0].get_payload()
+                                # nda_summary = re.sub(r"Content-T.*\n", "", str(msg_body[0]))
+
+                                if msg.is_multipart():
+                                    for part in msg.walk():
+                                        content_type = part.get_content_type()
+                                        content_disp = str(part.get("Content-Disposition"))
+
+                                        if "attachment" not in content_disp:
+                                            email_body = part.get_payload(decode=True)
+                                            charset = part.get_content_charset()
+                                            if charset:
+                                                email_body = email_body.decode(charset)
+                                else:
+                                    email_body = msg.get_payload(decode=True).decode("utf-8", errors='ignore')
+                                    
+                                nda_summary = rm_html_tags(email_body)
                                 logging.getLogger("Gerologger").info('NDA Summary : ' + str(nda_summary) + '\n')
 
                                 save_uan('N', nda_id, str(payload[0]), email_date, nda_summary, 0)
