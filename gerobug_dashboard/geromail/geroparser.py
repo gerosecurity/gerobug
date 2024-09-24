@@ -117,9 +117,12 @@ def mail_header_decode(text):
 
 
 def rm_html_tags(text):
-    text = text.replace('<br>', '\n').replace('<div>', '\n').replace('</div>', '')
-    clean = re.sub(r'<.*?>', '', text)
-    return clean
+    text = text.replace('&nbsp;', '')
+    text = re.sub(r'<br.*?>', '\n', text)
+    text = re.sub(r'<div.*?>', '\n', text)
+    text = re.sub(r'<.*?>', '', text)
+
+    return text
 
 # READ INBOX (UNSEEN) AND PARSE DATA
 def read_mail():
