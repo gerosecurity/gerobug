@@ -252,21 +252,21 @@ def read_mail():
                                 else:
                                     email_body = msg.get_payload(decode=True).decode("utf-8", errors='ignore')
 
-                                clean_text = rm_html_tags(email_body)
-
-                                logging.getLogger("Gerologger").info('Body : ' + str(clean_text) + '\n')
+                                email_body = rm_html_tags(email_body)
+                                logging.getLogger("Gerologger").info('Body : ' + str(email_body) + '\n')
 
                                 atk_type = ''
                                 report_endpoint = ''
                                 report_summary = ''
+                                atk_type, report_endpoint, report_summary = gerofilter.parse_body(email_body)
                                 
-                                for line in clean_text.splitlines():
-                                    if line.startswith("TYPE="):
-                                        atk_type = line.split("=", 1)[1].strip()
-                                    elif line.startswith("ENDPOINT="):
-                                        report_endpoint = line.split("=", 1)[1].strip()
-                                    elif line.startswith("SUMMARY="):
-                                        report_summary = line.split("=", 1)[1].strip()
+                                # for line in email_body.splitlines():
+                                #     if line.startswith("TYPE="):
+                                #         atk_type = line.split("=", 1)[1].strip()
+                                #     elif line.startswith("ENDPOINT="):
+                                #         report_endpoint = line.split("=", 1)[1].strip()
+                                #     elif line.startswith("SUMMARY="):
+                                #         report_summary = line.split("=", 1)[1].strip()
 
                                 logging.getLogger("Gerologger").info('Title : ' + str(report_title))
                                 logging.getLogger("Gerologger").info('Type : ' + str(atk_type))
