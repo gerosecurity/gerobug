@@ -130,11 +130,58 @@ case $ACTION in
         # REPLACE DOMAIN NAME
         sed -i "s/{\$DOMAIN}/$GEROBUG_HOST/g" ./nginx/default.conf
 
+        # CHECK DOCKET INSTALLATION
+        if [ -x "$(command -v docker)" ]; then
+            echo -e "\n================================"
+            echo "UPDATING DOCKER"
+            echo "================================"
+
+            # Add Docker's official GPG key:
+            sudo install -m 0755 -d /etc/apt/keyrings
+            sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+            sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+            # Add the repository to Apt sources:
+            echo \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+            $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+            sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+            sudo apt-get update
+            sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+            systemctl enable docker.service
+            systemctl stop docker
+            systemctl start docker
+
+        else
+            echo -e "\n================================"
+            echo "INSTALLING DOCKER"
+            echo "================================"
+
+            # Add Docker's official GPG key:
+            sudo install -m 0755 -d /etc/apt/keyrings
+            sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+            sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+            # Add the repository to Apt sources:
+            echo \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+            $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+            sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+            sudo apt-get update
+            sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+            systemctl enable docker.service
+            systemctl stop docker
+            systemctl start docker
+        fi
+        
         # RUN CERTBOT
         echo -e "\n================================"
         echo "SETTING UP HTTPS"
         echo "================================"
-        apt-get install -y docker docker.io
         docker run -it --rm -p 80:80 --name certbot \
         -v "/etc/letsencrypt:/etc/letsencrypt" \
         -v "/var/lib/letsencrypt:/var/lib/letsencrypt" \
@@ -193,23 +240,53 @@ case $ACTION in
     sudo apt-get update
     sudo apt-get install -y ca-certificates curl python3 libmagic-dev
 
-    # Add Docker's official GPG key:
-    sudo install -m 0755 -d /etc/apt/keyrings
-    sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-    sudo chmod a+r /etc/apt/keyrings/docker.asc
+    # CHECK DOCKET INSTALLATION
+    if [ -x "$(command -v docker)" ]; then
+        echo -e "\n================================"
+        echo "UPDATING DOCKER"
+        echo "================================"
+        
+        # Add Docker's official GPG key:
+        sudo install -m 0755 -d /etc/apt/keyrings
+        sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+        sudo chmod a+r /etc/apt/keyrings/docker.asc
 
-    # Add the repository to Apt sources:
-    echo \
-    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-    $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-    
-    sudo apt-get update
-    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+        # Add the repository to Apt sources:
+        echo \
+        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+        $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+        sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-    systemctl enable docker.service
-    systemctl stop docker
-    systemctl start docker
+        sudo apt-get update
+        sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+        systemctl enable docker.service
+        systemctl stop docker
+        systemctl start docker
+
+    else
+        echo -e "\n================================"
+        echo "INSTALLING DOCKER"
+        echo "================================"
+
+        # Add Docker's official GPG key:
+        sudo install -m 0755 -d /etc/apt/keyrings
+        sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+        sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+        # Add the repository to Apt sources:
+        echo \
+        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+        $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+        sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+        sudo apt-get update
+        sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+        systemctl enable docker.service
+        systemctl stop docker
+        systemctl start docker
+    fi
 
 
     echo -e "\n=============================="
