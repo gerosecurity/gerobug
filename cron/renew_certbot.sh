@@ -9,5 +9,8 @@ docker run --rm -p 8888:80 --name certbot \
 # Reload Nginx to apply new certificates (optional)
 # docker exec gerobug_nginx nginx -s reload
 
-# CRON
-# 0 2 1 * * /path/to/gerobug/cron/renew_certbot.sh >> /gerobug/log/renew_certbot.log 2>&1
+# ADD CRON
+# echo "0 2 1 * * /path/to/gerobug/cron/renew_certbot.sh >> /gerobug/log/renew_certbot.log 2>&1" | sudo crontab -
+
+# DELETE CRON
+# sudo crontab -l | grep -v "/gerobug/cron/renew_certbot.sh" | sudo crontab -

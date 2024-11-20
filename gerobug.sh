@@ -189,6 +189,28 @@ case $ACTION in
         -v "/etc/letsencrypt:/etc/letsencrypt" \
         -v "/var/lib/letsencrypt:/var/lib/letsencrypt" \
         certbot/certbot certonly --standalone -d $GEROBUG_HOST
+
+        echo "Auto Renew using Certbot?"
+        echo "   1) YES (A monthly cronjob will be added)"
+        echo "   2) NO  (Renew manually using this script)"
+        until [[ $AUTO_RENEW =~ ^[1-2]$ ]]; do
+            read -rp "Your choice [1-2]: " -e AUTO_RENEW
+        done
+        case $AUTO_RENEW in
+        1)
+            AUTO="Y"
+            ;;
+        2)
+            AUTO="N"
+            ;;
+        esac
+        echo ""
+
+        if [[ $AUTO == "Y" ]]; then
+            echo "0 2 1 * * $(pwd)/cron/renew_certbot.sh >> $(pwd)/log/renew_certbot.log 2>&1" | sudo crontab -
+        fi
+        echo ""
+
     else
         echo "Gerobug will not implement HTTPS [NOT RECOMMENDED FOR PRODUCTION]"
         echo "A domain is required to setup HTTPS"
