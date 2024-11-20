@@ -36,10 +36,10 @@ class PrerequisitesMailbox(models.Model):
     password = models.TextField()
     mailbox_status = models.IntegerField()
     mailbox_type = models.CharField(max_length=1)
-    mailbox_imap = models.CharField()
-    mailbox_imap_port = models.IntegerField()
-    mailbox_smtp = models.CharField()
-    mailbox_smtp_port = models.IntegerField()
+    # mailbox_imap = models.CharField()
+    # mailbox_imap_port = models.IntegerField()
+    # mailbox_smtp = models.CharField()
+    # mailbox_smtp_port = models.IntegerField()
 
     class Meta:
         managed = False
