@@ -29,11 +29,15 @@ class RulesGuidelineForm(forms.ModelForm):
         }
 
 class MailboxForm(forms.Form):
-    CHOICES = (('1', 'GMAIL'),('2', 'OUTLOOK'),)
-    mailbox_email = forms.CharField(widget=forms.EmailInput(attrs={'id':'mailbox_email', 'placeholder': 'Email', 'style': 'width: 100%;', 'class': 'form-control'}))
-    mailbox_password = forms.CharField(widget=forms.PasswordInput(attrs={'id':'mailbox_password', 'placeholder': 'Password', 'style': 'width: 100%;', 'class': 'form-control'}))
+    CHOICES = (('1', 'GMAIL'),('2', 'OUTLOOK'),('3', 'CUSTOM'),)
+    mailbox_email = forms.CharField(widget=forms.EmailInput(attrs={'id':'mailbox_email', 'placeholder': 'Email', 'style': 'width: 100%;', 'class': 'form-control'}),label="Mailbox Email")
+    mailbox_password = forms.CharField(widget=forms.PasswordInput(attrs={'id':'mailbox_password', 'placeholder': 'Password', 'style': 'width: 100%;', 'class': 'form-control'}),label="Mailbox Password")
     mailbox_type = forms.ChoiceField(choices=CHOICES,label="Email Type")
-
+    mailbox_imap = forms.CharField(widget=forms.TextInput(attrs={'id':'mailbox_imap', 'placeholder': 'IMAP Server', 'style': 'width: 100%;', 'class': 'form-control hidden'}),label="IMAP Server")
+    mailbox_imap_port = forms.CharField(widget=forms.NumberInput(attrs={'id':'mailbox_imap_port', 'placeholder': 'IMAP Port', 'style': 'width: 100%;', 'class': 'form-control hidden'}),label="IMAP Port")
+    mailbox_smtp = forms.CharField(widget=forms.TextInput(attrs={'id':'mailbox_smtp', 'placeholder': 'SMTP Server', 'style': 'width: 100%;', 'class': 'form-control hidden'}),label="SMTP Server")
+    mailbox_smtp_port = forms.CharField(widget=forms.NumberInput(attrs={'id':'mailbox_smtp_port', 'placeholder': 'SMTP Port', 'style': 'width: 100%;', 'class': 'form-control hidden'}),label="SMTP Port")
+    
 class AccountForm(forms.Form):
     username = forms.CharField(widget=forms.TextInput(attrs={'id':'username', 'placeholder': 'Username', 'style': 'width: 100%;', 'class': 'form-control'}))
     user_email = forms.CharField(widget=forms.EmailInput(attrs={'id':'user_email', 'placeholder': 'Email', 'style': 'width: 100%;', 'class': 'form-control'}))

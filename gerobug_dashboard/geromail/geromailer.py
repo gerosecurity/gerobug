@@ -85,14 +85,8 @@ def write_mail(code, payload, Destination):
         EMAIL       = mailbox.email
         PWD         = mailbox.password
         TYPE        = mailbox.mailbox_type
-
-        # SMTP CONFIG
-        if TYPE == "2":
-            SMTP_SERVER = "smtp.office365.com"
-            SMTP_PORT   = 587
-        else:
-            SMTP_SERVER = "smtp.gmail.com"
-            SMTP_PORT   = 465
+        SMTP_SERVER = mailbox.mailbox_smtp
+        SMTP_PORT   = mailbox.mailbox_smtp_port
 
         if EMAIL == "" or PWD == "":
             logging.getLogger("Gerologger").error("Mailbox is not ready.")
