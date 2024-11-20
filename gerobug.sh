@@ -182,6 +182,9 @@ case $ACTION in
         echo -e "\n================================"
         echo "SETTING UP HTTPS"
         echo "================================"
+        mkdir -p /var/www/letsencrypt
+        chmod -R 755 /var/www/letsencrypt
+
         docker run -it --rm -p 80:80 --name certbot \
         -v "/etc/letsencrypt:/etc/letsencrypt" \
         -v "/var/lib/letsencrypt:/var/lib/letsencrypt" \
@@ -448,9 +451,11 @@ case $ACTION in
     fi
 
     docker run -it --rm -p 8888:80 --name certbot \
-        -v "/etc/letsencrypt:/etc/letsencrypt" \
-        -v "/var/lib/letsencrypt:/var/lib/letsencrypt" \
-        certbot/certbot certonly --standalone -d $(tail -n 1 gerobug_dashboard/gerobug_host)
+            -v "/etc/letsencrypt:/etc/letsencrypt" \
+            -v "/var/lib/letsencrypt:/var/lib/letsencrypt" \
+            -v "/var/www/letsencrypt:/var/www/letsencrypt" \
+            certbot/certbot certonly --webroot -w /var/www/letsencrypt \
+            -d $(tail -n 1 gerobug_dashboard/gerobug_host)
     ;;
 
 5)

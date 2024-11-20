@@ -9,6 +9,7 @@ services:
       - static-content:/src/static
       - /etc/letsencrypt:/etc/letsencrypt
       - /var/lib/letsencrypt:/var/lib/letsencrypt
+      - /var/www/letsencrypt:/var/www/letsencrypt
     restart: unless-stopped
     depends_on:
       - web
