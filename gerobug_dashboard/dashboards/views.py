@@ -353,6 +353,15 @@ def ReportFiles(request, id):
 def AdminSetting(request):
     users = User.objects.filter(is_superuser=False)
     mailbox_account = MailBox.objects.get(mailbox_id=1)
+    mailbox_initial_data = {
+        'mailbox_email': mailbox_account.email,
+        'mailbox_password': "",
+        'mailbox_type': mailbox_account.mailbox_type,
+        'mailbox_imap': mailbox_account.mailbox_imap,
+        'mailbox_imap_port': mailbox_account.mailbox_imap_port,
+        'mailbox_smtp': mailbox_account.mailbox_smtp,
+        'mailbox_smtp_port': mailbox_account.mailbox_smtp_port,
+    }
     bl = BlacklistRule.objects.get(rule_id=1)
     mailbox_status = mailbox_account.mailbox_status
     mailbox_name = mailbox_account.email
@@ -394,6 +403,25 @@ def AdminSetting(request):
             mailbox_account.password = mailbox.cleaned_data.get('mailbox_password') 
             mailbox_account.mailbox_status = 0
             mailbox_account.mailbox_type = mailbox.cleaned_data.get('mailbox_type')
+
+            if mailbox_account.mailbox_type == '1':
+                mailbox_account.mailbox_imap = "imap.gmail.com"
+                mailbox_account.mailbox_imap_port = 993
+                mailbox_account.mailbox_smtp = "smtp.gmail.com"
+                mailbox_account.mailbox_smtp_port = 465
+
+            elif mailbox_account.mailbox_type == '2':
+                mailbox_account.mailbox_imap = "outlook.office365.com"
+                mailbox_account.mailbox_imap_port = 993
+                mailbox_account.mailbox_smtp = "smtp.office365.com"
+                mailbox_account.mailbox_smtp_port = 587
+
+            else:
+                mailbox_account.mailbox_imap = mailbox.cleaned_data.get('mailbox_imap')
+                mailbox_account.mailbox_imap_port = mailbox.cleaned_data.get('mailbox_imap_port')
+                mailbox_account.mailbox_smtp = mailbox.cleaned_data.get('mailbox_smtp')
+                mailbox_account.mailbox_smtp_port = mailbox.cleaned_data.get('mailbox_smtp_port')
+
             mailbox_account.save()
             logging.getLogger("Gerologger").info("Mailbox updated successfully.")
             messages.success(request,"Mailbox updated successfully.")
@@ -566,7 +594,7 @@ def AdminSetting(request):
     THEME = Personalization.objects.get(personalize_id=1)
     RULES = StaticRules.objects.get(pk=1)
     return render(request,'setting.html',
-                  {'form': RulesGuidelineForm(instance=RULES), 'mailbox': MailboxForm(), 'account': AccountForm(),'reviewer': ReviewerForm(),'webhooks': WebhookForm(),'blacklistrule': BlacklistForm(),
+                  {'form': RulesGuidelineForm(instance=RULES), 'mailbox': MailboxForm(initial=mailbox_initial_data), 'account': AccountForm(),'reviewer': ReviewerForm(),'webhooks': WebhookForm(),'blacklistrule': BlacklistForm(),
                     'templatereport': TemplateReportForm(), 'templatenda': TemplateNDAForm(), 'templatecert': TemplateCertForm(), 'certdata': CertDataForm(), 'companyidentity': CompanyIdentityForm(),
                     'personalization': PersonalizationForm(instance=THEME), 'troubleshoot': TroubleshootForm(), 'users':users, 'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications,'bl':bl})
 

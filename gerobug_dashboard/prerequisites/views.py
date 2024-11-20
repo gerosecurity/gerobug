@@ -76,6 +76,8 @@ def PasswordReset(request):
                         EMAIL       = mailbox.email
                         PWD         = mailbox.password
                         TYPE        = mailbox.mailbox_type
+                        SMTP_SERVER = mailbox.mailbox_smtp
+                        SMTP_PORT   = mailbox.mailbox_smtp_port
 
                         message = MIMEMultipart("alternative")
                         message["From"] = mailbox.email
@@ -83,14 +85,6 @@ def PasswordReset(request):
                         message["Subject"] = subject
                         message_body = MIMEText(body, "html")
                         message.attach(message_body)
-
-                        # SMTP CONFIG
-                        if TYPE == "2":
-                            SMTP_SERVER = "smtp.office365.com"
-                            SMTP_PORT   = 587
-                        else:
-                            SMTP_SERVER = "smtp.gmail.com"
-                            SMTP_PORT   = 465
 
                         if EMAIL == "" or PWD == "":
                             pass

@@ -14,7 +14,7 @@
     <!-- CSS -->
     <link rel="stylesheet" href='{% static "/css/sidebar.css" %}'>
     <link rel="stylesheet" href='{% static "/css/setting.css" %}'>
-    
+
     <!-- BOOTSTRAP CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
@@ -621,6 +621,40 @@
             </div>
         </div>
     </section>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const fields = [
+                { label: document.querySelector("label[for='mailbox_imap']"), input: document.getElementById("mailbox_imap") },
+                { label: document.querySelector("label[for='mailbox_imap_port']"), input: document.getElementById("mailbox_imap_port") },
+                { label: document.querySelector("label[for='mailbox_smtp']"), input: document.getElementById("mailbox_smtp") },
+                { label: document.querySelector("label[for='mailbox_smtp_port']"), input: document.getElementById("mailbox_smtp_port") }
+            ];
 
+            fields.forEach(({ label, input }) => {
+                label.classList.add("hidden");
+                input.classList.add("hidden");
+                label.style.display = "none";
+                input.style.display = "none"; 
+            });
+
+            document.getElementById("id_mailbox_type").addEventListener("change", function () {
+                if (this.value === "3") {
+                    fields.forEach(({ label, input }) => {
+                        label.classList.remove("hidden");
+                        input.classList.remove("hidden");
+                        label.style.display = "";
+                        input.style.display = "";
+                    });
+                } else {
+                    fields.forEach(({ label, input }) => {
+                        label.classList.add("hidden");
+                        input.classList.add("hidden");
+                        label.style.display = "none";
+                        input.style.display = "none";
+                    });
+                }
+            });
+        });
+    </script>
 </body>
 {% endblock content %}

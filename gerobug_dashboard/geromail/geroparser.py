@@ -629,13 +629,8 @@ def run():
             EMAIL       = mailbox.email
             PWD         = mailbox.password
             TYPE        = mailbox.mailbox_type
-
-            if TYPE == "2":
-                IMAP_SERVER     = "outlook.office365.com"
-                IMAP_PORT       = 993
-            else:
-                IMAP_SERVER     = "imap.gmail.com"
-                IMAP_PORT       = 993
+            IMAP_SERVER = mailbox.mailbox_imap
+            IMAP_PORT   = mailbox.mailbox_imap_port
 
             # TEST LOGIN (VALIDATE CREDENTIALS)
             if mailbox.mailbox_status == 0:
