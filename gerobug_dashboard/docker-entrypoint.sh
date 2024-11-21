@@ -24,13 +24,9 @@ if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
   exit 1
 fi
 
-# Creating Superuser if not exists
+# Creating Superuser
 echo "[LOG] Creating Superuser "geromin""
-if python manage.py shell -c "from django.contrib.auth.models import User; exit(User.objects.filter(username='geromin').exists())"; then
-    echo "[LOG] Superuser 'geromin' already exists. Skipping creation."
-else
-    python manage.py createsuperuser --noinput --username "geromin" --email "geromin@localhost"
-fi
+python manage.py createsuperuser --noinput --username "geromin" --email "geromin@localhost"
 echo '[LOG] "geromin" Password --> gerobug_dashboard/secrets/gerobug_secret.env'
 
 # Collecting static files
