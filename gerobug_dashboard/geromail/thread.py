@@ -18,6 +18,8 @@ class RunGeromailThread(threading.Thread):
             
             except Exception as e:
                 logging.getLogger("Gerologger").error("Geroparser Thread Failed: " + str(e))
+                global PARSER_RUNNING
+                PARSER_RUNNING = False
             
             time.sleep(30)
 
