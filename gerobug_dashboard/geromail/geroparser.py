@@ -634,8 +634,8 @@ def run():
 
             # TEST LOGIN (VALIDATE CREDENTIALS)
             if mailbox.mailbox_status == 0:
-                mail = imaplib.IMAP4_SSL(IMAP_SERVER)
                 try:
+                    mail = imaplib.IMAP4_SSL(IMAP_SERVER)
                     mail.login(EMAIL,PWD)
 
                 except Exception as e:
