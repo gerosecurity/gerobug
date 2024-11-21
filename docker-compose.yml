@@ -48,6 +48,8 @@ services:
     volumes:
       - static-content:/src/static
       - ./log/:/src/log
+      - ./migrations/prerequisites/:/src/prerequisites/migrations/
+      - ./migrations/dashboards/:/src/dashboards/migrations/
     restart: unless-stopped
     depends_on:
       - db

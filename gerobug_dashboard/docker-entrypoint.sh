@@ -1,41 +1,43 @@
 #!/bin/bash
 
-echo "[LOG] Waiting 15s for Database Initialization..."
+echo "[LOG] Waiting for Database Initialization"
 sleep 15
 
-echo "[LOG] Making migrations ..."
-while ! python manage.py makemigrations dashboards 2>&1; do
-  echo "[LOG] Made migrations to Dashboard's Models"
+# Making migrations
+echo "[LOG] Making migrations"
+python manage.py makemigrations prerequisites
+python manage.py makemigrations dashboards
+
+
+# Migrating the database
+echo "[LOG] Migrating the database"
+MAX_RETRIES=5
+RETRY_COUNT=0
+until python manage.py migrate || [ $RETRY_COUNT -eq $MAX_RETRIES ]; do
+  echo "[LOG] Migration attempt $((RETRY_COUNT+1)) failed. Retrying..."
+  RETRY_COUNT=$((RETRY_COUNT+1))
   sleep 3
 done
 
-while ! python manage.py makemigrations prerequisites 2>&1; do
-  echo "[LOG] Made migrations to Prerequisite's Models"
-  sleep 3
-done
+if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+  echo "[ERROR] Failed to migrate the database after $MAX_RETRIES attempts."
+  exit 1
+fi
 
+# Creating Superuser if not exists
+echo "[LOG] Creating Superuser "geromin""
+if python manage.py shell -c "from django.contrib.auth.models import User; exit(User.objects.filter(username='geromin').exists())"; then
+    echo "[LOG] Superuser 'geromin' already exists. Skipping creation."
+else
+    python manage.py createsuperuser --noinput --username "geromin" --email "geromin@localhost"
+fi
+echo '[LOG] "geromin" Password --> gerobug_dashboard/secrets/gerobug_secret.env'
 
-echo "[LOG] Migrate the Database ..."
-while ! python manage.py migrate 2>&1; do
-   echo "[LOG] Migration is in progress status 0"
-   sleep 3
-done
-
-while ! python manage.py migrate dashboards 2>&1; do
-   echo "[LOG] Migration is in progress status 1"
-   sleep 3
-done
-
-while ! python manage.py migrate prerequisites 2>&1; do
-   echo "[LOG] Migration is in progress status 2"
-   sleep 3
-done
-
-echo "[LOG] Creating Superuser "geromin" with password: "$DJANGO_SUPERUSER_PASSWORD
-python manage.py createsuperuser --noinput --username "geromin" --email "geromin@localhost"
-
-python manage.py collectstatic --noinput >/dev/null
+# Collecting static files
+echo "[LOG] Collecting static files"
+python manage.py collectstatic --noinput --verbosity 1 | grep -v "It will be ignored"
 
 echo "[LOG] GEROBUG-DASHBOARD is fully configured successfully."
 
+# Execute the CMD passed to the container
 exec "$@"
