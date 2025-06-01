@@ -8,7 +8,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>{% block title %}Gerobug{% endblock title %}</title>
+    <title>{% block title %}{{ company_name }}{% endblock title %}</title>
     <link rel="shortcut icon" href='{% static "favicon.ico" %}' type="image/x-icon">
     <link rel="icon" href='{% static "favicon.ico" %}' type="image/x-icon">
 
@@ -109,7 +109,7 @@
                 </ul>
                 <a class="btn btn-light" href="{% url 'logout' %}" role="button">Logout</a>
                 <div id="copyright">
-                    <p>&copy; {%now "Y"%} GEROBUG</p>
+                    <p>&copy; {%now "Y"%} {{ company_name }}</p>
                 </div>
             </div>
         {% endif %}      

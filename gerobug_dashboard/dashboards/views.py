@@ -54,6 +54,10 @@ class RenderDashboardAdmin(LoginRequiredMixin,ListView):
         context['total_completed'] = BugReport.objects.filter(report_status=7).count()
         context['total_bounty'] = BugReport.objects.filter(report_status=5).count() + BugReport.objects.filter(report_status=6).count()
         
+        # COMPANY NAME
+        THEME = Personalization.objects.get(personalize_id=1)
+        context['company_name'] = THEME.company_name
+
         return context
 
     
@@ -652,7 +656,12 @@ def ManageRoles(request):
 
 def rulescontext(request,):
     staticrules = StaticRules.objects.get(pk=1)
-    return render(request,'rules.html',{'RDP':staticrules.RDP,'bountyterms':staticrules.bountyterms,'inscope':staticrules.inscope,'outofscope':staticrules.outofscope,'reportguidelines':staticrules.reportguidelines,'faq':staticrules.faq})
+
+    # COMPANY NAME
+    THEME = Personalization.objects.get(personalize_id=1)
+    company_name = THEME.company_name
+
+    return render(request,'rules.html',{'RDP':staticrules.RDP,'bountyterms':staticrules.bountyterms,'inscope':staticrules.inscope,'outofscope':staticrules.outofscope,'reportguidelines':staticrules.reportguidelines,'faq':staticrules.faq,'company_name':company_name})
 
 def emailcontext(request,):
     if MailBox.objects.filter(mailbox_id=1)[0].email != "":
@@ -660,14 +669,23 @@ def emailcontext(request,):
         template = "Submit your email to <strong>"+ email +"</strong> using the templates below..."
     else:
         template = "Currently the company hasn't set their email yet. Please contact the admin/wait for the mailbox setup."
-    return render(request, 'submit.html',{'template':template})
+
+    # COMPANY NAME
+    THEME = Personalization.objects.get(personalize_id=1)
+    company_name = THEME.company_name
+
+    return render(request, 'submit.html',{'template':template, 'company_name':company_name})
 
 def halloffame(request,):
     bughunters = BugHunter.objects.alias(
         points=Sum('hunter_scores')
     ).exclude(hunter_scores=0).order_by('-points')
 
-    return render(request, 'halloffame.html',{'bughunters':bughunters})
+    # COMPANY NAME
+    THEME = Personalization.objects.get(personalize_id=1)
+    company_name = THEME.company_name
+
+    return render(request, 'halloffame.html',{'bughunters':bughunters, 'company_name':company_name})
 
 def notfound_404(request, exception):
     return render(request, '404.html', status=404)
