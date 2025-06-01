@@ -577,14 +577,15 @@ def AdminSetting(request):
             theme.save()
 
             # COMPANY LOGO
-            file = request.FILES['company_logo']
-            path = os.path.join(BASE_DIR, "static", "logo.png")
+            if companyidentity.cleaned_data['company_logo'] != None:
+                file = request.FILES['company_logo']
+                path = os.path.join(BASE_DIR, "static", "logo.png")
 
-            with open(path, 'wb+') as destination:
-                for chunk in file.chunks():
-                    destination.write(chunk)
+                with open(path, 'wb+') as destination:
+                    for chunk in file.chunks():
+                        destination.write(chunk)
 
-            gerocert.gerocert.generate_sample()
+                gerocert.gerocert.generate_sample()
 
             logging.getLogger("Gerologger").info("Company Identity updated successfully")
             messages.success(request,"Company Identity updated successfully!")

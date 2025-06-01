@@ -95,6 +95,12 @@
     overflow-y: auto;
 }
 
+#personal{
+    max-height: 75vh;
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
 button{
     width: 100px;
     height: 16px;

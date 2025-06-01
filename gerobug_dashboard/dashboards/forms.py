@@ -72,8 +72,8 @@ class CertDataForm(forms.Form):
     template_title = forms.CharField(widget=forms.TextInput(attrs={'id':'template_title', 'placeholder': 'e.g. Founder of Gerobug', 'style': 'width: 100%;', 'class': 'form-control'}),label="Officer Title")
 
 class CompanyIdentityForm(forms.Form):
-    company_logo = forms.FileField(widget=forms.FileInput(attrs={'id':'company_logo', 'placeholder': 'Company Logo (.png)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.png'}),label="Company Logo (.png)",validators=(validate_is_image,))
-    company_name = forms.CharField(widget=forms.TextInput(attrs={'id':'company_name', 'placeholder': 'e.g. GEROBUG', 'style': 'width: 100%;', 'class': 'form-control'}),label="Company Name")
+    company_logo = forms.FileField(widget=forms.FileInput(attrs={'id':'company_logo', 'placeholder': 'Company Logo (.png)', 'style': 'width: 100%;', 'class': 'form-control', 'accept': '.png'}),label="Company Logo (.png)",validators=(validate_is_image,), required=False)
+    company_name = forms.CharField(widget=forms.TextInput(attrs={'id':'company_name', 'placeholder': 'e.g. Gerobug', 'style': 'width: 100%;', 'class': 'form-control'}),label="Company Name")
 
 class PersonalizationForm(forms.ModelForm):
     class Meta:
