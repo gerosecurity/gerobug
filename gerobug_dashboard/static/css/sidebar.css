@@ -136,7 +136,7 @@
 .sidebar .nav-links li .sub-menu{
   padding: 6px 6px 14px 80px;
   margin-top: -10px;
-  background: #FA8997;
+  background: var(--secondary-2);
   display: none;
 }
 

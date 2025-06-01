@@ -47,6 +47,7 @@ class PrerequisitesMailbox(models.Model):
 
 class Personalization(models.Model):
     personalize_id = models.IntegerField(primary_key=True)
+    company_name = models.CharField(max_length=30, default="GEROBUG")
     main_1      = ColorField()
     main_2      = ColorField()
     secondary_1 = ColorField()

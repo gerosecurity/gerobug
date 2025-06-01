@@ -54,6 +54,10 @@ class RenderDashboardAdmin(LoginRequiredMixin,ListView):
         context['total_completed'] = BugReport.objects.filter(report_status=7).count()
         context['total_bounty'] = BugReport.objects.filter(report_status=5).count() + BugReport.objects.filter(report_status=6).count()
         
+        # COMPANY NAME
+        THEME = Personalization.objects.get(personalize_id=1)
+        context['company_name'] = THEME.company_name
+
         return context
 
     
@@ -70,6 +74,10 @@ class ReportDetails(LoginRequiredMixin,DetailView):
         context['requestform'] = Requestform()
         context['invalidform'] = Invalidform()
         context['completeform'] = CompleteRequestform()
+
+        # COMPANY NAME
+        THEME = Personalization.objects.get(personalize_id=1)
+        context['company_name'] = THEME.company_name
         return context
 
 
@@ -132,6 +140,10 @@ class UpdateDetails(LoginRequiredMixin,DetailView):
         context = super(UpdateDetails, self).get_context_data(**kwargs)
         context['uan_type'] = self.kwargs.get('pk')[12:13]
         context['report_title'] = BugReport.objects.get(report_id=self.kwargs.get('pk')[:12]).report_title
+
+        # COMPANY NAME
+        THEME = Personalization.objects.get(personalize_id=1)
+        context['company_name'] = THEME.company_name
         return context
     
 
@@ -146,6 +158,10 @@ class AppealDetails(LoginRequiredMixin,DetailView):
         context = super(AppealDetails, self).get_context_data(**kwargs)
         context['uan_type'] = self.kwargs.get('pk')[12:13]
         context['report_title'] = BugReport.objects.get(report_id=self.kwargs.get('pk')[:12]).report_title
+
+        # COMPANY NAME
+        THEME = Personalization.objects.get(personalize_id=1)
+        context['company_name'] = THEME.company_name
         return context
     
 
@@ -160,6 +176,10 @@ class NDADetails(LoginRequiredMixin,DetailView):
         context = super(NDADetails, self).get_context_data(**kwargs)
         context['uan_type'] = self.kwargs.get('pk')[12:13]
         context['report_title'] = BugReport.objects.get(report_id=self.kwargs.get('pk')[:12]).report_title
+
+        # COMPANY NAME
+        THEME = Personalization.objects.get(personalize_id=1)
+        context['company_name'] = THEME.company_name
         return context
     
 
@@ -175,6 +195,10 @@ def ReportStatusView(request, id):
     status = ReportStatus.objects.get(status_id=id)
     status = status.status_name
     context = {'bugreportlists': report, 'reportstatus': status}
+
+    # COMPANY NAME
+    THEME = Personalization.objects.get(personalize_id=1)
+    context['company_name'] = THEME.company_name
     return render(request, 'dashboard_varieties/report_status.html', context)
 
 
@@ -547,14 +571,21 @@ def AdminSetting(request):
         
         companyidentity = CompanyIdentityForm(request.POST, request.FILES)
         if companyidentity.is_valid():
-            file = request.FILES['company_logo']
-            path = os.path.join(BASE_DIR, "static", "logo.png")
+            # COMPANY NAME
+            theme               = Personalization.objects.get(personalize_id=1)
+            theme.company_name  = companyidentity.cleaned_data.get('company_name')
+            theme.save()
 
-            with open(path, 'wb+') as destination:
-                for chunk in file.chunks():
-                    destination.write(chunk)
+            # COMPANY LOGO
+            if companyidentity.cleaned_data['company_logo'] != None:
+                file = request.FILES['company_logo']
+                path = os.path.join(BASE_DIR, "static", "logo.png")
 
-            gerocert.gerocert.generate_sample()
+                with open(path, 'wb+') as destination:
+                    for chunk in file.chunks():
+                        destination.write(chunk)
+
+                gerocert.gerocert.generate_sample()
 
             logging.getLogger("Gerologger").info("Company Identity updated successfully")
             messages.success(request,"Company Identity updated successfully!")
@@ -596,7 +627,7 @@ def AdminSetting(request):
     return render(request,'setting.html',
                   {'form': RulesGuidelineForm(instance=RULES), 'mailbox': MailboxForm(initial=mailbox_initial_data), 'account': AccountForm(),'reviewer': ReviewerForm(),'webhooks': WebhookForm(),'blacklistrule': BlacklistForm(),
                     'templatereport': TemplateReportForm(), 'templatenda': TemplateNDAForm(), 'templatecert': TemplateCertForm(), 'certdata': CertDataForm(), 'companyidentity': CompanyIdentityForm(),
-                    'personalization': PersonalizationForm(instance=THEME), 'troubleshoot': TroubleshootForm(), 'users':users, 'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications,'bl':bl})
+                    'personalization': PersonalizationForm(instance=THEME), 'troubleshoot': TroubleshootForm(), 'users':users, 'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications,'bl':bl, 'company_name':THEME.company_name})
 
 @login_required
 def ReviewerDelete(request,id):
@@ -634,11 +665,19 @@ def NotificationDelete(request,service):
 
 @login_required
 def OWASPCalculator(request):
-    return render(request,'owasp-calculator.html')
+    # COMPANY NAME
+    THEME = Personalization.objects.get(personalize_id=1)
+    company_name = THEME.company_name
+
+    return render(request,'owasp-calculator.html',{'company_name':company_name})
 
 @login_required
 def CVSSCalculator(request):
-    return render(request,'cvss-calculator.html')
+    # COMPANY NAME
+    THEME = Personalization.objects.get(personalize_id=1)
+    company_name = THEME.company_name
+    
+    return render(request,'cvss-calculator.html',{'company_name':company_name})
 
 @login_required
 def ManageRoles(request):
@@ -646,7 +685,12 @@ def ManageRoles(request):
 
 def rulescontext(request,):
     staticrules = StaticRules.objects.get(pk=1)
-    return render(request,'rules.html',{'RDP':staticrules.RDP,'bountyterms':staticrules.bountyterms,'inscope':staticrules.inscope,'outofscope':staticrules.outofscope,'reportguidelines':staticrules.reportguidelines,'faq':staticrules.faq})
+
+    # COMPANY NAME
+    THEME = Personalization.objects.get(personalize_id=1)
+    company_name = THEME.company_name
+
+    return render(request,'rules.html',{'RDP':staticrules.RDP,'bountyterms':staticrules.bountyterms,'inscope':staticrules.inscope,'outofscope':staticrules.outofscope,'reportguidelines':staticrules.reportguidelines,'faq':staticrules.faq,'company_name':company_name})
 
 def emailcontext(request,):
     if MailBox.objects.filter(mailbox_id=1)[0].email != "":
@@ -654,14 +698,23 @@ def emailcontext(request,):
         template = "Submit your email to <strong>"+ email +"</strong> using the templates below..."
     else:
         template = "Currently the company hasn't set their email yet. Please contact the admin/wait for the mailbox setup."
-    return render(request, 'submit.html',{'template':template})
+
+    # COMPANY NAME
+    THEME = Personalization.objects.get(personalize_id=1)
+    company_name = THEME.company_name
+
+    return render(request, 'submit.html',{'template':template, 'company_name':company_name})
 
 def halloffame(request,):
     bughunters = BugHunter.objects.alias(
         points=Sum('hunter_scores')
     ).exclude(hunter_scores=0).order_by('-points')
 
-    return render(request, 'halloffame.html',{'bughunters':bughunters})
+    # COMPANY NAME
+    THEME = Personalization.objects.get(personalize_id=1)
+    company_name = THEME.company_name
+
+    return render(request, 'halloffame.html',{'bughunters':bughunters, 'company_name':company_name})
 
 def notfound_404(request, exception):
     return render(request, '404.html', status=404)

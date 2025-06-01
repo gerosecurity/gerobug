@@ -135,6 +135,7 @@ class DashboardsConfig(AppConfig):
                     THEME.secondary_2       = "#FA8997"
                     THEME.secondary_3       = "#FFE0E0"
                     THEME.button_1          = "#48409E"
+                    THEME.company_name      = "GEROBUG"
                     THEME.save()
 
                     print("[LOG] Init Theme Data success")
