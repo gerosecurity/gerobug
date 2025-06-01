@@ -66,7 +66,7 @@
       <h1>Hall Of Fame</h1>
       <img src="{% static 'leaderboard.png' %}">
     </div>
-    <p>Gerobug thanks the following researchers for reporting valid security issues</p>
+    <p>{{ company_name }} thanks the following researchers for reporting valid security issues</p>
         
     <table id="leaderboard">
       <thead>
@@ -80,7 +80,7 @@
 
     <div id="table-scroll">
       <table id="leaderboard">
-        {% for bughunter in bughunters|slice:":50" %}
+        {% for bughunter in bughunters|slice:":1000" %}
         <tr>
           <td style="width:20%">{{ forloop.counter }}</td>
           <td style="width:52%">{{ bughunter.hunter_username }}</td>
