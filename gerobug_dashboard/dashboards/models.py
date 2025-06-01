@@ -145,7 +145,7 @@ class CertificateData(models.Model):
     
 class Personalization(models.Model):
     personalize_id = models.IntegerField(default=1)
-    company_name = models.CharField(max_length=30)
+    company_name = models.CharField(max_length=30, default="GEROBUG")
     main_1      = ColorField(default='#DA0037')
     main_2      = ColorField(default='#E8596A')
     secondary_1 = ColorField(default='#C82A3D')
