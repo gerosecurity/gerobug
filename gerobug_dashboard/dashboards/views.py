@@ -546,7 +546,13 @@ def AdminSetting(request):
             return redirect('setting')
         
         companyidentity = CompanyIdentityForm(request.POST, request.FILES)
-        if companyidentity.is_valid():
+        if C.is_valid():
+            # COMPANY NAME
+            theme               = Personalization.objects.get(personalize_id=1)
+            theme.company_name  = companyidentity.cleaned_data.get('company_name')
+            theme.save()
+
+            # COMPANY LOGO
             file = request.FILES['company_logo']
             path = os.path.join(BASE_DIR, "static", "logo.png")
 
