@@ -401,7 +401,7 @@ case $ACTION in
     echo "STOPPING CURRENT PROCESS"
     echo "=========================="
     docker compose down
-    docker volume rm gerobug_static-content
+    docker volume rm $(docker volume ls --filter name=$(basename "$PWD")_static-content -q)
     sleep 1
 
     echo -e "\n=========================="
