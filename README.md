@@ -136,5 +136,5 @@ If you have any feedback, please reach out to us at __support@gerobug.com__
 
 <br>
 
-Copyright (c) 2025 Gero Security
+Copyright (c) 2025 Gero Security<br>
 Licensed under the GNU AGPLv3.0 License
