@@ -132,7 +132,9 @@ Yeah we have it too
 <br>
 
 ## Feedback
-If you have any feedback, please reach out to us at __gerobug.id@gmail.com__
+If you have any feedback, please reach out to us at __support@gerobug.com__
 
+<br>
 
-
+Copyright (c) 2025 Gero Security
+Licensed under the GNU AGPLv3.0 License
