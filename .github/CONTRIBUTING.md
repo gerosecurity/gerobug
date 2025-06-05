@@ -57,7 +57,7 @@ Check our open issues for good places to start.
 ---
 
 ## 🖊 Contributor License Agreement (CLA)
-By submitting a contribution, you agree to the terms of our Contributor License Agreement. This gives us permission to use and relicense your contributions under both open-source and commercial terms.
+By submitting a contribution, you agree to the terms of our [Contributor License Agreement](CLA.md). This gives us permission to use and relicense your contributions under both open-source and commercial terms.
 
 You don’t need to sign anything — submitting a pull request or issue constitutes agreement to the CLA.
 
