@@ -1,11 +1,8 @@
 import os, magic
-import logging
-
 from PIL import Image, ImageDraw, ImageFont
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
 from dashboards.models import CertificateData
 from datetime import date
-from logging.handlers import TimedRotatingFileHandler
 
 
 def create_cert(name: str, certificate: str, severity):
@@ -117,25 +114,16 @@ def create_cert(name: str, certificate: str, severity):
 
 
 def generate(id, name, severity):
-    try:
-        TEMPLATE_CERT = os.path.join(BASE_DIR,'static/templates',"Template_Cert.jpg")
-        CERTIFICATE = create_cert(name, TEMPLATE_CERT, severity)
+    TEMPLATE_CERT = os.path.join(BASE_DIR,'static/templates',"Template_Cert.jpg")
+    CERTIFICATE = create_cert(name, TEMPLATE_CERT, severity)
 
-        cert_name = id+"-C.jpg"
-        cert_path = os.path.join(MEDIA_ROOT,id,cert_name)
-        CERTIFICATE.save(cert_path, format='JPEG')
-
-    except Exception as e:
-        logging.getLogger("Gerologger").error('[ERROR] Failed to Generate Certificate: '+str(e))
-
+    cert_name = id+"-C.jpg"
+    cert_path = os.path.join(MEDIA_ROOT,id,cert_name)
+    CERTIFICATE.save(cert_path, format='JPEG')
 
 def generate_sample():
-    try:
-        TEMPLATE_CERT = os.path.join(BASE_DIR,'static/templates',"Template_Cert.jpg")
-        CERTIFICATE = create_cert("John Doe", TEMPLATE_CERT, 10)
+    TEMPLATE_CERT = os.path.join(BASE_DIR,'static/templates',"Template_Cert.jpg")
+    CERTIFICATE = create_cert("John Doe", TEMPLATE_CERT, 10)
 
-        sample_path = os.path.join(BASE_DIR,'static/templates',"Sample_Cert.jpg")
-        CERTIFICATE.save(sample_path, format='JPEG')
-
-    except Exception as e:
-        logging.getLogger("Gerologger").error('[ERROR] Failed to Generate Sample Certificate: '+str(e))
+    sample_path = os.path.join(BASE_DIR,'static/templates',"Sample_Cert.jpg")
+    CERTIFICATE.save(sample_path, format='JPEG')
