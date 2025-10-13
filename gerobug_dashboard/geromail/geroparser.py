@@ -558,24 +558,25 @@ def company_action(id, note, code):
             report.save()
 
     elif code == 704: # SEND CERTIFICATE and BOUNTY PROOF TO HUNTER
-        logging.getLogger("Gerologger").info('[CODE 704] Send Certificate and Bounty Proof to Bug Hunter')
-        
-        # GET HUNTER NAME AND GENERATE CERTIFICATE
-        hunter_email = report.hunter_email
-        hunter = BugHunter.objects.get(hunter_email=hunter_email)
-
         try:
+            # GET HUNTER NAME AND GENERATE CERTIFICATE
+            hunter_email = report.hunter_email
+            hunter = BugHunter.objects.get(hunter_email=hunter_email)
+
             gerocert.gerocert.generate(id, hunter.hunter_username, int(report.report_severity))
+
+            # UPDATE HUNTER SCORE
+            hunter.hunter_scores += int(report.report_severity)
+            hunter.save()
+
+            # UPDATE REPORT STATUS TO COMPLETE
+            report.report_status += 1
+            report.save()
+
+            logging.getLogger("Gerologger").info('[CODE 704] Send Certificate and Bounty Proof to Bug Hunter')
+
         except Exception as e:
-            logging.getLogger("Gerologger").error('[ERROR 704] Failed to Generate Certificate: '+str(e))
-
-        # UPDATE HUNTER SCORE
-        hunter.hunter_scores += int(report.report_severity)
-        hunter.save()
-
-        # UPDATE REPORT STATUS TO COMPLETE
-        report.report_status += 1
-        report.save()
+            logging.getLogger("Gerologger").error('[ERROR 704] Failed to Complete Report: '+str(e))
 
     payload = [id, report.report_title, report.report_status, note, report.report_severity]
     destination = report.hunter_email
