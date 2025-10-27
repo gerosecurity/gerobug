@@ -382,7 +382,7 @@ case $ACTION in
     echo -e "\n=========================="
     echo "BACKUP CURRENT FILES"
     echo "=========================="
-    GEROBUG_DASHBOARD=$(docker container ls  | grep '.*-dashboard' | awk '{print $1}')
+    GEROBUG_DASHBOARD=$(docker container ls | grep -E '(_|-){1}dashboard' | awk '{print $1}')
 
     if [[ $GEROBUG_DASHBOARD == "" ]]; then
         echo "No running Gerobug container found, use INSTALL instead"
