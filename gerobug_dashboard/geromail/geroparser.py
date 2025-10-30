@@ -718,6 +718,13 @@ def recover_loss_file(id, type):
     hunter_email = str(report.hunter_email)
     report_title = str(report.report_title).replace('\r\n','')
 
+    mailbox = MailBox.objects.get(mailbox_id=1)
+    EMAIL       = mailbox.email
+    PWD         = mailbox.password
+    TYPE        = mailbox.mailbox_type
+    IMAP_SERVER = mailbox.mailbox_imap
+    IMAP_PORT   = mailbox.mailbox_imap_port
+
     try:
         # LOGIN TO IMAP / MAIL SERVER
         mail = imaplib.IMAP4_SSL(IMAP_SERVER)
@@ -725,8 +732,7 @@ def recover_loss_file(id, type):
 
         # READ DATA FROM INBOX
         mail.select('inbox')
-        mailbox = MailBox.objects.get(mailbox_id=1)
-        if mailbox.mailbox_type == "1": # GMAIL
+        if TYPE == "1": # GMAIL
             if type == None:
                 SEARCH = "from:" + hunter_email + " subject:SUBMIT_" + report_title
             elif type == "U":
