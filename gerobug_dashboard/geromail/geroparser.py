@@ -732,8 +732,7 @@ def recover_loss_file(id, type):
 
         # READ DATA FROM INBOX
         mail.select('inbox')
-        mailbox = MailBox.objects.get(mailbox_id=1)
-        if mailbox.mailbox_type == "1": # GMAIL
+        if TYPE == "1": # GMAIL
             if type == None:
                 SEARCH = "from:" + hunter_email + " subject:SUBMIT_" + report_title
             elif type == "U":
