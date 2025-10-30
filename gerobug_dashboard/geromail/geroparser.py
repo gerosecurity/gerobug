@@ -10,7 +10,6 @@ from logging.handlers import TimedRotatingFileHandler
 from email.utils import parsedate_tz, mktime_tz
 from email.header import decode_header
 from datetime import datetime
-from unicodedata import normalize
 
 import gerocert.gerocert
 from . import gerosecure
@@ -719,10 +718,16 @@ def recover_loss_file(id, type):
     hunter_email = str(report.hunter_email)
     report_title = str(report.report_title).replace('\r\n','')
 
+    mailbox = MailBox.objects.get(mailbox_id=1)
+    EMAIL       = mailbox.email
+    PWD         = mailbox.password
+    TYPE        = mailbox.mailbox_type
+    IMAP_SERVER = mailbox.mailbox_imap
+    IMAP_PORT   = mailbox.mailbox_imap_port
+
     try:
         # LOGIN TO IMAP / MAIL SERVER
         mail = imaplib.IMAP4_SSL(IMAP_SERVER)
-        PWD = normalize('NFKC', PWD)
         mail.login(EMAIL,PWD)
 
         # READ DATA FROM INBOX
