@@ -715,6 +715,10 @@ def recover_loss_file(id, type):
     report_id = str(id[:12])
     recover = False
 
+    # Ensure report folder exists before anything else
+    fileDir = os.path.join(MEDIA_ROOT, report_id)
+    os.makedirs(fileDir, exist_ok=True)
+
     report = BugReport.objects.get(report_id=report_id)
     hunter_email = str(report.hunter_email)
     report_title = str(report.report_title).replace('\r\n','')
