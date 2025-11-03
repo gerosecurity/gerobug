@@ -58,7 +58,7 @@ services:
         max-size: 50m
 
   db:
-    image: 'postgres:latest'
+    image: 'postgres:17-alpine'
     expose:
       - 5432
     command: postgres -c hba_file=/opt/gerobug_hba.conf
