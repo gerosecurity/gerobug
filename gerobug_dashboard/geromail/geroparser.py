@@ -6,6 +6,7 @@ import random
 import re
 import logging
 import os
+import ssl
 import traceback
 from logging.handlers import TimedRotatingFileHandler
 from email.utils import parsedate_tz, mktime_tz
@@ -34,6 +35,11 @@ IMAP_PORT       = 0
 MAILBOX_READY   = False
 PARSER_RUNNING  = False
 ERROR_COUNT     = 0
+
+
+def _get_ssl_context():
+    ctx = ssl.create_default_context()
+    return ctx
 
 # GENERATE REPORT ID
 def generate_id(email, ts):
@@ -147,6 +153,13 @@ def get_spam_folder(mail):
     return None
 
 
+def check_connection_alive(mail):
+    try:
+        mail.noop()
+        return True
+    except (imaplib.IMAP4.abort, imaplib.IMAP4.error, OSError, Exception):
+        return False
+
 # READ INBOX (UNSEEN) AND PARSE DATA
 def read_mail(mail, folder_name='inbox'):
     global ERROR_COUNT
@@ -154,9 +167,12 @@ def read_mail(mail, folder_name='inbox'):
         # SELECT FOLDER
         try:
             mail.select(folder_name)
+        except imaplib.IMAP4.abort as abort_err:
+            logging.getLogger("Gerologger").info(f"IMAP connection lost while selecting {folder_name}, will reconnect")
+            raise abort_err
         except Exception as e:
             logging.getLogger("Gerologger").warning(f"Failed to select folder {folder_name}: {e}")
-            raise e    
+            raise e
 
         data = mail.search(None, 'UNSEEN') # data = mail.search(None, 'ALL')
         mail_ids = data[1]
@@ -554,10 +570,13 @@ def read_mail(mail, folder_name='inbox'):
         else:
             logging.getLogger("Gerologger").debug(f'No new email in {folder_name}...')            
 
+    except imaplib.IMAP4.abort as abort_err:
+        logging.getLogger("Gerologger").info(f"IMAP connection aborted for {folder_name}, will reconnect")
+        raise abort_err
     except Exception as e:
         logging.getLogger("Gerologger").error(f"Failed to read mail from {folder_name} = " + str(e) + "("  + str(ERROR_COUNT) + ")")
         ERROR_COUNT+=1
-        raise e    
+        raise e
 
 
 # PARSE COMPANY REQUEST geroparser.request(id, note, 701/702/703)
@@ -615,116 +634,78 @@ def check_mailbox_status():
 
 # RUN GEROMAIL MODULES
 def run():
-    global EMAIL, PWD, MAILBOX_READY, PARSER_RUNNING, IMAP_SERVER, IMAP_PORT, ERROR_COUNT
-    MAILBOX_READY = False
-    ERROR_COUNT = 0
+    global EMAIL, PWD, MAILBOX_READY, PARSER_RUNNING, IMAP_SERVER, IMAP_PORT
 
     if PARSER_RUNNING:
         logging.getLogger("Gerologger").warning("Geroparser already started.")
-        return 0
-    else:
-        PARSER_RUNNING = True
-        logging.getLogger("Gerologger").debug("[LOG] Geroparser started.")
-    
+        return
+
+    PARSER_RUNNING = True
+    MAILBOX_READY = False
+    mail = None
+
     try:
+        while True:
+            mailbox = MailBox.objects.get(mailbox_id=1)
+            if mailbox.email and mailbox.password:
+                break
+            logging.getLogger("Gerologger").debug("Waiting for Mailbox Setup...")
+            time.sleep(5)
+
+        EMAIL       = mailbox.email
+        PWD         = mailbox.password
+        IMAP_SERVER = mailbox.mailbox_imap
+        IMAP_PORT   = mailbox.mailbox_imap_port
+
+        mail = imaplib.IMAP4_SSL(IMAP_SERVER, ssl_context=_get_ssl_context(), timeout=30)
+        mail.login(EMAIL, PWD)
+        MAILBOX_READY = True
+        logging.getLogger("Gerologger").info("Geroparser connected to mailbox.")
+
+        if mailbox.mailbox_status == 0:
+            mailbox.mailbox_status = 1
+            mailbox.save()
+
+        folders_to_scan = ['inbox']
+        spam_folder = get_spam_folder(mail)
+        if spam_folder:
+            folders_to_scan.append(spam_folder)
+
+        session_start_time = time.time()
+        loop_count = 0
         while PARSER_RUNNING:
-            # LIMIT ERRORS TO AVOID BLACKLISTED BY MAIL SERVER
-            if ERROR_COUNT >= 3:
-                logging.getLogger("Gerologger").warning("Error Limit Reached! Cooling down for 5 minutes...")
-                time.sleep(300) 
-                ERROR_COUNT = 0
-                MAILBOX_READY = False
+            loop_count += 1
+            if loop_count % 30 == 0:
+                logging.getLogger("Gerologger").info(f"Geroparser Loop Count: {loop_count}")
 
-            # WAIT UNTIL MAILBOX READY
-            while not MAILBOX_READY:
-                mailbox = MailBox.objects.get(mailbox_id=1)
-                if mailbox.email == "" or mailbox.password == "":
-                    logging.getLogger("Gerologger").debug("Waiting for Mailbox Setup...")
-                    time.sleep(5)
-                else:
-                    MAILBOX_READY = True
-            
-            # Persistent mail connection and variables
-            mail = None
-            folders_to_scan = ['inbox']
-            session_start_time = time.time()
+            if time.time() - session_start_time > 10800:
+                logging.getLogger("Gerologger").info("Session timeout (3 hours). Reconnecting...")
+                return
 
-            # ESTABLISH CONNECTION
+            if not check_connection_alive(mail):
+                logging.getLogger("Gerologger").info("Connection health check failed, reconnecting...")
+                return
+
+            for folder in folders_to_scan:
+                if folder != 'inbox' and (loop_count % 30 != 0):
+                    continue
+                read_mail(mail, folder)
+
             try:
-                mailbox = MailBox.objects.get(mailbox_id=1)
-                EMAIL       = mailbox.email
-                PWD         = mailbox.password
-                IMAP_SERVER = mailbox.mailbox_imap
-                IMAP_PORT   = mailbox.mailbox_imap_port
-
-                # TEST LOGIN (VALIDATE CREDENTIALS)
-                mail = imaplib.IMAP4_SSL(IMAP_SERVER)
-                mail.login(EMAIL,PWD)
-
-                # IF NO ERROR, SET STATUS TO ACTIVE
-                if mailbox.mailbox_status == 0:
-                    mailbox.mailbox_status = 1
-                    mailbox.save()
-
-                # DETECT SPAM FOLDER (ONCE)
-                spam_folder = get_spam_folder(mail)
-                if spam_folder:
-                    folders_to_scan.append(spam_folder)
-            
+                connection.close()
             except Exception as e:
-                ERROR_COUNT+=1
-                logging.getLogger("Gerologger").error("Connection/Login Failed = " + str(e) + "("  + str(ERROR_COUNT) + ")")
-                MAILBOX_READY = False
-                time.sleep(5)
-                continue
+                logging.getLogger("Gerologger").debug(f"DB connection close warning: {e}")
 
-            # ONLY RUN WHILE MAILBOX READY AND CONNECTED
-            loop_count = 0
-            try:
-                while MAILBOX_READY and PARSER_RUNNING:
-                    loop_count += 1
-                    
-                    if loop_count % 30 == 0:
-                        logging.getLogger("Gerologger").info(f"Geroparser Loop Count: {loop_count}")
-
-                    if ERROR_COUNT >= 3:
-                        break
-
-                    # SESSION TIMEOUT CHECK (3 HOURS)
-                    if time.time() - session_start_time > 10800:
-                        logging.getLogger("Gerologger").info("Session timeout (3 hours). Reconnecting...")
-                        break
-
-                    # SCAN FOLDERS REUSING CONNECTION
-                    for folder in folders_to_scan:
-                        if folder != 'inbox' and (loop_count % 30 != 0):
-                            continue
-                        
-                        read_mail(mail, folder)
-                        
-                    try:
-                        connection.close()
-                    except Exception as e:
-                        logging.getLogger("Gerologger").debug(f"DB connection close warning: {e}")
-                        
-                    time.sleep(30)
-            
-            except Exception as e:
-                logging.getLogger("Gerologger").error(
-                    f"Error in main loop: {type(e).__name__}: {e}\n{traceback.format_exc()}"
-                )
-                ERROR_COUNT += 1
-            
-            finally:
-                if mail:
-                    try:
-                        mail.logout()
-                    except:
-                        pass
+            time.sleep(30)
 
     finally:
+        MAILBOX_READY = False
         PARSER_RUNNING = False
-        logging.getLogger("Gerologger").info("Geroparser stopped (flag reset).")
+        if mail:
+            try:
+                mail.logout()
+            except Exception:
+                pass
 
 # RECOVER LOSS FILES
 def recover_loss_file_handler(BUGREPORTS):
