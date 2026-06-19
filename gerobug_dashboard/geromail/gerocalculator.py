@@ -1,5 +1,5 @@
 import re
-from cvss import CVSS3
+from cvss import CVSS3, CVSS4
 
 
 
@@ -78,21 +78,33 @@ def calculate_cvss(severity_string):
     return cvss.scores()[0]
 
 
+def calculate_cvss4(severity_string):
+    c = CVSS4(severity_string)
+    return c.scores()[0]
+
+
 def calculate(severity_string, severity_type):
     if severity_type == "CVSS":
         return calculate_cvss(severity_string)
-    
+
+    elif severity_type == "CVSS4":
+        return calculate_cvss4(severity_string)
+
     elif severity_type == "OWASP":
         return calculate_owasp(severity_string)
-    
+
     else:
         return 0
 
 def classify(severity_string):
     cvss = re.search("^CVSS:3\.1\/AV:[NALP]\/AC:[LH]\/PR:[NLH]\/UI:[NR]\/S:[UC]\/C:[NLH]\/I:[NLH]\/A:[N|L|H](\/E:[UPFH])?(\/RL:[OTWU])?(\/RC:[URC])?(\/CR:[LMH])?(\/IR:[LMH])?(\/AR:[LMH])?(\/MAV:[NALP])?(\/MAC:[LH])?(\/MPR:[NLH])?(\/MUI:[NR])?(\/MS:[UC])?(\/MC:[NLH])?(\/MI:[NLH])?(\/MA:[NLH])?$", severity_string)
+    cvss4 = re.search("^CVSS:4\.0\/AV:[NALP]\/AC:[LH]\/AT:[NP]\/PR:[NLH]\/UI:[NPA]\/VC:[NLH]\/VI:[NLH]\/VA:[NLH]\/SC:[NLH]\/SI:[NLH]\/SA:[NLH].*$", severity_string)
+
     if cvss:
         return "CVSS"
-    
+    elif cvss4:
+        return "CVSS4"
+
     else:
         owasp = re.search("^\(SL:[0-9]\/M:[0-9]\/O:[0-9]\/S:[0-9]\/ED:[0-9]\/EE:[0-9]\/A:[0-9]\/ID:[0-9]\/LC:[0-9]\/LI:[0-9]\/LAV:[0-9]\/LAC:[0-9]\/FD:[0-9]\/RD:[0-9]\/NC:[0-9]\/PV:[0-9]\)$", severity_string)
         if owasp:
