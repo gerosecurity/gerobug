@@ -23,7 +23,7 @@ from sys import platform
 from geromail import geromailer, gerofilter, geroparser, gerocalculator
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
 
-import threading, os, shutil, gerocert.gerocert
+import threading, os, shutil, secrets, gerocert.gerocert
 import logging
 from logging.handlers import TimedRotatingFileHandler
 
@@ -384,6 +384,26 @@ def ReportFiles(request, id):
         return redirect('dashboard')
 
 
+def send_password_reset_link(request, user):
+    from django.utils.http import urlsafe_base64_encode
+    from django.utils.encoding import force_bytes
+    from django.contrib.auth.tokens import default_token_generator
+    from geromail import mail_templates
+
+    url = request.build_absolute_uri(reverse('rules'))
+    domain = url[:len(url) - 1]
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+
+    subject = mail_templates.subjectlist[9999]
+    body = mail_templates.messagelist[9999]
+    body = body.replace("~DOMAIN~", str(domain))
+    body = body.replace("~UID~", str(uid))
+    body = body.replace("~TOKEN~", str(token))
+
+    return geromailer.write_mail_raw(subject, body, user.email)
+
+
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
 def AdminSetting(request):
@@ -410,22 +430,36 @@ def AdminSetting(request):
                 groupreviewer = Group.objects.get(name='Reviewer')
                 reviewername = reviewer.cleaned_data.get('reviewername')
                 revieweremail = reviewer.cleaned_data.get('reviewer_email')
-                if User.objects.filter(Q(username__exact=reviewername)).count() > 0:
+                if User.objects.filter(Q(username__iexact=reviewername)).count() > 0:
                     messages.error(request,"Username already used. Please try another username!")
                     logging.getLogger("Gerologger").error("Username already used!")
                     return redirect("setting")
-                elif User.objects.filter(Q(email__exact=revieweremail)).count() > 0:
+                elif User.objects.filter(Q(email__iexact=revieweremail)).count() > 0:
                     messages.error(request,"Email already used. Please try another email!")
                     logging.getLogger("Gerologger").error("Email already used!")
                     return redirect("setting")
                 else:
-                    reviewerpassword = "G3r0bUg_@dM!n_1337yipPie13579246810121337" #default pw, change since this is temp
+                    reviewerpassword = secrets.token_urlsafe(16)
                     revieweraccount = User.objects.create(username=reviewername,email=revieweremail)
                     revieweraccount.set_password(reviewerpassword)
                     revieweraccount.groups.add(groupreviewer)
                     revieweraccount.save()
                     logging.getLogger("Gerologger").info("Reviewer is created successfully")
-                    messages.success(request,"Reviewer is created successfully!")
+
+                    if geroparser.check_mailbox_status():
+                        try:
+                            if send_password_reset_link(request, revieweraccount):
+                                logging.getLogger("Gerologger").info(f"Password reset link sent to reviewer: {revieweremail}")
+                                messages.success(request, "Reviewer created! A password reset link has been sent to their email.")
+                            else:
+                                logging.getLogger("Gerologger").error("Reviewer created but the reset email failed to send.")
+                                messages.warning(request, "Reviewer created, but failed to send the password reset email. Please use the 'Forgot Password' feature or resend the link.")
+                        except Exception as mail_err:
+                            logging.getLogger("Gerologger").error(f"Reviewer created but failed to send reset email: {mail_err}")
+                            messages.warning(request, "Reviewer created, but failed to send the password reset email. Please use the 'Forgot Password' feature or resend the link.")
+                    else:
+                        messages.success(request, "Reviewer created! Mailbox is not ready — please ask the reviewer to use 'Forgot Password' to set their password.")
+
                     return redirect('setting')
             except Exception as e:
                 logging.getLogger("Gerologger").error(str(e))

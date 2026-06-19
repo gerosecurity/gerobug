@@ -6,6 +6,7 @@ import time
 from logging.handlers import TimedRotatingFileHandler
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.utils import formatdate, make_msgid
 from email.mime.base import MIMEBase
 from email import encoders
 from django.db import connection
@@ -140,6 +141,55 @@ def write_mail(code, payload, Destination):
     
     # All retries exhausted
     logging.getLogger("Gerologger").error(f"Failed to Send Email after {MAX_RETRIES} attempts to {Destination}: {last_error}")
+
+
+def write_mail_raw(subject, body, destination):
+    try:
+        connection.close()
+    except:
+        pass
+
+    try:
+        mailbox = MailBox.objects.get(mailbox_id=1)
+        EMAIL       = mailbox.email
+        PWD         = mailbox.password
+        SMTP_SERVER = mailbox.mailbox_smtp
+        SMTP_PORT   = mailbox.mailbox_smtp_port
+
+        if EMAIL == "" or PWD == "":
+            logging.getLogger("Gerologger").error("Mailbox is not ready.")
+            return False
+
+        message = MIMEMultipart("alternative")
+        message["From"] = EMAIL
+        message["To"] = destination
+        message["Subject"] = subject
+        message["Date"] = formatdate(localtime=True)
+        message["Message-ID"] = make_msgid()
+        message.attach(MIMEText(body, "html"))
+
+        try:
+            smtp_conn = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, timeout=30)
+            smtp_conn.login(EMAIL, PWD)
+            smtp_conn.sendmail(EMAIL, destination, message.as_string())
+            smtp_conn.close()
+            logging.getLogger("Gerologger").info(f"Sent raw email to {destination} | Subject: {subject}")
+            return True
+
+        except Exception as ssl_error:
+            try:
+                with smtplib.SMTP(host=SMTP_SERVER, port=SMTP_PORT, timeout=30) as server:
+                    server.starttls()
+                    server.login(EMAIL, PWD)
+                    server.sendmail(EMAIL, destination, message.as_string())
+                    logging.getLogger("Gerologger").info(f"Sent raw email to {destination} via STARTTLS | Subject: {subject}")
+                    return True
+            except Exception as tls_error:
+                raise Exception(f"SSL failed: {ssl_error}, STARTTLS failed: {tls_error}")
+
+    except Exception as e:
+        logging.getLogger("Gerologger").error(f"Failed to send raw email to {destination}: {e}")
+        return False
 
 
 # WRITE EMAIL NOTIFICATION / UPDATES
