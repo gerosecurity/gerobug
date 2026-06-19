@@ -29,6 +29,22 @@ echo "[LOG] Creating Superuser "geromin""
 python manage.py createsuperuser --noinput --username "geromin" --email "geromin@localhost"
 echo '[LOG] "geromin" Password --> gerobug_dashboard/secrets/gerobug_secret.env'
 
+if [ -z "$FIELD_ENCRYPTION_KEY" ]; then
+  echo "[LOG] Generating FIELD_ENCRYPTION_KEY..."
+  FIELD_ENCRYPTION_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+  export FIELD_ENCRYPTION_KEY
+  SECRET_FILE="/src/secrets/gerobug_secret.env"
+  if [ -f "$SECRET_FILE" ]; then
+    if ! grep -q "FIELD_ENCRYPTION_KEY" "$SECRET_FILE"; then
+      echo "FIELD_ENCRYPTION_KEY=$FIELD_ENCRYPTION_KEY" >> "$SECRET_FILE"
+      echo "[LOG] FIELD_ENCRYPTION_KEY written to gerobug_secret.env"
+    fi
+  fi
+fi
+
+echo "[LOG] Encrypting existing sensitive data..."
+python manage.py encrypt_existing_data
+
 # Collecting static files
 echo "[LOG] Collecting static files"
 python manage.py collectstatic --noinput --verbosity 1 | grep -v "It will be ignored"
