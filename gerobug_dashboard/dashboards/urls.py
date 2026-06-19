@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import LogoutForm, ReportFiles, ReportStatusView, ReportUpdateStatus, FormHandler, InvalidHandler, AdminSetting, OWASPCalculator, CVSSCalculator, ManageRoles, ReviewerDelete, NotificationDelete, RenderDashboardAdmin, ReportDetails, UpdateDetails, AppealDetails, NDADetails, ReportUpdate, ReportDelete
+from .views import LogoutForm, ReportFiles, ReportStatusView, ReportUpdateStatus, FormHandler, InvalidHandler, AdminSetting, OWASPCalculator, CVSSCalculator, ReviewerDelete, NotificationDelete, RenderDashboardAdmin, ReportDetails, UpdateDetails, AppealDetails, NDADetails, ReportUpdate, ReportDelete
 
 urlpatterns = [
     path("", RenderDashboardAdmin.as_view(), name="dashboard"),
@@ -18,12 +18,11 @@ urlpatterns = [
     path("report-files/<str:id>", ReportFiles, name="report_files"),
     path("form-handling/<str:id>/<str:complete>", FormHandler, name="form_handler"),
     path("invalid-handling/<str:id>", InvalidHandler, name="invalid_handler"),
-    path("review-delete/<str:id>", ReviewerDelete,name="reviewer_handler"),
+    path("review-delete/<str:public_id>", ReviewerDelete,name="reviewer_handler"),
     path("notification-delete/<str:service>", NotificationDelete,name="notification_handler"),
     
     path("setting", AdminSetting, name="setting"),
     path("owasp-calculator", OWASPCalculator, name="owasp-calculator"),
     path("cvss-calculator", CVSSCalculator, name="cvss-calculator"),
-    path("manage", ManageRoles, name="manage"),
     path("logout/", LogoutForm, name="logout"),
 ]

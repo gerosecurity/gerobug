@@ -8,12 +8,12 @@ class DashboardsConfig(AppConfig):
     if 'gerobug.wsgi' in sys.argv:
     #if 'runserver' in sys.argv: 
         def ready(self):
-            import gerocert.gerocert, dashboards.rulestemplate
+            import gerocert.gerocert, dashboards.rulestemplate, dashboards.signals
             import logging
             from logging.handlers import TimedRotatingFileHandler
             from geromail.thread import RunGeromailThread
-            from dashboards.models import BugReport, BugHunter, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization
-            from django.contrib.auth.models import Group, Permission
+            from dashboards.models import BugReport, BugHunter, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization, UserProfile
+            from django.contrib.auth.models import Group, Permission, User
             from django.core.exceptions import ObjectDoesNotExist
             from prerequisites.models import MailBox
 
@@ -143,6 +143,15 @@ class DashboardsConfig(AppConfig):
                 else:
                     print("[LOG] Theme Data already exists")
 
+            def init_user_profiles():
+                missing = User.objects.filter(profile__isnull=True)
+                created = 0
+                for u in missing:
+                    UserProfile.objects.get_or_create(user=u)
+                    created += 1
+                if created:
+                    logging.getLogger("Gerologger").info(f"Backfilled public IDs for {created} user(s)")
+
             gerologger_config()
             init_status_db(0, "Not Valid")
             init_status_db(1, "Need to Review")
@@ -157,6 +166,7 @@ class DashboardsConfig(AppConfig):
             init_cert_db()
             init_mailbox_db()
             init_theme_db()
+            init_user_profiles()
 
             logging.getLogger("Gerologger").info("Number of Status         :"+str(ReportStatus.objects.count()))
             logging.getLogger("Gerologger").info("Number of Report         :"+str(BugReport.objects.count()))

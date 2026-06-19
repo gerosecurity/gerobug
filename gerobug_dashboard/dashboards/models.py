@@ -1,7 +1,9 @@
+import uuid
 from email.policy import default
 from random import choices
 from unittest.util import _MAX_LENGTH
 from django.db import models
+from django.contrib.auth.models import User
 from django.urls import reverse
 from django.core.validators import RegexValidator, MaxValueValidator, MinValueValidator, MinLengthValidator
 from django_quill.fields import QuillField
@@ -10,6 +12,13 @@ from colorfield.fields import ColorField
 
 
 alphanumeric = RegexValidator(r'^[0-9a-zA-Z]*$', 'Only alphanumeric characters are allowed.')
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    public_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+
+    def __str__(self):
+        return f"{self.user.username} ({self.public_id})"
 
 class BugReport(models.Model):
     report_id = models.CharField(max_length=15,primary_key=True,validators=[alphanumeric])

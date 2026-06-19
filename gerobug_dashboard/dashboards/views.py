@@ -23,7 +23,7 @@ from sys import platform
 from geromail import geromailer, gerofilter, geroparser, gerocalculator
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
 
-import threading, os, shutil, secrets, gerocert.gerocert
+import threading, os, shutil, secrets, uuid, gerocert.gerocert
 import logging
 from logging.handlers import TimedRotatingFileHandler
 
@@ -424,6 +424,11 @@ def AdminSetting(request):
     notifications = Webhook.objects.all()
 
     if request.method == "POST":
+        if not request.user.is_superuser:
+            logging.getLogger("Gerologger").warning("BLOCKED unauthorized admin-setting change by " + str(request.user.username))
+            messages.error(request,"You are not authorized to perform this action.")
+            return redirect('setting')
+
         reviewer = ReviewerForm(request.POST)
         if reviewer.is_valid():
             try:
@@ -676,31 +681,55 @@ def AdminSetting(request):
                     'personalization': PersonalizationForm(instance=THEME), 'troubleshoot': TroubleshootForm(), 'users':users, 'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications,'bl':bl, 'company_name':THEME.company_name})
 
 @login_required
-def ReviewerDelete(request,id):
+def ReviewerDelete(request,public_id):
+    if not request.user.is_superuser:
+        logging.getLogger("Gerologger").warning("BLOCKED unauthorized reviewer-delete of " + str(public_id) + " by " + str(request.user.username))
+        messages.error(request,"You are not authorized to perform this action.")
+        return redirect('setting')
+
     if request.method == "POST":
         try:
-            if User.objects.filter(id=id).count() != 0:
-                User.objects.filter(id=id).delete()
-                messages.success(request,"User is deleted successfully!")
-                logging.getLogger("Gerologger").info("USER ID " + str(id) + " SUCCESSFULLY DELETED BY " + str(request.user.username))
-                return redirect('dashboard')
-            
+            try:
+                uid = uuid.UUID(str(public_id))
+            except (ValueError, TypeError, AttributeError):
+                logging.getLogger("Gerologger").warning("BLOCKED reviewer-delete of malformed identifier '" + str(public_id) + "' by " + str(request.user.username))
+                messages.error(request,"User not found or cannot be deleted.")
+                return redirect('setting')
+
+            target = User.objects.filter(profile__public_id=uid, is_superuser=False).first()
+            if target is None:
+                logging.getLogger("Gerologger").warning("BLOCKED reviewer-delete of protected/unknown user " + str(public_id) + " by " + str(request.user.username))
+                messages.error(request,"User not found or cannot be deleted.")
+                return redirect('setting')
+
+            username = target.username
+            target.delete()
+            messages.success(request,"User is deleted successfully!")
+            logging.getLogger("Gerologger").info("USER " + username + " (public_id " + str(public_id) + ") SUCCESSFULLY DELETED BY " + str(request.user.username))
+            return redirect('dashboard')
+
         except Exception as e:
             logging.getLogger("Gerologger").error(str(e))
             messages.error(request,"Something wrong. The delete operation is unsuccessful. Please report to the Admin!")
             return redirect('setting')
-        
+
         return redirect('setting')
-    
+
     return render(request,'setting.html')
 
 @login_required
 def NotificationDelete(request,service):
+    if not request.user.is_superuser:
+        logging.getLogger("Gerologger").warning("BLOCKED unauthorized notification-delete of '" + str(service) + "' by " + str(request.user.username))
+        messages.error(request,"You are not authorized to perform this action.")
+        return redirect('setting')
+
     if request.method == "POST":
         try:
             if Webhook.objects.filter(webhook_service=service).count() != 0:
                 Webhook.objects.filter(webhook_service=service).delete()
                 messages.success(request,"Notification Media is deleted successfully!")
+                logging.getLogger("Gerologger").info("Notification '" + str(service) + "' deleted by " + str(request.user.username))
                 return redirect('setting')
         except Exception as e:
             logging.getLogger("Gerologger").error(str(e))
@@ -724,10 +753,6 @@ def CVSSCalculator(request):
     company_name = THEME.company_name
     
     return render(request,'cvss-calculator.html',{'company_name':company_name})
-
-@login_required
-def ManageRoles(request):
-    return render(request,'manage.html')
 
 def rulescontext(request,):
     staticrules = StaticRules.objects.get(pk=1)
