@@ -450,7 +450,9 @@ message_9999 = """\
             <p>
                 Hello,<br>
                 We received a request to reset the password associated with this email address.<br><br>
-                
+
+                <b>Your username (use this to log in):</b> ~USERNAME~<br><br>
+
                 <b>Please click the link below to set a new password:</b><br>
                 <a href="~DOMAIN~:6320/login/reset/~UID~/~TOKEN~/">Reset Gerobug Account Password</a>
                 <br><br>

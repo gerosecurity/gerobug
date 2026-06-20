@@ -23,7 +23,7 @@ from sys import platform
 from geromail import geromailer, gerofilter, geroparser, gerocalculator
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
 
-import threading, os, shutil, secrets, uuid, gerocert.gerocert
+import threading, os, shutil, secrets, uuid, html, gerocert.gerocert
 import logging
 from logging.handlers import TimedRotatingFileHandler
 
@@ -420,6 +420,7 @@ def send_password_reset_link(request, user):
 
     subject = mail_templates.subjectlist[9999]
     body = mail_templates.messagelist[9999]
+    body = body.replace("~USERNAME~", html.escape(user.username))
     body = body.replace("~DOMAIN~", str(domain))
     body = body.replace("~UID~", str(uid))
     body = body.replace("~TOKEN~", str(token))
@@ -453,6 +454,11 @@ def AdminSetting(request):
             return redirect('setting')
 
         reviewer = ReviewerForm(request.POST)
+        if 'reviewername' in request.POST and not reviewer.is_valid():
+            for _field, _errors in reviewer.errors.items():
+                for _err in _errors:
+                    messages.error(request, _err)
+            return redirect("setting")
         if reviewer.is_valid():
             try:
                 groupreviewer = Group.objects.get(name='Reviewer')

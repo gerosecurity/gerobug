@@ -45,7 +45,12 @@ class AccountForm(forms.Form):
     user_password = forms.CharField(widget=forms.PasswordInput(attrs={'id':'user_password', 'placeholder': 'Password', 'style': 'width: 100%;', 'class': 'form-control'}))
 
 class ReviewerForm(forms.Form):
-    reviewername = forms.CharField(widget=forms.TextInput(attrs={'id':'reviewername', 'placeholder': 'Reviewer\'s Username', 'style': 'width: 100%;', 'class': 'form-control'}),label="Reviewer's Name")
+    reviewername = forms.CharField(
+        validators=[validate_username],
+        widget=forms.TextInput(attrs={'id':'reviewername', 'placeholder': 'Reviewer\'s Username', 'style': 'width: 100%;', 'class': 'form-control', 'minlength': str(USERNAME_MIN_LENGTH), 'maxlength': str(USERNAME_MAX_LENGTH)}),
+        label="Reviewer's Username",
+        help_text="3-30 characters. Letters, numbers and . _ - only; must start and end with a letter or number.",
+    )
     reviewer_email = forms.CharField(widget=forms.EmailInput(attrs={'id':'reviewer_email', 'placeholder': 'Reviewer\'s Email', 'style': 'width: 100%;', 'class': 'form-control'}),label="Reviewer's Email")
 
 class WebhookForm(forms.Form):
