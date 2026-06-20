@@ -1,7 +1,9 @@
+import uuid
 from email.policy import default
 from random import choices
 from unittest.util import _MAX_LENGTH
 from django.db import models
+from django.contrib.auth.models import User
 from django.urls import reverse
 from django.core.validators import RegexValidator, MaxValueValidator, MinValueValidator, MinLengthValidator
 from django_quill.fields import QuillField
@@ -10,6 +12,13 @@ from colorfield.fields import ColorField
 
 
 alphanumeric = RegexValidator(r'^[0-9a-zA-Z]*$', 'Only alphanumeric characters are allowed.')
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    public_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+
+    def __str__(self):
+        return f"{self.user.username} ({self.public_id})"
 
 class BugReport(models.Model):
     report_id = models.CharField(max_length=15,primary_key=True,validators=[alphanumeric])
@@ -21,7 +30,7 @@ class BugReport(models.Model):
     report_attack = models.CharField(max_length=100, default='NO ATTACK TYPE')
     report_summary = models.TextField()
     report_severity = models.FloatField(default=0, verbose_name="Report Severity", validators=[MinValueValidator(0.0), MaxValueValidator(10.0)])
-    report_severitystring = models.CharField(default="", max_length=125, verbose_name="Severity String", validators=[RegexValidator(regex='(^\(SL:[0-9]\/M:[0-9]\/O:[0-9]\/S:[0-9]\/ED:[0-9]\/EE:[0-9]\/A:[0-9]\/ID:[0-9]\/LC:[0-9]\/LI:[0-9]\/LAV:[0-9]\/LAC:[0-9]\/FD:[0-9]\/RD:[0-9]\/NC:[0-9]\/PV:[0-9]\)$)|(^CVSS:3\.1\/AV:[NALP]\/AC:[LH]\/PR:[NLH]\/UI:[NR]\/S:[UC]\/C:[NLH]\/I:[NLH]\/A:[N|L|H](\/E:[UPFH])?(\/RL:[OTWU])?(\/RC:[URC])?(\/CR:[LMH])?(\/IR:[LMH])?(\/AR:[LMH])?(\/MAV:[NALP])?(\/MAC:[LH])?(\/MPR:[NLH])?(\/MUI:[NR])?(\/MS:[UC])?(\/MC:[NLH])?(\/MI:[NLH])?(\/MA:[NLH])?$)', message='Use OWASP Risk Rating / CVSS 3.1 Base Vector String')])
+    report_severitystring = models.CharField(default="", max_length=255, verbose_name="Severity String", validators=[RegexValidator(regex='(^\(SL:[0-9]\/M:[0-9]\/O:[0-9]\/S:[0-9]\/ED:[0-9]\/EE:[0-9]\/A:[0-9]\/ID:[0-9]\/LC:[0-9]\/LI:[0-9]\/LAV:[0-9]\/LAC:[0-9]\/FD:[0-9]\/RD:[0-9]\/NC:[0-9]\/PV:[0-9]\)$)|(^CVSS:3\.1\/AV:[NALP]\/AC:[LH]\/PR:[NLH]\/UI:[NR]\/S:[UC]\/C:[NLH]\/I:[NLH]\/A:[N|L|H](\/E:[UPFH])?(\/RL:[OTWU])?(\/RC:[URC])?(\/CR:[LMH])?(\/IR:[LMH])?(\/AR:[LMH])?(\/MAV:[NALP])?(\/MAC:[LH])?(\/MPR:[NLH])?(\/MUI:[NR])?(\/MS:[UC])?(\/MC:[NLH])?(\/MI:[NLH])?(\/MA:[NLH])?$)|(^CVSS:4\.0\/AV:[NALP]\/AC:[LH]\/AT:[NP]\/PR:[NLH]\/UI:[NPA]\/VC:[NLH]\/VI:[NLH]\/VA:[NLH]\/SC:[NLH]\/SI:[NLH]\/SA:[NLH].*$)', message='Use OWASP Risk Rating / CVSS 3.1 / CVSS 4.0 Base Vector String')])
     report_severitytype = models.TextField()
     report_status = models.IntegerField(default=1)
     report_duplicate = models.IntegerField(default=0)
@@ -46,6 +55,7 @@ class BugReportUpdate(models.Model):
     report_id = models.CharField(max_length=15)
     update_datetime = models.DateTimeField()
     update_summary = models.TextField()
+    update_file = models.IntegerField(default=0)
 
     def __str__(self):
         return self.update_id
@@ -72,6 +82,7 @@ class BugReportNDA(models.Model):
     report_id = models.CharField(max_length=15)
     nda_datetime = models.DateTimeField()
     nda_summary = models.TextField()
+    nda_file = models.IntegerField(default=0)
 
     def __str__(self):
         return self.nda_id

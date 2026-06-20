@@ -8,6 +8,7 @@ from colorfield.widgets import ColorWidget
 
 class Requestform(forms.Form):
     reasons = forms.CharField(widget=forms.Textarea(attrs={"id":"reasons","name":"reasons","placeholder":"Explain what you need (Minimum 10 Characters)"}),validators=[MinLengthValidator(10)],required=True)
+    nda_required = forms.BooleanField(required=False, initial=True, widget=forms.CheckboxInput(attrs={"id":"nda_required","name":"nda_required"}), label="Require NDA")
 
 class CompleteRequestform(forms.Form):
     completereasons = forms.CharField(widget=forms.Textarea(attrs={"id":"completereasons","name":"completereasons","placeholder":"Write something inspiring (Minimum 10 Characters)"}),validators=[MinLengthValidator(10)],required=True)
@@ -44,7 +45,12 @@ class AccountForm(forms.Form):
     user_password = forms.CharField(widget=forms.PasswordInput(attrs={'id':'user_password', 'placeholder': 'Password', 'style': 'width: 100%;', 'class': 'form-control'}))
 
 class ReviewerForm(forms.Form):
-    reviewername = forms.CharField(widget=forms.TextInput(attrs={'id':'reviewername', 'placeholder': 'Reviewer\'s Username', 'style': 'width: 100%;', 'class': 'form-control'}),label="Reviewer's Name")
+    reviewername = forms.CharField(
+        validators=[validate_username],
+        widget=forms.TextInput(attrs={'id':'reviewername', 'placeholder': 'Reviewer\'s Username', 'style': 'width: 100%;', 'class': 'form-control', 'minlength': str(USERNAME_MIN_LENGTH), 'maxlength': str(USERNAME_MAX_LENGTH)}),
+        label="Reviewer's Username",
+        help_text="3-30 characters. Letters, numbers and . _ - only; must start and end with a letter or number.",
+    )
     reviewer_email = forms.CharField(widget=forms.EmailInput(attrs={'id':'reviewer_email', 'placeholder': 'Reviewer\'s Email', 'style': 'width: 100%;', 'class': 'form-control'}),label="Reviewer's Email")
 
 class WebhookForm(forms.Form):

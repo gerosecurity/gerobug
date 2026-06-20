@@ -1,11 +1,12 @@
 from django.db import models
+from geromail.encrypted_fields import EncryptedTextField, EncryptedCharField
 
 
 
 class MailBox(models.Model):
     mailbox_id = models.IntegerField(default=1)
     email = models.EmailField()
-    password = models.TextField(default='')
+    password = EncryptedTextField(default='')
     mailbox_status = models.IntegerField(default=0)
     mailbox_type = models.CharField(default='1', max_length=1)
     mailbox_imap = models.CharField(default='imap.gmail.com', max_length=100)
@@ -18,7 +19,7 @@ class MailBox(models.Model):
 
 class Webhook(models.Model):
     webhook_service = models.TextField(default='')
-    webhook_handle = models.TextField(default='')
+    webhook_handle = EncryptedTextField(default='')
 
     def __str__(self):
         return self.webhook_service

@@ -50,6 +50,7 @@ services:
       - ./log/:/src/log
       - ./migrations/prerequisites/:/src/prerequisites/migrations/
       - ./migrations/dashboards/:/src/dashboards/migrations/
+      - ./gerobug_dashboard/secrets/:/src/secrets/
     restart: unless-stopped
     depends_on:
       - db

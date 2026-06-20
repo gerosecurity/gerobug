@@ -23,7 +23,7 @@ from sys import platform
 from geromail import geromailer, gerofilter, geroparser, gerocalculator
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
 
-import threading, os, shutil, gerocert.gerocert
+import threading, os, shutil, secrets, uuid, html, gerocert.gerocert
 import logging
 from logging.handlers import TimedRotatingFileHandler
 
@@ -74,6 +74,24 @@ class ReportDetails(LoginRequiredMixin,DetailView):
         context['requestform'] = Requestform()
         context['invalidform'] = Invalidform()
         context['completeform'] = CompleteRequestform()
+
+        report = BugReport.objects.get(report_id=self.kwargs.get('pk'))
+
+        context['update_file_exists'] = False
+        if report.report_update > 0:
+            try:
+                latest_update = BugReportUpdate.objects.get(update_id=report.report_id + 'U' + str(report.report_update))
+                context['update_file_exists'] = (latest_update.update_file == 1)
+            except BugReportUpdate.DoesNotExist:
+                pass
+
+        context['nda_file_exists'] = False
+        if report.report_nda > 0:
+            try:
+                latest_nda = BugReportNDA.objects.get(nda_id=report.report_id + 'N' + str(report.report_nda))
+                context['nda_file_exists'] = (latest_nda.nda_file == 1)
+            except BugReportNDA.DoesNotExist:
+                pass
 
         # COMPANY NAME
         THEME = Personalization.objects.get(personalize_id=1)
@@ -258,8 +276,13 @@ def FormHandler(request, id, complete):
                     logging.getLogger("Gerologger").info("REPORT "+str(id)+" SEND CALCULATIONS BY "+str(request.user.username))
 
                 elif status == "Bounty in Process" and complete == "0":
-                    code = 703 #REQUEST NDA
-                    logging.getLogger("Gerologger").info("REPORT "+str(id)+" REQUESTED NDA BY "+str(request.user.username))
+                    nda_required = form.cleaned_data.get('nda_required', True)
+                    if nda_required:
+                        code = 703 #REQUEST NDA + PREREQUISITES
+                        logging.getLogger("Gerologger").info("REPORT "+str(id)+" REQUESTED NDA BY "+str(request.user.username))
+                    else:
+                        code = 705 #REQUEST PREREQUISITES ONLY (NO NDA)
+                        logging.getLogger("Gerologger").info("REPORT "+str(id)+" REQUESTED PREREQUISITES (NO NDA) BY "+str(request.user.username))
 
                 elif status == "Bounty in Process" and complete == "1":
                     code = 704 #COMPLETE
@@ -277,13 +300,17 @@ def FormHandler(request, id, complete):
 
                     else:
                         logging.getLogger("Gerologger").error("CODE = 0")
-                
+                        messages.error(request,"This action is not available for the report's current status.")
+
                 else:
                     logging.getLogger("Gerologger").error("Mailbox is not ready.")
-            
+                    messages.error(request,"Mailbox is not ready. Please set up the mailbox in Settings before sending emails.")
+
             else:
-                logging.getLogger("Gerologger").error("Form invalid: "+str(request))
-                messages.error(request,"Form invalid. Please report to the Admin for checking the logs.")
+                logging.getLogger("Gerologger").error("Form invalid: "+str(form.errors.as_json()))
+                for _field, _errors in form.errors.items():
+                    for _err in _errors:
+                        messages.error(request, _err)
 
         return redirect('dashboard')
 
@@ -384,6 +411,27 @@ def ReportFiles(request, id):
         return redirect('dashboard')
 
 
+def send_password_reset_link(request, user):
+    from django.utils.http import urlsafe_base64_encode
+    from django.utils.encoding import force_bytes
+    from django.contrib.auth.tokens import default_token_generator
+    from geromail import mail_templates
+
+    url = request.build_absolute_uri(reverse('rules'))
+    domain = url[:len(url) - 1]
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+
+    subject = mail_templates.subjectlist[9999]
+    body = mail_templates.messagelist[9999]
+    body = body.replace("~USERNAME~", html.escape(user.username))
+    body = body.replace("~DOMAIN~", str(domain))
+    body = body.replace("~UID~", str(uid))
+    body = body.replace("~TOKEN~", str(token))
+
+    return geromailer.write_mail_raw(subject, body, user.email)
+
+
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
 def AdminSetting(request):
@@ -404,28 +452,52 @@ def AdminSetting(request):
     notifications = Webhook.objects.all()
 
     if request.method == "POST":
+        if not request.user.is_superuser:
+            logging.getLogger("Gerologger").warning("BLOCKED unauthorized admin-setting change by " + str(request.user.username))
+            messages.error(request,"You are not authorized to perform this action.")
+            return redirect('setting')
+
         reviewer = ReviewerForm(request.POST)
+        if 'reviewername' in request.POST and not reviewer.is_valid():
+            for _field, _errors in reviewer.errors.items():
+                for _err in _errors:
+                    messages.error(request, _err)
+            return redirect("setting")
         if reviewer.is_valid():
             try:
                 groupreviewer = Group.objects.get(name='Reviewer')
                 reviewername = reviewer.cleaned_data.get('reviewername')
                 revieweremail = reviewer.cleaned_data.get('reviewer_email')
-                if User.objects.filter(Q(username__exact=reviewername)).count() > 0:
+                if User.objects.filter(Q(username__iexact=reviewername)).count() > 0:
                     messages.error(request,"Username already used. Please try another username!")
                     logging.getLogger("Gerologger").error("Username already used!")
                     return redirect("setting")
-                elif User.objects.filter(Q(email__exact=revieweremail)).count() > 0:
+                elif User.objects.filter(Q(email__iexact=revieweremail)).count() > 0:
                     messages.error(request,"Email already used. Please try another email!")
                     logging.getLogger("Gerologger").error("Email already used!")
                     return redirect("setting")
                 else:
-                    reviewerpassword = "G3r0bUg_@dM!n_1337yipPie13579246810121337" #default pw, change since this is temp
+                    reviewerpassword = secrets.token_urlsafe(16)
                     revieweraccount = User.objects.create(username=reviewername,email=revieweremail)
                     revieweraccount.set_password(reviewerpassword)
                     revieweraccount.groups.add(groupreviewer)
                     revieweraccount.save()
                     logging.getLogger("Gerologger").info("Reviewer is created successfully")
-                    messages.success(request,"Reviewer is created successfully!")
+
+                    if geroparser.check_mailbox_status():
+                        try:
+                            if send_password_reset_link(request, revieweraccount):
+                                logging.getLogger("Gerologger").info(f"Password reset link sent to reviewer: {revieweremail}")
+                                messages.success(request, "Reviewer created! A password reset link has been sent to their email.")
+                            else:
+                                logging.getLogger("Gerologger").error("Reviewer created but the reset email failed to send.")
+                                messages.warning(request, "Reviewer created, but failed to send the password reset email. Please use the 'Forgot Password' feature or resend the link.")
+                        except Exception as mail_err:
+                            logging.getLogger("Gerologger").error(f"Reviewer created but failed to send reset email: {mail_err}")
+                            messages.warning(request, "Reviewer created, but failed to send the password reset email. Please use the 'Forgot Password' feature or resend the link.")
+                    else:
+                        messages.success(request, "Reviewer created! Mailbox is not ready — please ask the reviewer to use 'Forgot Password' to set their password.")
+
                     return redirect('setting')
             except Exception as e:
                 logging.getLogger("Gerologger").error(str(e))
@@ -642,31 +714,55 @@ def AdminSetting(request):
                     'personalization': PersonalizationForm(instance=THEME), 'troubleshoot': TroubleshootForm(), 'users':users, 'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications,'bl':bl, 'company_name':THEME.company_name})
 
 @login_required
-def ReviewerDelete(request,id):
+def ReviewerDelete(request,public_id):
+    if not request.user.is_superuser:
+        logging.getLogger("Gerologger").warning("BLOCKED unauthorized reviewer-delete of " + str(public_id) + " by " + str(request.user.username))
+        messages.error(request,"You are not authorized to perform this action.")
+        return redirect('setting')
+
     if request.method == "POST":
         try:
-            if User.objects.filter(id=id).count() != 0:
-                User.objects.filter(id=id).delete()
-                messages.success(request,"User is deleted successfully!")
-                logging.getLogger("Gerologger").info("USER ID " + str(id) + " SUCCESSFULLY DELETED BY " + str(request.user.username))
-                return redirect('dashboard')
-            
+            try:
+                uid = uuid.UUID(str(public_id))
+            except (ValueError, TypeError, AttributeError):
+                logging.getLogger("Gerologger").warning("BLOCKED reviewer-delete of malformed identifier '" + str(public_id) + "' by " + str(request.user.username))
+                messages.error(request,"User not found or cannot be deleted.")
+                return redirect('setting')
+
+            target = User.objects.filter(profile__public_id=uid, is_superuser=False).first()
+            if target is None:
+                logging.getLogger("Gerologger").warning("BLOCKED reviewer-delete of protected/unknown user " + str(public_id) + " by " + str(request.user.username))
+                messages.error(request,"User not found or cannot be deleted.")
+                return redirect('setting')
+
+            username = target.username
+            target.delete()
+            messages.success(request,"User is deleted successfully!")
+            logging.getLogger("Gerologger").info("USER " + username + " (public_id " + str(public_id) + ") SUCCESSFULLY DELETED BY " + str(request.user.username))
+            return redirect('dashboard')
+
         except Exception as e:
             logging.getLogger("Gerologger").error(str(e))
             messages.error(request,"Something wrong. The delete operation is unsuccessful. Please report to the Admin!")
             return redirect('setting')
-        
+
         return redirect('setting')
-    
+
     return render(request,'setting.html')
 
 @login_required
 def NotificationDelete(request,service):
+    if not request.user.is_superuser:
+        logging.getLogger("Gerologger").warning("BLOCKED unauthorized notification-delete of '" + str(service) + "' by " + str(request.user.username))
+        messages.error(request,"You are not authorized to perform this action.")
+        return redirect('setting')
+
     if request.method == "POST":
         try:
             if Webhook.objects.filter(webhook_service=service).count() != 0:
                 Webhook.objects.filter(webhook_service=service).delete()
                 messages.success(request,"Notification Media is deleted successfully!")
+                logging.getLogger("Gerologger").info("Notification '" + str(service) + "' deleted by " + str(request.user.username))
                 return redirect('setting')
         except Exception as e:
             logging.getLogger("Gerologger").error(str(e))
@@ -690,10 +786,6 @@ def CVSSCalculator(request):
     company_name = THEME.company_name
     
     return render(request,'cvss-calculator.html',{'company_name':company_name})
-
-@login_required
-def ManageRoles(request):
-    return render(request,'manage.html')
 
 def rulescontext(request,):
     staticrules = StaticRules.objects.get(pk=1)

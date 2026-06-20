@@ -6,6 +6,7 @@ import random
 import re
 import logging
 import os
+import ssl
 import traceback
 from logging.handlers import TimedRotatingFileHandler
 from email.utils import parsedate_tz, mktime_tz
@@ -34,6 +35,11 @@ IMAP_PORT       = 0
 MAILBOX_READY   = False
 PARSER_RUNNING  = False
 ERROR_COUNT     = 0
+
+
+def _get_ssl_context():
+    ctx = ssl.create_default_context()
+    return ctx
 
 # GENERATE REPORT ID
 def generate_id(email, ts):
@@ -89,6 +95,7 @@ def save_uan(type, id, report_id, date, summary, file):
         newupdate.report_id = report_id
         newupdate.update_datetime = date
         newupdate.update_summary = summary
+        newupdate.update_file = file
 
         newupdate.save()
     
@@ -110,6 +117,7 @@ def save_uan(type, id, report_id, date, summary, file):
         newNDA.report_id = report_id
         newNDA.nda_datetime = date
         newNDA.nda_summary = summary
+        newNDA.nda_file = file
 
         newNDA.save()
 
@@ -126,6 +134,33 @@ def rm_html_tags(text):
     text = re.sub(r'<.*?>', '', text)
 
     return text
+
+
+def extract_email_body(msg):
+    body = ""
+    if msg.is_multipart():
+        for part in msg.walk():
+            if part.get_content_maintype() == 'multipart':
+                continue
+            content_disp = str(part.get("Content-Disposition"))
+            if "attachment" in content_disp:
+                continue
+            if part.get_content_maintype() != 'text':
+                continue
+            payload = part.get_payload(decode=True)
+            if payload is None:
+                continue
+            charset = part.get_content_charset() or 'utf-8'
+            try:
+                body = payload.decode(charset, errors='ignore')
+            except (LookupError, AttributeError):
+                body = payload.decode('utf-8', errors='ignore')
+    else:
+        payload = msg.get_payload(decode=True)
+        if payload is not None:
+            body = payload.decode('utf-8', errors='ignore')
+
+    return body
 
 # GET SPAM FOLDER NAME DYNAMICALLY
 def get_spam_folder(mail):
@@ -147,6 +182,13 @@ def get_spam_folder(mail):
     return None
 
 
+def check_connection_alive(mail):
+    try:
+        mail.noop()
+        return True
+    except (imaplib.IMAP4.abort, imaplib.IMAP4.error, OSError, Exception):
+        return False
+
 # READ INBOX (UNSEEN) AND PARSE DATA
 def read_mail(mail, folder_name='inbox'):
     global ERROR_COUNT
@@ -154,9 +196,12 @@ def read_mail(mail, folder_name='inbox'):
         # SELECT FOLDER
         try:
             mail.select(folder_name)
+        except imaplib.IMAP4.abort as abort_err:
+            logging.getLogger("Gerologger").info(f"IMAP connection lost while selecting {folder_name}, will reconnect")
+            raise abort_err
         except Exception as e:
             logging.getLogger("Gerologger").warning(f"Failed to select folder {folder_name}: {e}")
-            raise e    
+            raise e
 
         data = mail.search(None, 'UNSEEN') # data = mail.search(None, 'ALL')
         mail_ids = data[1]
@@ -344,48 +389,33 @@ def read_mail(mail, folder_name='inbox'):
                                 report.save()
 
                                 # GENERATE UPDATE ID
+                                payload[1] = report.report_title
                                 update_id = str(payload[0]) + "U" + str(report.report_update)
                                 logging.getLogger("Gerologger").info('Update ID : ' + str(update_id))
 
-                                # CHECK ATTACHMENT AND PARSE BODY
+                                update_summary = rm_html_tags(extract_email_body(msg))
+                                logging.getLogger("Gerologger").info('Update Summary : ' + str(update_summary) + '\n')
+
                                 have_attachment = gerofilter.validate_attachment(msg, update_id, MEDIA_ROOT)
-                                if have_attachment:
+                                update_file_flag = 1 if have_attachment else 0
+
+                                if have_attachment or len(update_summary.strip()) > 3:
                                     # REVOKE PERMISSION AND UPDATE COUNTER
                                     report.report_permission = report.report_permission - 4
                                     report.save()
 
-                                    payload[1] = report.report_title
-                                    # msg_body = msg.get_payload()[0].get_payload()
-                                    # update_summary = re.sub(r"Content-T.*\n", "", str(msg_body[0]))
-
-                                    if msg.is_multipart():
-                                        for part in msg.walk():
-                                            content_type = part.get_content_type()
-                                            content_disp = str(part.get("Content-Disposition"))
-
-                                            if "attachment" not in content_disp:
-                                                email_body = part.get_payload(decode=True)
-                                                charset = part.get_content_charset()
-                                                if charset:
-                                                    email_body = email_body.decode(charset)
-                                    else:
-                                        email_body = msg.get_payload(decode=True).decode("utf-8", errors='ignore')
-
-                                    update_summary = rm_html_tags(email_body)
-                                    logging.getLogger("Gerologger").info('Update Summary : ' + str(update_summary) + '\n')
-
-                                    save_uan('U', update_id, str(payload[0]), email_date, update_summary, 0)
+                                    save_uan('U', update_id, str(payload[0]), email_date, update_summary, update_file_flag)
                                     geronotify.notify(str(payload[0]), hunter_email, "NEW_UPDATE")
-                                    logging.getLogger("Gerologger").info('[CODE 203] Bug Hunter Update Saved Successfully')
+                                    logging.getLogger("Gerologger").info(f'[CODE 203] Bug Hunter Update Saved Successfully (file={update_file_flag})')
 
                                 else:
                                     # UPDATE COUNTER ROLLBACK
                                     report.report_update -= 1
                                     report.save()
 
-                                    logging.getLogger("Gerologger").warning('[ERROR 404] Update not valid')
+                                    logging.getLogger("Gerologger").warning('[ERROR 404] Update not valid (no attachment and no body text)')
                                     code = 404
-                                    payload[3] = "Update file not valid."
+                                    payload[3] = "Please include either a PDF attachment or a written description in your update."
 
                             # HUNTER APPEAL REPORT
                             elif(code == 204):
@@ -479,44 +509,32 @@ def read_mail(mail, folder_name='inbox'):
                                 nda_id = str(payload[0]) + "N" + str(report.report_nda)
                                 logging.getLogger("Gerologger").info('NDA ID : ' + str(nda_id))
 
-                                # CHECK ATTACHMENT AND PARSE BODY
                                 have_attachment = gerofilter.validate_attachment(msg, nda_id, MEDIA_ROOT)
-                                if have_attachment:
+                                nda_file_flag = 1 if have_attachment else 0
+
+                                nda_summary = rm_html_tags(extract_email_body(msg))
+                                logging.getLogger("Gerologger").info('NDA Summary : ' + str(nda_summary) + '\n')
+
+                                if have_attachment or len(nda_summary.strip()) > 3:
                                     # REVOKE PERMISSION AND UPDATE COUNTER
                                     report.report_permission = report.report_permission - 1
                                     report.save()
 
-                                    # msg_body = msg.get_payload()[0].get_payload()
-                                    # nda_summary = re.sub(r"Content-T.*\n", "", str(msg_body[0]))
-
-                                    if msg.is_multipart():
-                                        for part in msg.walk():
-                                            content_type = part.get_content_type()
-                                            content_disp = str(part.get("Content-Disposition"))
-
-                                            if "attachment" not in content_disp:
-                                                email_body = part.get_payload(decode=True)
-                                                charset = part.get_content_charset()
-                                                if charset:
-                                                    email_body = email_body.decode(charset)
-                                    else:
-                                        email_body = msg.get_payload(decode=True).decode("utf-8", errors='ignore')
-                                        
-                                    nda_summary = rm_html_tags(email_body)
-                                    logging.getLogger("Gerologger").info('NDA Summary : ' + str(nda_summary) + '\n')
-
-                                    save_uan('N', nda_id, str(payload[0]), email_date, nda_summary, 0)
+                                    save_uan('N', nda_id, str(payload[0]), email_date, nda_summary, nda_file_flag)
                                     geronotify.notify(str(payload[0]), hunter_email, "NEW_NDA")
                                     logging.getLogger("Gerologger").info('[CODE 206] Bug Hunter NDA Received Successfully')
-                                
-                                else: 
+
+                                    if not have_attachment:
+                                        code = 209
+
+                                else:
                                     # UPDATE COUNTER ROLLBACK
                                     report.report_nda -= 1
                                     report.save()
 
                                     logging.getLogger("Gerologger").warning('[ERROR 404] NDA not valid')
                                     code = 404
-                                    payload[3] = "NDA file not valid."
+                                    payload[3] = "Submission not valid. Please include the requested information or attach a PDF file."
 
                             # HUNTER CHECK SCORE
                             elif(code == 207):
@@ -554,10 +572,13 @@ def read_mail(mail, folder_name='inbox'):
         else:
             logging.getLogger("Gerologger").debug(f'No new email in {folder_name}...')            
 
+    except imaplib.IMAP4.abort as abort_err:
+        logging.getLogger("Gerologger").info(f"IMAP connection aborted for {folder_name}, will reconnect")
+        raise abort_err
     except Exception as e:
         logging.getLogger("Gerologger").error(f"Failed to read mail from {folder_name} = " + str(e) + "("  + str(ERROR_COUNT) + ")")
         ERROR_COUNT+=1
-        raise e    
+        raise e
 
 
 # PARSE COMPANY REQUEST geroparser.request(id, note, 701/702/703)
@@ -578,6 +599,12 @@ def company_action(id, note, code):
         
     elif code == 703: # REQUEST NDA and OTHERS
         logging.getLogger("Gerologger").info('[CODE 703] Request NDA and Other Requirements to Bug Hunter')
+        if not gerofilter.validate_permission("N", id):
+            report.report_permission = report.report_permission + 1
+            report.save()
+
+    elif code == 705: # REQUEST PREREQUISITES ONLY (NO NDA)
+        logging.getLogger("Gerologger").info('[CODE 705] Request Bounty Prerequisites (No NDA) to Bug Hunter')
         if not gerofilter.validate_permission("N", id):
             report.report_permission = report.report_permission + 1
             report.save()
@@ -615,116 +642,82 @@ def check_mailbox_status():
 
 # RUN GEROMAIL MODULES
 def run():
-    global EMAIL, PWD, MAILBOX_READY, PARSER_RUNNING, IMAP_SERVER, IMAP_PORT, ERROR_COUNT
-    MAILBOX_READY = False
-    ERROR_COUNT = 0
+    global EMAIL, PWD, MAILBOX_READY, PARSER_RUNNING, IMAP_SERVER, IMAP_PORT
 
     if PARSER_RUNNING:
         logging.getLogger("Gerologger").warning("Geroparser already started.")
-        return 0
-    else:
-        PARSER_RUNNING = True
-        logging.getLogger("Gerologger").debug("[LOG] Geroparser started.")
-    
+        return
+
+    PARSER_RUNNING = True
+    MAILBOX_READY = False
+    mail = None
+
     try:
+        while True:
+            mailbox = MailBox.objects.get(mailbox_id=1)
+            if mailbox.email and mailbox.password:
+                break
+            logging.getLogger("Gerologger").debug("Waiting for Mailbox Setup...")
+            time.sleep(5)
+
+        EMAIL       = mailbox.email
+        PWD         = mailbox.password
+        IMAP_SERVER = mailbox.mailbox_imap
+        IMAP_PORT   = mailbox.mailbox_imap_port
+
+        mail = imaplib.IMAP4_SSL(IMAP_SERVER, ssl_context=_get_ssl_context(), timeout=30)
+        mail.login(EMAIL, PWD)
+        MAILBOX_READY = True
+        logging.getLogger("Gerologger").info("Geroparser connected to mailbox.")
+
+        if mailbox.mailbox_status == 0:
+            mailbox.mailbox_status = 1
+            mailbox.save()
+
+        folders_to_scan = ['inbox']
+        spam_folder = get_spam_folder(mail)
+        if spam_folder:
+            folders_to_scan.append(spam_folder)
+
+        session_start_time = time.time()
+        loop_count = 0
         while PARSER_RUNNING:
-            # LIMIT ERRORS TO AVOID BLACKLISTED BY MAIL SERVER
-            if ERROR_COUNT >= 3:
-                logging.getLogger("Gerologger").warning("Error Limit Reached! Cooling down for 5 minutes...")
-                time.sleep(300) 
-                ERROR_COUNT = 0
-                MAILBOX_READY = False
+            loop_count += 1
+            if loop_count % 30 == 0:
+                logging.getLogger("Gerologger").info(f"Geroparser Loop Count: {loop_count}")
 
-            # WAIT UNTIL MAILBOX READY
-            while not MAILBOX_READY:
-                mailbox = MailBox.objects.get(mailbox_id=1)
-                if mailbox.email == "" or mailbox.password == "":
-                    logging.getLogger("Gerologger").debug("Waiting for Mailbox Setup...")
-                    time.sleep(5)
-                else:
-                    MAILBOX_READY = True
-            
-            # Persistent mail connection and variables
-            mail = None
-            folders_to_scan = ['inbox']
-            session_start_time = time.time()
+            if time.time() - session_start_time > 10800:
+                logging.getLogger("Gerologger").info("Session timeout (3 hours). Reconnecting...")
+                return
 
-            # ESTABLISH CONNECTION
+            if not check_connection_alive(mail):
+                logging.getLogger("Gerologger").info("Connection health check failed, reconnecting...")
+                return
+
             try:
-                mailbox = MailBox.objects.get(mailbox_id=1)
-                EMAIL       = mailbox.email
-                PWD         = mailbox.password
-                IMAP_SERVER = mailbox.mailbox_imap
-                IMAP_PORT   = mailbox.mailbox_imap_port
+                for folder in folders_to_scan:
+                    if folder != 'inbox' and (loop_count % 30 != 0):
+                        continue
+                    read_mail(mail, folder)
+            except (imaplib.IMAP4.abort, OSError) as e:
+                logging.getLogger("Gerologger").info(f"IMAP connection lost during poll, reconnecting: {e}")
+                return
 
-                # TEST LOGIN (VALIDATE CREDENTIALS)
-                mail = imaplib.IMAP4_SSL(IMAP_SERVER)
-                mail.login(EMAIL,PWD)
-
-                # IF NO ERROR, SET STATUS TO ACTIVE
-                if mailbox.mailbox_status == 0:
-                    mailbox.mailbox_status = 1
-                    mailbox.save()
-
-                # DETECT SPAM FOLDER (ONCE)
-                spam_folder = get_spam_folder(mail)
-                if spam_folder:
-                    folders_to_scan.append(spam_folder)
-            
-            except Exception as e:
-                ERROR_COUNT+=1
-                logging.getLogger("Gerologger").error("Connection/Login Failed = " + str(e) + "("  + str(ERROR_COUNT) + ")")
-                MAILBOX_READY = False
-                time.sleep(5)
-                continue
-
-            # ONLY RUN WHILE MAILBOX READY AND CONNECTED
-            loop_count = 0
             try:
-                while MAILBOX_READY and PARSER_RUNNING:
-                    loop_count += 1
-                    
-                    if loop_count % 30 == 0:
-                        logging.getLogger("Gerologger").info(f"Geroparser Loop Count: {loop_count}")
-
-                    if ERROR_COUNT >= 3:
-                        break
-
-                    # SESSION TIMEOUT CHECK (3 HOURS)
-                    if time.time() - session_start_time > 10800:
-                        logging.getLogger("Gerologger").info("Session timeout (3 hours). Reconnecting...")
-                        break
-
-                    # SCAN FOLDERS REUSING CONNECTION
-                    for folder in folders_to_scan:
-                        if folder != 'inbox' and (loop_count % 30 != 0):
-                            continue
-                        
-                        read_mail(mail, folder)
-                        
-                    try:
-                        connection.close()
-                    except Exception as e:
-                        logging.getLogger("Gerologger").debug(f"DB connection close warning: {e}")
-                        
-                    time.sleep(30)
-            
+                connection.close()
             except Exception as e:
-                logging.getLogger("Gerologger").error(
-                    f"Error in main loop: {type(e).__name__}: {e}\n{traceback.format_exc()}"
-                )
-                ERROR_COUNT += 1
-            
-            finally:
-                if mail:
-                    try:
-                        mail.logout()
-                    except:
-                        pass
+                logging.getLogger("Gerologger").debug(f"DB connection close warning: {e}")
+
+            time.sleep(30)
 
     finally:
+        MAILBOX_READY = False
         PARSER_RUNNING = False
-        logging.getLogger("Gerologger").info("Geroparser stopped (flag reset).")
+        if mail:
+            try:
+                mail.logout()
+            except Exception:
+                pass
 
 # RECOVER LOSS FILES
 def recover_loss_file_handler(BUGREPORTS):

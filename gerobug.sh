@@ -9,7 +9,7 @@ echo "
                                                                              
 "
 echo "================================================================================"
-echo "Gerobug v2.7 (Last Update: 05 FEB 2026)"
+echo "Gerobug v3 (Last Update: 20 JUN 2026)"
 echo "================================================================================"
 echo ""
 echo "Hello there..."
@@ -337,6 +337,12 @@ case $ACTION in
         DJANGO_SUPERUSER_PASSWORD=$(tr -dc 'A-Za-z0-9!#$%&*?@' </dev/urandom | head -c 30)
         export DJANGO_SUPERUSER_PASSWORD
         echo "DJANGO_SUPERUSER_PASSWORD='$DJANGO_SUPERUSER_PASSWORD'" > ./gerobug_dashboard/secrets/gerobug_secret.env
+    fi
+
+    if ! grep -q "FIELD_ENCRYPTION_KEY" ./gerobug_dashboard/secrets/gerobug_secret.env 2>/dev/null; then
+        echo '[LOG] Generating FIELD_ENCRYPTION_KEY...'
+        FIELD_ENCRYPTION_KEY=$(python3 -c "import base64, os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())" 2>/dev/null || openssl rand -base64 32 | tr '+/' '-_')
+        echo "FIELD_ENCRYPTION_KEY='$FIELD_ENCRYPTION_KEY'" >> ./gerobug_dashboard/secrets/gerobug_secret.env
     fi
 
     echo -e "\n=============================="

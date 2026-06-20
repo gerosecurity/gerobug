@@ -15,6 +15,7 @@ from prerequisites.models import MailBox
 
 import smtplib
 import logging
+import html
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from geromail import mail_templates
@@ -67,6 +68,7 @@ def PasswordReset(request):
 
                         subject = mail_templates.subjectlist[9999]
                         body = mail_templates.messagelist[9999]
+                        body = body.replace("~USERNAME~", html.escape(user.username))
                         body = body.replace("~DOMAIN~", str(domain))
                         body = body.replace("~UID~", str(uid))
                         body = body.replace("~TOKEN~", str(token))

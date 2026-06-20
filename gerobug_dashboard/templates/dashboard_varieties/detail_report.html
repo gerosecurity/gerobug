@@ -68,19 +68,26 @@
     <script>
         $(document).ready(function () {
             $("#reasons-button").click(function () {
+                var reasons = $("#reasons").val().trim();
+                if (reasons.length < 10) {
+                    $("#reasons-error").show();
+                    return;
+                }
+                $("#reasons-error").hide();
                 var patched = "{% url 'form_handler' 0 '0' %}".replace('0', "{{object.pk}}");
                 $.ajax({
                     type: 'POST',
                     url: patched,
                     data: {
                         csrfmiddlewaretoken: '{{ csrf_token }}',
-                        reasons: $("#reasons").val(),
+                        reasons: reasons,
+                        nda_required: $("#nda_required").is(":checked") ? "on" : "",
                     },
                     success: function (data) {
-                        console.log(data)
+                        window.location.reload();
                     },
                     error: function (error) {
-                        console.log(error)
+                        window.location.reload();
                     },
                 });
 
@@ -199,7 +206,7 @@
                                 {% if object.report_severitytype == "OWASP" %} 
                                 <a href="{% url 'owasp-calculator' %}?vector={{object.report_severitystring}}" >{{object.report_severitystring}}</a>
 
-                                {% elif object.report_severitytype == "CVSS" %}
+                                {% elif object.report_severitytype == "CVSS" or object.report_severitytype == "CVSS4" %}
                                 <a href="{% url 'cvss-calculator' %}#{{object.report_severitystring}}" >{{object.report_severitystring}}</a>
 
                                 {% else %}
@@ -228,10 +235,12 @@
                             </div>
 
                             {% if object.report_update > 0 %}
+                            {% if update_file_exists %}
                             <div id="download-file">
                                 <div id="file-img"><i class="bi bi-file-earmark"></i></div>
                                 <a href="{% url 'report_files' object.pk %}U{{ object.report_update }}">Download (Updated)</a>
                             </div>
+                            {% endif %}
                             <a href="{% url 'update_detail' object.pk %}U{{ object.report_update }}">
                                 <button type="button" class="nda-btn">View Update</button>
                             </a>
@@ -247,10 +256,12 @@
                                 </a>
                             </div>
 
+                            {% if nda_file_exists %}
                             <div id="download-file">
                                 <div id="file-img"><i class="bi bi-file-earmark"></i></div>
                                 <a href="{% url 'report_files' object.pk %}N{{ object.report_nda }}">NDA</a>
                             </div>
+                            {% endif %}
                         </div>
                         {% endif %}
 
@@ -347,7 +358,7 @@
                 {% elif reportstatus == 'Bounty Calculation' %}
                 <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#request_button">Send Calculations</button>
                 {% elif reportstatus == 'Bounty in Process' %}
-                <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#request_button">Request NDA</button>
+                <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#request_button">Request Prerequisites</button>
                 {% endif %}
 
                 <!-- REQUEST BUTTON MODAL -->
@@ -363,7 +374,7 @@
                                 {% elif reportstatus == 'Bounty Calculation' %}
                                 <h1 class="modal-title fs-5" id="staticBackdropLabel">Send Calculations</h1>
                                 {% elif reportstatus == 'Bounty in Process' %}
-                                <h1 class="modal-title fs-5" id="staticBackdropLabel">Request NDA</h1>
+                                <h1 class="modal-title fs-5" id="staticBackdropLabel">Request Prerequisites</h1>
                                 {% endif %}
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
@@ -371,10 +382,17 @@
                                 <form method="POST" action="{% url 'form_handler' object.pk '0' %}">
                                     {% csrf_token %}
                                     {{ requestform.reasons }}
+                                    {% if reportstatus == 'Bounty in Process' %}
+                                    <div class="form-check mt-3">
+                                        <input class="form-check-input" type="checkbox" id="nda_required" name="nda_required" checked>
+                                        <label class="form-check-label" for="nda_required">Require NDA (attach NDA template to the email)</label>
+                                    </div>
+                                    {% endif %}
+                                    <div id="reasons-error" class="text-danger mt-2" style="display:none;">Please enter at least 10 characters.</div>
                                 </form>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" id="reasons-button" class="ok-btn" data-bs-dismiss="modal">OK</button>
+                                <button type="button" id="reasons-button" class="ok-btn">OK</button>
                                 <button type="button" class="cancel-btn" data-bs-dismiss="modal">CANCEL</button>
                             </div>
                         </div>

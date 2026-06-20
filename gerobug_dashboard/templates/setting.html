@@ -370,7 +370,7 @@
                                           <td>{{ user.email }}</td>
                                           <td>
                                             <!-- <a href="#editUserModal" class="edit" data-toggle="modal"><i id="edit-user-{{ user.id }}" class="material-icons" data-toggle="tooltip" title="Edit">&#xE254;</i></a> -->
-                                            <a href="#deleteUserModal" class="delete" data-toggle="modal"><i id="delete-user-{{ user.id }}" class="material-icons" data-toggle="tooltip" title="Delete">&#xE872;</i></a>
+                                            <a href="#deleteUserModal" class="delete" data-toggle="modal"><i id="delete-user-{{ user.profile.public_id.hex }}" class="material-icons" data-toggle="tooltip" title="Delete">&#xE872;</i></a>
                                           </td>
                                         </tr>
                                         {% endfor %}

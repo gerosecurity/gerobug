@@ -1,5 +1,5 @@
-*/*_pycache*
-*/*/*_pycache*
+__pycache__/
+*.py[cod]
 
 *.DS*
 */.DS*

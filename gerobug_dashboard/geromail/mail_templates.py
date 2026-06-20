@@ -109,6 +109,23 @@ message_206 = """\
         </body></html>
         """
 
+subject_209 = "Confirmation: Data Received for Report ~ID~"
+message_209 = """\
+        <html><body>
+            <p>
+                Hello,<br>
+                We acknowledge receipt of the bounty prerequisites for Report ID <b>~ID~</b>.
+                <br>
+                Our team will review the data and notify you regarding the next steps shortly.<br>
+
+                <br><br>
+
+                Best Regards,<br>
+                Gerobug Bug Bounty Platform
+            </p>
+        </body></html>
+        """
+
 subject_207 = "Current Score for This Bug Bounty Program"
 message_207 = """\
         <html><body>
@@ -376,6 +393,33 @@ message_703 = """\
         </body></html>
         """
 
+subject_705 = "Action Required: Bounty Prerequisites for Report ~ID~"
+message_705 = """\
+        <html><body>
+            <p>
+                Hello,<br>
+                We are preparing to process the reward payout for Report ID <b>~ID~</b> ("~TITLE~").<br>
+                Before we can proceed, we require specific information and details.<br>
+
+                <br>
+                Requirements / Instructions:<br>
+                <b>~NOTE~</b>
+
+                <br><br>
+                To complete this step, please reply to this email following these strict guidelines:<br>
+                1. Set the Email Subject to: "<b>DATA_~ID~</b>"<br>
+                2. Provide the requested information in the email body (text only).<br>
+
+                <br>For detailed formatting rules, please refer to our guideline page.<br>
+
+                <br><br>
+                We look forward to receiving your information.<br>
+                Best Regards,<br>
+                Gerobug Bug Bounty Platform
+            </p>
+        </body></html>
+        """
+
 subject_704 = "Processing Complete: Report ~ID~"
 message_704 = """\
         <html><body>
@@ -406,7 +450,9 @@ message_9999 = """\
             <p>
                 Hello,<br>
                 We received a request to reset the password associated with this email address.<br><br>
-                
+
+                <b>Your username (use this to log in):</b> ~USERNAME~<br><br>
+
                 <b>Please click the link below to set a new password:</b><br>
                 <a href="~DOMAIN~:6320/login/reset/~UID~/~TOKEN~/">Reset Gerobug Account Password</a>
                 <br><br>
@@ -432,6 +478,7 @@ subjectlist = {
     206: subject_206,   # NDA SUCCESS (ID)
     207: subject_207,   # CHECK SCORE (NOTE)
     208: subject_208,   # CHECK ALL STATUS (ID, NOTE)
+    209: subject_209,   # DATA RECEIVED - INFO ONLY (ID)
 
     300: subject_300,   # INVALID NOTIFICATION (TITLE, ID, STATUS, NOTE)
     301: subject_301,   # STATUS UPDATE NOTIFICATION (TITLE, ID, STATUS)
@@ -445,6 +492,7 @@ subjectlist = {
     702: subject_702,   # SEND BOUNTY CALCULATIONS (TITLE, ID, NOTE, URL)
     703: subject_703,   # REQUEST NDA (TITLE, ID, NOTE, URL)
     704: subject_704,   # SEND BOUNTY + PROOF (TITLE, ID)
+    705: subject_705,   # REQUEST PREREQUISITES - NO NDA (TITLE, ID, NOTE)
 
     9999: subject_9999
 }
@@ -458,6 +506,7 @@ messagelist = {
     206: message_206,
     207: message_207,
     208: message_208,
+    209: message_209,
 
     300: message_300,
     301: message_301,
@@ -471,6 +520,7 @@ messagelist = {
     702: message_702,
     703: message_703,
     704: message_704,
+    705: message_705,
 
     9999: message_9999
 }
