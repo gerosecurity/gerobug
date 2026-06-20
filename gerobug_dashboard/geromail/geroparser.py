@@ -688,10 +688,14 @@ def run():
                 logging.getLogger("Gerologger").info("Connection health check failed, reconnecting...")
                 return
 
-            for folder in folders_to_scan:
-                if folder != 'inbox' and (loop_count % 30 != 0):
-                    continue
-                read_mail(mail, folder)
+            try:
+                for folder in folders_to_scan:
+                    if folder != 'inbox' and (loop_count % 30 != 0):
+                        continue
+                    read_mail(mail, folder)
+            except (imaplib.IMAP4.abort, OSError) as e:
+                logging.getLogger("Gerologger").info(f"IMAP connection lost during poll, reconnecting: {e}")
+                return
 
             try:
                 connection.close()
