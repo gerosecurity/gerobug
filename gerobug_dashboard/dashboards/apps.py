@@ -12,7 +12,7 @@ class DashboardsConfig(AppConfig):
             import logging
             from logging.handlers import TimedRotatingFileHandler
             from geromail.thread import RunGeromailThread
-            from dashboards.models import BugReport, BugHunter, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization, UserProfile
+            from dashboards.models import BugReport, BugHunter, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization, UserProfile, BugReportUpdate, BugReportNDA
             from django.contrib.auth.models import Group, Permission, User
             from django.core.exceptions import ObjectDoesNotExist
             from prerequisites.models import MailBox
@@ -152,6 +152,23 @@ class DashboardsConfig(AppConfig):
                 if created:
                     logging.getLogger("Gerologger").info(f"Backfilled public IDs for {created} user(s)")
 
+            def init_uan_file_flags():
+                import os
+                from gerobug.settings import MEDIA_ROOT
+                updated = 0
+                for u in BugReportUpdate.objects.filter(update_file=0):
+                    if os.path.isfile(os.path.join(MEDIA_ROOT, u.report_id, u.update_id + ".pdf")):
+                        u.update_file = 1
+                        u.save(update_fields=['update_file'])
+                        updated += 1
+                for n in BugReportNDA.objects.filter(nda_file=0):
+                    if os.path.isfile(os.path.join(MEDIA_ROOT, n.report_id, n.nda_id + ".pdf")):
+                        n.nda_file = 1
+                        n.save(update_fields=['nda_file'])
+                        updated += 1
+                if updated:
+                    logging.getLogger("Gerologger").info(f"Backfilled file flags for {updated} update/NDA record(s)")
+
             gerologger_config()
             init_status_db(0, "Not Valid")
             init_status_db(1, "Need to Review")
@@ -167,6 +184,7 @@ class DashboardsConfig(AppConfig):
             init_mailbox_db()
             init_theme_db()
             init_user_profiles()
+            init_uan_file_flags()
 
             logging.getLogger("Gerologger").info("Number of Status         :"+str(ReportStatus.objects.count()))
             logging.getLogger("Gerologger").info("Number of Report         :"+str(BugReport.objects.count()))

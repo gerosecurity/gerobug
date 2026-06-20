@@ -228,10 +228,12 @@
                             </div>
 
                             {% if object.report_update > 0 %}
+                            {% if update_file_exists %}
                             <div id="download-file">
                                 <div id="file-img"><i class="bi bi-file-earmark"></i></div>
                                 <a href="{% url 'report_files' object.pk %}U{{ object.report_update }}">Download (Updated)</a>
                             </div>
+                            {% endif %}
                             <a href="{% url 'update_detail' object.pk %}U{{ object.report_update }}">
                                 <button type="button" class="nda-btn">View Update</button>
                             </a>
@@ -247,10 +249,12 @@
                                 </a>
                             </div>
 
+                            {% if nda_file_exists %}
                             <div id="download-file">
                                 <div id="file-img"><i class="bi bi-file-earmark"></i></div>
                                 <a href="{% url 'report_files' object.pk %}N{{ object.report_nda }}">NDA</a>
                             </div>
+                            {% endif %}
                         </div>
                         {% endif %}
 

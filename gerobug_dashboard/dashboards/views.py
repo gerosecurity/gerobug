@@ -75,6 +75,24 @@ class ReportDetails(LoginRequiredMixin,DetailView):
         context['invalidform'] = Invalidform()
         context['completeform'] = CompleteRequestform()
 
+        report = BugReport.objects.get(report_id=self.kwargs.get('pk'))
+
+        context['update_file_exists'] = False
+        if report.report_update > 0:
+            try:
+                latest_update = BugReportUpdate.objects.get(update_id=report.report_id + 'U' + str(report.report_update))
+                context['update_file_exists'] = (latest_update.update_file == 1)
+            except BugReportUpdate.DoesNotExist:
+                pass
+
+        context['nda_file_exists'] = False
+        if report.report_nda > 0:
+            try:
+                latest_nda = BugReportNDA.objects.get(nda_id=report.report_id + 'N' + str(report.report_nda))
+                context['nda_file_exists'] = (latest_nda.nda_file == 1)
+            except BugReportNDA.DoesNotExist:
+                pass
+
         # COMPANY NAME
         THEME = Personalization.objects.get(personalize_id=1)
         context['company_name'] = THEME.company_name

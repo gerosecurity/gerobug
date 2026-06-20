@@ -83,7 +83,7 @@
                         {% endif %}
                     </div>
 
-                    {% if uan_type != 'A' or object.appeal_file != 0 %}
+                    {% if uan_type == 'U' and object.update_file != 0 or uan_type == 'A' and object.appeal_file != 0 or uan_type == 'N' and object.nda_file != 0 %}
                     <div id="files"> 
                         <div id="poc">
                             <h6>Files</h6>

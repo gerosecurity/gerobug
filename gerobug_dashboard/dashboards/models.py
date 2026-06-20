@@ -55,6 +55,7 @@ class BugReportUpdate(models.Model):
     report_id = models.CharField(max_length=15)
     update_datetime = models.DateTimeField()
     update_summary = models.TextField()
+    update_file = models.IntegerField(default=0)
 
     def __str__(self):
         return self.update_id
@@ -81,6 +82,7 @@ class BugReportNDA(models.Model):
     report_id = models.CharField(max_length=15)
     nda_datetime = models.DateTimeField()
     nda_summary = models.TextField()
+    nda_file = models.IntegerField(default=0)
 
     def __str__(self):
         return self.nda_id

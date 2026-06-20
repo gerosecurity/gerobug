@@ -100,7 +100,11 @@ def validate_id(id):
 # VALIDATE PDF FILE
 def check_pdf(file):
     try:
-        PyPDF2.PdfFileReader(open(file, "rb"))
+        if isinstance(file, bytes):
+            import io
+            PyPDF2.PdfFileReader(io.BytesIO(file))
+        else:
+            PyPDF2.PdfFileReader(open(file, "rb"))
     except Exception as e:
         logging.getLogger("Gerologger").error(str(e))
         logging.getLogger("Gerologger").error("Invalid PDF File")
@@ -126,27 +130,31 @@ def validate_attachment(msg, id, FILEPATH):
             fileName = id + '.pdf'
             fileDir = os.path.join(FILEPATH, report_id)
             filePath = os.path.join(fileDir, fileName)
+
+            real_filepath = os.path.realpath(filePath)
+            real_basepath = os.path.realpath(FILEPATH)
+            if not real_filepath.startswith(real_basepath + os.sep):
+                logging.getLogger("Gerologger").error(f"Path traversal blocked: {filePath} resolves outside {FILEPATH}")
+                break
+
             file = part.get_payload(decode=True)
             fileSize = len(file)
             logging.getLogger("Gerologger").info('File size = ' + str(fileSize))
-        
+
             if fileSize >= 25000000:
                 pass
             elif not os.path.isfile(filePath):
+                if not check_pdf(file):
+                    logging.getLogger("Gerologger").warning('Invalid PDF detected in memory, file not written to disk')
+                    continue
+
                 if not os.path.exists(fileDir):
                     os.mkdir(fileDir)
 
                 fp = open(filePath, 'wb')
                 fp.write(file)
                 fp.close()
-                
-                # VALIDATE PDF FILE
-                if check_pdf(filePath):
-                    valid = True
-                else:
-                    # ROLLBACK
-                    os.remove(filePath)
-                    os.rmdir(fileDir)
+                valid = True
 
                 break
     

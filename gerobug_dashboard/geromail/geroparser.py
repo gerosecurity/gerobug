@@ -95,6 +95,7 @@ def save_uan(type, id, report_id, date, summary, file):
         newupdate.report_id = report_id
         newupdate.update_datetime = date
         newupdate.update_summary = summary
+        newupdate.update_file = file
 
         newupdate.save()
     
@@ -116,6 +117,7 @@ def save_uan(type, id, report_id, date, summary, file):
         newNDA.report_id = report_id
         newNDA.nda_datetime = date
         newNDA.nda_summary = summary
+        newNDA.nda_file = file
 
         newNDA.save()
 
@@ -132,6 +134,33 @@ def rm_html_tags(text):
     text = re.sub(r'<.*?>', '', text)
 
     return text
+
+
+def extract_email_body(msg):
+    body = ""
+    if msg.is_multipart():
+        for part in msg.walk():
+            if part.get_content_maintype() == 'multipart':
+                continue
+            content_disp = str(part.get("Content-Disposition"))
+            if "attachment" in content_disp:
+                continue
+            if part.get_content_maintype() != 'text':
+                continue
+            payload = part.get_payload(decode=True)
+            if payload is None:
+                continue
+            charset = part.get_content_charset() or 'utf-8'
+            try:
+                body = payload.decode(charset, errors='ignore')
+            except (LookupError, AttributeError):
+                body = payload.decode('utf-8', errors='ignore')
+    else:
+        payload = msg.get_payload(decode=True)
+        if payload is not None:
+            body = payload.decode('utf-8', errors='ignore')
+
+    return body
 
 # GET SPAM FOLDER NAME DYNAMICALLY
 def get_spam_folder(mail):
@@ -360,48 +389,33 @@ def read_mail(mail, folder_name='inbox'):
                                 report.save()
 
                                 # GENERATE UPDATE ID
+                                payload[1] = report.report_title
                                 update_id = str(payload[0]) + "U" + str(report.report_update)
                                 logging.getLogger("Gerologger").info('Update ID : ' + str(update_id))
 
-                                # CHECK ATTACHMENT AND PARSE BODY
+                                update_summary = rm_html_tags(extract_email_body(msg))
+                                logging.getLogger("Gerologger").info('Update Summary : ' + str(update_summary) + '\n')
+
                                 have_attachment = gerofilter.validate_attachment(msg, update_id, MEDIA_ROOT)
-                                if have_attachment:
+                                update_file_flag = 1 if have_attachment else 0
+
+                                if have_attachment or len(update_summary.strip()) > 3:
                                     # REVOKE PERMISSION AND UPDATE COUNTER
                                     report.report_permission = report.report_permission - 4
                                     report.save()
 
-                                    payload[1] = report.report_title
-                                    # msg_body = msg.get_payload()[0].get_payload()
-                                    # update_summary = re.sub(r"Content-T.*\n", "", str(msg_body[0]))
-
-                                    if msg.is_multipart():
-                                        for part in msg.walk():
-                                            content_type = part.get_content_type()
-                                            content_disp = str(part.get("Content-Disposition"))
-
-                                            if "attachment" not in content_disp:
-                                                email_body = part.get_payload(decode=True)
-                                                charset = part.get_content_charset()
-                                                if charset:
-                                                    email_body = email_body.decode(charset)
-                                    else:
-                                        email_body = msg.get_payload(decode=True).decode("utf-8", errors='ignore')
-
-                                    update_summary = rm_html_tags(email_body)
-                                    logging.getLogger("Gerologger").info('Update Summary : ' + str(update_summary) + '\n')
-
-                                    save_uan('U', update_id, str(payload[0]), email_date, update_summary, 0)
+                                    save_uan('U', update_id, str(payload[0]), email_date, update_summary, update_file_flag)
                                     geronotify.notify(str(payload[0]), hunter_email, "NEW_UPDATE")
-                                    logging.getLogger("Gerologger").info('[CODE 203] Bug Hunter Update Saved Successfully')
+                                    logging.getLogger("Gerologger").info(f'[CODE 203] Bug Hunter Update Saved Successfully (file={update_file_flag})')
 
                                 else:
                                     # UPDATE COUNTER ROLLBACK
                                     report.report_update -= 1
                                     report.save()
 
-                                    logging.getLogger("Gerologger").warning('[ERROR 404] Update not valid')
+                                    logging.getLogger("Gerologger").warning('[ERROR 404] Update not valid (no attachment and no body text)')
                                     code = 404
-                                    payload[3] = "Update file not valid."
+                                    payload[3] = "Please include either a PDF attachment or a written description in your update."
 
                             # HUNTER APPEAL REPORT
                             elif(code == 204):
@@ -495,44 +509,32 @@ def read_mail(mail, folder_name='inbox'):
                                 nda_id = str(payload[0]) + "N" + str(report.report_nda)
                                 logging.getLogger("Gerologger").info('NDA ID : ' + str(nda_id))
 
-                                # CHECK ATTACHMENT AND PARSE BODY
                                 have_attachment = gerofilter.validate_attachment(msg, nda_id, MEDIA_ROOT)
-                                if have_attachment:
+                                nda_file_flag = 1 if have_attachment else 0
+
+                                nda_summary = rm_html_tags(extract_email_body(msg))
+                                logging.getLogger("Gerologger").info('NDA Summary : ' + str(nda_summary) + '\n')
+
+                                if have_attachment or len(nda_summary.strip()) > 3:
                                     # REVOKE PERMISSION AND UPDATE COUNTER
                                     report.report_permission = report.report_permission - 1
                                     report.save()
 
-                                    # msg_body = msg.get_payload()[0].get_payload()
-                                    # nda_summary = re.sub(r"Content-T.*\n", "", str(msg_body[0]))
-
-                                    if msg.is_multipart():
-                                        for part in msg.walk():
-                                            content_type = part.get_content_type()
-                                            content_disp = str(part.get("Content-Disposition"))
-
-                                            if "attachment" not in content_disp:
-                                                email_body = part.get_payload(decode=True)
-                                                charset = part.get_content_charset()
-                                                if charset:
-                                                    email_body = email_body.decode(charset)
-                                    else:
-                                        email_body = msg.get_payload(decode=True).decode("utf-8", errors='ignore')
-                                        
-                                    nda_summary = rm_html_tags(email_body)
-                                    logging.getLogger("Gerologger").info('NDA Summary : ' + str(nda_summary) + '\n')
-
-                                    save_uan('N', nda_id, str(payload[0]), email_date, nda_summary, 0)
+                                    save_uan('N', nda_id, str(payload[0]), email_date, nda_summary, nda_file_flag)
                                     geronotify.notify(str(payload[0]), hunter_email, "NEW_NDA")
                                     logging.getLogger("Gerologger").info('[CODE 206] Bug Hunter NDA Received Successfully')
-                                
-                                else: 
+
+                                    if not have_attachment:
+                                        code = 209
+
+                                else:
                                     # UPDATE COUNTER ROLLBACK
                                     report.report_nda -= 1
                                     report.save()
 
                                     logging.getLogger("Gerologger").warning('[ERROR 404] NDA not valid')
                                     code = 404
-                                    payload[3] = "NDA file not valid."
+                                    payload[3] = "Submission not valid. Please include the requested information or attach a PDF file."
 
                             # HUNTER CHECK SCORE
                             elif(code == 207):

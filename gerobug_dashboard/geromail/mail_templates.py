@@ -109,6 +109,23 @@ message_206 = """\
         </body></html>
         """
 
+subject_209 = "Confirmation: Data Received for Report ~ID~"
+message_209 = """\
+        <html><body>
+            <p>
+                Hello,<br>
+                We acknowledge receipt of the bounty prerequisites for Report ID <b>~ID~</b>.
+                <br>
+                Our team will review the data and notify you regarding the next steps shortly.<br>
+
+                <br><br>
+
+                Best Regards,<br>
+                Gerobug Bug Bounty Platform
+            </p>
+        </body></html>
+        """
+
 subject_207 = "Current Score for This Bug Bounty Program"
 message_207 = """\
         <html><body>
@@ -432,6 +449,7 @@ subjectlist = {
     206: subject_206,   # NDA SUCCESS (ID)
     207: subject_207,   # CHECK SCORE (NOTE)
     208: subject_208,   # CHECK ALL STATUS (ID, NOTE)
+    209: subject_209,   # DATA RECEIVED - INFO ONLY (ID)
 
     300: subject_300,   # INVALID NOTIFICATION (TITLE, ID, STATUS, NOTE)
     301: subject_301,   # STATUS UPDATE NOTIFICATION (TITLE, ID, STATUS)
@@ -458,6 +476,7 @@ messagelist = {
     206: message_206,
     207: message_207,
     208: message_208,
+    209: message_209,
 
     300: message_300,
     301: message_301,
