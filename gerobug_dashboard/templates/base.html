@@ -77,6 +77,7 @@
                         </ul>
                     </li>
         
+                    {% if request.user.is_superuser %}
                     <li>
                         <a href="{% url 'setting' %}">
                             <i class='bx bx-cog'></i>
@@ -86,6 +87,7 @@
                             <li><a class="link_name" href="{% url 'setting' %}">Setting</a></li>
                         </ul>
                     </li>
+                    {% endif %}
 
                     <li>
                         <a href="{% url 'owasp-calculator' %}">

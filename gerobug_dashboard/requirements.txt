@@ -1,4 +1,4 @@
-Pillow==10.3.0
+Pillow==12.2.0
 PyPDF2<3.0
 crispy-bootstrap5
 cryptography
@@ -7,7 +7,7 @@ django-bleach
 django-colorfield==0.10.1
 django-crispy-forms
 django-quill-editor
-django==5.2.11
+django==5.2.13
 gunicorn==23.0.0
 libmagic
 psycopg2
