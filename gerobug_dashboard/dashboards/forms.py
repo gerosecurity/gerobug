@@ -8,6 +8,7 @@ from colorfield.widgets import ColorWidget
 
 class Requestform(forms.Form):
     reasons = forms.CharField(widget=forms.Textarea(attrs={"id":"reasons","name":"reasons","placeholder":"Explain what you need (Minimum 10 Characters)"}),validators=[MinLengthValidator(10)],required=True)
+    nda_required = forms.BooleanField(required=False, initial=True, widget=forms.CheckboxInput(attrs={"id":"nda_required","name":"nda_required"}), label="Require NDA")
 
 class CompleteRequestform(forms.Form):
     completereasons = forms.CharField(widget=forms.Textarea(attrs={"id":"completereasons","name":"completereasons","placeholder":"Write something inspiring (Minimum 10 Characters)"}),validators=[MinLengthValidator(10)],required=True)

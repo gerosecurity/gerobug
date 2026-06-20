@@ -603,6 +603,12 @@ def company_action(id, note, code):
             report.report_permission = report.report_permission + 1
             report.save()
 
+    elif code == 705: # REQUEST PREREQUISITES ONLY (NO NDA)
+        logging.getLogger("Gerologger").info('[CODE 705] Request Bounty Prerequisites (No NDA) to Bug Hunter')
+        if not gerofilter.validate_permission("N", id):
+            report.report_permission = report.report_permission + 1
+            report.save()
+
     elif code == 704: # SEND CERTIFICATE and BOUNTY PROOF TO HUNTER
         # GET HUNTER NAME AND GENERATE CERTIFICATE
         hunter_email = report.hunter_email

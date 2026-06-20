@@ -276,8 +276,13 @@ def FormHandler(request, id, complete):
                     logging.getLogger("Gerologger").info("REPORT "+str(id)+" SEND CALCULATIONS BY "+str(request.user.username))
 
                 elif status == "Bounty in Process" and complete == "0":
-                    code = 703 #REQUEST NDA
-                    logging.getLogger("Gerologger").info("REPORT "+str(id)+" REQUESTED NDA BY "+str(request.user.username))
+                    nda_required = form.cleaned_data.get('nda_required', True)
+                    if nda_required:
+                        code = 703 #REQUEST NDA + PREREQUISITES
+                        logging.getLogger("Gerologger").info("REPORT "+str(id)+" REQUESTED NDA BY "+str(request.user.username))
+                    else:
+                        code = 705 #REQUEST PREREQUISITES ONLY (NO NDA)
+                        logging.getLogger("Gerologger").info("REPORT "+str(id)+" REQUESTED PREREQUISITES (NO NDA) BY "+str(request.user.username))
 
                 elif status == "Bounty in Process" and complete == "1":
                     code = 704 #COMPLETE

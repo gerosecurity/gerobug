@@ -270,6 +270,19 @@ def classify_action(email, subject):
             else:
                 return 405, id
 
+        elif(re.search(r'^DATA_', subject)):
+            id = subject[5 : ]
+            if validate_id(id):
+                if validate_user(email, id):
+                    if validate_permission("N", id):
+                        return 206, id
+                    else:
+                        return 403, id
+                else:
+                    return 403, id
+            else:
+                return 405, id
+
         elif(re.search(r'^MY_SCORE$', subject)):
             if BugHunter.objects.filter(hunter_email=email).exists():
                 hunter = BugHunter.objects.get(hunter_email=email)

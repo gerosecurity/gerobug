@@ -75,6 +75,7 @@
                     data: {
                         csrfmiddlewaretoken: '{{ csrf_token }}',
                         reasons: $("#reasons").val(),
+                        nda_required: $("#nda_required").is(":checked") ? "on" : "",
                     },
                     success: function (data) {
                         console.log(data)
@@ -351,7 +352,7 @@
                 {% elif reportstatus == 'Bounty Calculation' %}
                 <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#request_button">Send Calculations</button>
                 {% elif reportstatus == 'Bounty in Process' %}
-                <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#request_button">Request NDA</button>
+                <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#request_button">Request Prerequisites</button>
                 {% endif %}
 
                 <!-- REQUEST BUTTON MODAL -->
@@ -367,7 +368,7 @@
                                 {% elif reportstatus == 'Bounty Calculation' %}
                                 <h1 class="modal-title fs-5" id="staticBackdropLabel">Send Calculations</h1>
                                 {% elif reportstatus == 'Bounty in Process' %}
-                                <h1 class="modal-title fs-5" id="staticBackdropLabel">Request NDA</h1>
+                                <h1 class="modal-title fs-5" id="staticBackdropLabel">Request Prerequisites</h1>
                                 {% endif %}
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
@@ -375,6 +376,12 @@
                                 <form method="POST" action="{% url 'form_handler' object.pk '0' %}">
                                     {% csrf_token %}
                                     {{ requestform.reasons }}
+                                    {% if reportstatus == 'Bounty in Process' %}
+                                    <div class="form-check mt-3">
+                                        <input class="form-check-input" type="checkbox" id="nda_required" name="nda_required" checked>
+                                        <label class="form-check-label" for="nda_required">Require NDA (attach NDA template to the email)</label>
+                                    </div>
+                                    {% endif %}
                                 </form>
                             </div>
                             <div class="modal-footer">
