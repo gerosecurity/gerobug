@@ -358,10 +358,13 @@ def InvalidHandler(request, id):
 
                 else:
                     logging.getLogger("Gerologger").error("Mailbox is not ready.")
+                    messages.error(request,"Mailbox is not ready. Please set up the mailbox in Settings before sending emails.")
 
             else:
-                messages.error(request,"Form invalid. Please report to the Admin for checking the logs.")
-                logging.getLogger("Gerologger").error("Form invalid: "+str(request))
+                logging.getLogger("Gerologger").error("Form invalid: "+str(form.errors.as_json()))
+                for _field, _errors in form.errors.items():
+                    for _err in _errors:
+                        messages.error(request, _err)
 
         return redirect('dashboard')
 
