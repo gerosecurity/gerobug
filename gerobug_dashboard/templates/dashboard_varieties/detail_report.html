@@ -46,19 +46,25 @@
     <script>
         $(document).ready(function () {
             $("#invalid-button").click(function () {
+                var invalidreasons = $("#invalidreasons").val().trim();
+                if (invalidreasons.length < 10) {
+                    $("#invalidreasons-error").show();
+                    return;
+                }
+                $("#invalidreasons-error").hide();
                 var patched = "{% url 'invalid_handler' 0 %}".replace('0', "{{object.pk}}");
                 $.ajax({
                     type: 'POST',
                     url: patched,
                     data: {
                         csrfmiddlewaretoken: '{{ csrf_token }}',
-                        invalidreasons: $("#invalidreasons").val(),
+                        invalidreasons: invalidreasons,
                     },
                     success: function (data) {
-                        console.log(data)
+                        window.location.reload();
                     },
                     error: function (error) {
-                        console.log(error)
+                        window.location.reload();
                     },
                 });
 
@@ -97,19 +103,25 @@
     <script>
         $(document).ready(function () {
             $("#complete-button").click(function () {
+                var completereasons = $("#completereasons").val().trim();
+                if (completereasons.length < 10) {
+                    $("#completereasons-error").show();
+                    return;
+                }
+                $("#completereasons-error").hide();
                 var patched = "{% url 'form_handler' 0 '1' %}".replace('0', "{{object.pk}}");
                 $.ajax({
                     type: 'POST',
                     url: patched,
                     data: {
                         csrfmiddlewaretoken: '{{ csrf_token }}',
-                        reasons: $("#completereasons").val(),
+                        reasons: completereasons,
                     },
                     success: function (data) {
-                        console.log(data)
+                        window.location.reload();
                     },
                     error: function (error) {
-                        console.log(error)
+                        window.location.reload();
                     },
                 });
             });
@@ -341,10 +353,11 @@
                                 <form method="POST" action="{% url 'invalid_handler' object.pk %}">
                                     {% csrf_token %}
                                     {{ invalidform.invalidreasons }}
+                                    <div id="invalidreasons-error" class="text-danger mt-2" style="display:none;">Please enter at least 10 characters.</div>
                                 </form>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" id="invalid-button" class="ok-btn" data-bs-dismiss="modal">OK</button>
+                                <button type="button" id="invalid-button" class="ok-btn">OK</button>
                                 <button type="button" class="cancel-btn" data-bs-dismiss="modal">CANCEL</button>
                             </div>
                         </div>
@@ -416,10 +429,11 @@
                                 <form method="POST" action="{% url 'form_handler' object.pk '1' %}">
                                     {% csrf_token %}
                                     {{ completeform.completereasons }}
+                                    <div id="completereasons-error" class="text-danger mt-2" style="display:none;">Please enter at least 10 characters.</div>
                                 </form>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" id="complete-button" class="ok-btn" data-bs-dismiss="modal">OK</button>
+                                <button type="button" id="complete-button" class="ok-btn">OK</button>
                                 <button type="button" class="cancel-btn" data-bs-dismiss="modal">CANCEL</button>
                             </div>
                         </div>
