@@ -300,13 +300,17 @@ def FormHandler(request, id, complete):
 
                     else:
                         logging.getLogger("Gerologger").error("CODE = 0")
-                
+                        messages.error(request,"This action is not available for the report's current status.")
+
                 else:
                     logging.getLogger("Gerologger").error("Mailbox is not ready.")
-            
+                    messages.error(request,"Mailbox is not ready. Please set up the mailbox in Settings before sending emails.")
+
             else:
-                logging.getLogger("Gerologger").error("Form invalid: "+str(request))
-                messages.error(request,"Form invalid. Please report to the Admin for checking the logs.")
+                logging.getLogger("Gerologger").error("Form invalid: "+str(form.errors.as_json()))
+                for _field, _errors in form.errors.items():
+                    for _err in _errors:
+                        messages.error(request, _err)
 
         return redirect('dashboard')
 

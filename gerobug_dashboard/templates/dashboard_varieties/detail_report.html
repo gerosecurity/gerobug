@@ -68,20 +68,26 @@
     <script>
         $(document).ready(function () {
             $("#reasons-button").click(function () {
+                var reasons = $("#reasons").val().trim();
+                if (reasons.length < 10) {
+                    $("#reasons-error").show();
+                    return;
+                }
+                $("#reasons-error").hide();
                 var patched = "{% url 'form_handler' 0 '0' %}".replace('0', "{{object.pk}}");
                 $.ajax({
                     type: 'POST',
                     url: patched,
                     data: {
                         csrfmiddlewaretoken: '{{ csrf_token }}',
-                        reasons: $("#reasons").val(),
+                        reasons: reasons,
                         nda_required: $("#nda_required").is(":checked") ? "on" : "",
                     },
                     success: function (data) {
-                        console.log(data)
+                        window.location.reload();
                     },
                     error: function (error) {
-                        console.log(error)
+                        window.location.reload();
                     },
                 });
 
@@ -382,10 +388,11 @@
                                         <label class="form-check-label" for="nda_required">Require NDA (attach NDA template to the email)</label>
                                     </div>
                                     {% endif %}
+                                    <div id="reasons-error" class="text-danger mt-2" style="display:none;">Please enter at least 10 characters.</div>
                                 </form>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" id="reasons-button" class="ok-btn" data-bs-dismiss="modal">OK</button>
+                                <button type="button" id="reasons-button" class="ok-btn">OK</button>
                                 <button type="button" class="cancel-btn" data-bs-dismiss="modal">CANCEL</button>
                             </div>
                         </div>
