@@ -137,6 +137,9 @@ def rm_html_tags(text):
 
 
 def extract_email_body(msg):
+    # Keeps the last NON-BLANK text part. Apple Mail appends an empty trailing
+    # text/plain part after an inline attachment, which used to overwrite the
+    # real body with "" and fail every SUBMIT with "Details are too short".
     body = ""
     if msg.is_multipart():
         for part in msg.walk():
@@ -152,9 +155,11 @@ def extract_email_body(msg):
                 continue
             charset = part.get_content_charset() or 'utf-8'
             try:
-                body = payload.decode(charset, errors='ignore')
+                text = payload.decode(charset, errors='ignore')
             except (LookupError, AttributeError):
-                body = payload.decode('utf-8', errors='ignore')
+                text = payload.decode('utf-8', errors='ignore')
+            if text.strip():
+                body = text
     else:
         payload = msg.get_payload(decode=True)
         if payload is not None:
