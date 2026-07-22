@@ -137,10 +137,22 @@ def rm_html_tags(text):
 
 
 def extract_email_body(msg):
-    # Keeps the last NON-BLANK text part. Apple Mail appends an empty trailing
-    # text/plain part after an inline attachment, which used to overwrite the
-    # real body with "" and fail every SUBMIT with "Details are too short".
-    body = ""
+    # Prefers text/plain over text/html, and within each keeps the last
+    # NON-BLANK part seen.
+    #
+    # Non-blank matters: Apple Mail appends an empty trailing text/plain
+    # part after an inline attachment, which used to overwrite the real
+    # body with "" and fail every SUBMIT with "Details are too short".
+    #
+    # Plain-over-html matters: a multipart/alternative message pairs a
+    # text/plain branch with a separate multipart/mixed branch holding
+    # text/html + the inline attachment. Both texts are non-blank, so
+    # picking whichever comes last in msg.walk() picked html half the
+    # time -- and stripping tags off content like
+    # "the <code>clientId</code> and" glues words together
+    # ("theclientIdand") since the surrounding &nbsp; is stripped too.
+    plain_body = ""
+    html_body = ""
     if msg.is_multipart():
         for part in msg.walk():
             if part.get_content_maintype() == 'multipart':
@@ -148,7 +160,8 @@ def extract_email_body(msg):
             content_disp = str(part.get("Content-Disposition"))
             if "attachment" in content_disp:
                 continue
-            if part.get_content_maintype() != 'text':
+            content_type = part.get_content_type()
+            if content_type not in ('text/plain', 'text/html'):
                 continue
             payload = part.get_payload(decode=True)
             if payload is None:
@@ -158,12 +171,19 @@ def extract_email_body(msg):
                 text = payload.decode(charset, errors='ignore')
             except (LookupError, AttributeError):
                 text = payload.decode('utf-8', errors='ignore')
-            if text.strip():
-                body = text
+            if not text.strip():
+                continue
+            if content_type == 'text/plain':
+                plain_body = text
+            else:
+                html_body = text
+        body = plain_body or html_body
     else:
         payload = msg.get_payload(decode=True)
         if payload is not None:
             body = payload.decode('utf-8', errors='ignore')
+        else:
+            body = ""
 
     return body
 
