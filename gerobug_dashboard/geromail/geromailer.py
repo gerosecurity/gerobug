@@ -20,6 +20,9 @@ from prerequisites.models import MailBox
 MAX_RETRIES = 3
 RETRY_DELAYS = [0, 2, 4]  # seconds between retries
 
+# FREEMAIL PROVIDERS (FOR MESSAGE-ID)
+FREEMAIL = {"gmail.com", "yahoo.com", "outlook.com", "hotmail.com"}
+
 
 
 # WRITE EMAIL REPLY (CONFIRMATIONS)
@@ -30,8 +33,28 @@ def write_mail(code, payload, Destination):
     except:
         pass
     
+    # MINT THE MESSAGE IDENTITY ONCE, OUTSIDE THE RETRY LOOP.
+    # A retry has to re-send the *same* message. Without a Message-ID the relay
+    # mints a new one on every submission, so when the transport already
+    # accepted the message and only the acknowledgement was lost (slow upstream
+    # relay, socket timeout), the retry arrives as a second email the receiving
+    # server has no way to collapse — hunters see duplicate report emails.
+    try:
+        mailbox = MailBox.objects.get(mailbox_id=1)
+        if not mailbox.email or "@" not in mailbox.email:
+            # Keep the log string this case used to emit; operators grep for it.
+            logging.getLogger("Gerologger").error("Mailbox is not ready.")
+            return False
+        email_domain = mailbox.email.split("@")[1]
+        sending_domain = "localhost" if email_domain in FREEMAIL else email_domain
+        msg_id = make_msgid(domain=sending_domain)
+        msg_date = formatdate(localtime=True)
+    except Exception as e:
+        logging.getLogger("Gerologger").error(f"Failed to prepare message for {Destination}: {e}")
+        return False
+
     last_error = None
-    
+
     for attempt in range(MAX_RETRIES):
         try:
             # Wait before retry (first attempt has no delay)
@@ -61,12 +84,16 @@ def write_mail(code, payload, Destination):
             body = body.replace("~NOTE~", payload[3])           #REASON / NOTE
             body = body.replace("~SEVERITY~", str(payload[4]))  #SEVERITY
 
-            # BUILD EMAIL MESSAGE
-            mailbox = MailBox.objects.get(mailbox_id=1)
+            # BUILD EMAIL MESSAGE (identity fixed above so retries are the same message)
             message = MIMEMultipart("alternative")
             message["From"] = mailbox.email
             message["To"] = Destination
             message["Subject"] = subject
+            message["Date"] = msg_date
+            message["Message-ID"] = msg_id
+            # RFC 3834: tells other auto-responders not to reply to us, so a
+            # vacation responder or another ticketing system can't start a loop.
+            message["Auto-Submitted"] = "auto-generated"
             message_body = MIMEText(body, "html")
             message.attach(message_body)
 
@@ -101,10 +128,8 @@ def write_mail(code, payload, Destination):
                     message.attach(attachment)
 
             # SEND EMAIL
-            mailbox     = MailBox.objects.get(mailbox_id=1)
             EMAIL       = mailbox.email
             PWD         = mailbox.password
-            TYPE        = mailbox.mailbox_type
             SMTP_SERVER = mailbox.mailbox_smtp
             SMTP_PORT   = mailbox.mailbox_smtp_port
 
