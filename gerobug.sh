@@ -492,6 +492,9 @@ case $ACTION in
             -v "/var/www/letsencrypt:/var/www/letsencrypt" \
             certbot/certbot certonly --webroot -w /var/www/letsencrypt \
             -d $(tail -n 1 gerobug_dashboard/gerobug_host)
+
+    # nginx keeps the old cert in memory until reloaded
+    docker compose exec nginx nginx -s reload && echo "nginx reloaded with the new certificate."
     ;;
 
 5)
