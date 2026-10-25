@@ -1,0 +1,12 @@
+# Lint gate for CI. Deliberately limited to critical correctness rules
+# (syntax errors, invalid literals/comparisons, undefined names) so the
+# existing codebase passes while genuinely broken code still fails the build.
+# Tighten incrementally once the legacy style debt is paid down.
+
+[lint]
+select = [
+    "E9",  # syntax errors / io errors
+    "F63", # invalid comparisons and literals
+    "F7",  # syntax-adjacent errors (return outside function, etc.)
+    "F82", # undefined names
+]

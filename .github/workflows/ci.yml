@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main, development, "feature/**"]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install ruff
+      # Rule selection lives in ruff.toml (critical correctness rules only,
+      # so the legacy codebase lints clean while real breakage still fails).
+      - run: ruff check gerobug_dashboard gerobug_web
+
+  test:
+    runs-on: ubuntu-latest
+    container: python:3.13-bookworm
+    services:
+      # Named "db" because settings.py hardcodes the Docker Compose hostname.
+      db:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: gerobug_db
+          POSTGRES_USER: gerobug
+          POSTGRES_PASSWORD: gerobug-ci
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      POSTGRES_PASSWORD: gerobug-ci
+      DJANGO_SECRET_KEY: ci-only-not-a-real-secret
+    steps:
+      - uses: actions/checkout@v4
+
+      # settings.py strips "gerobug_dashboard" from BASE_DIR and reads
+      # <repo-root>/gerobug_host at import time (in the container image the
+      # app dir is /src, so there it resolves to the in-tree copy instead).
+      - name: Provide gerobug_host expected by settings.py
+        run: echo "localhost" > gerobug_host
+
+      - name: Install system dependencies
+        run: apt-get update && apt-get install -y --no-install-recommends libpq-dev libmagic1
+
+      - name: Install Python dependencies
+        run: pip install -r gerobug_dashboard/requirements.txt
+
+      - name: Django system checks
+        working-directory: gerobug_dashboard
+        run: python manage.py check
+
+      # Migrations are gitignored and generated at deploy time by
+      # docker-entrypoint.sh; mirror that here so the test database is
+      # built through real migrations in dependency order.
+      - name: Generate migrations (repo convention)
+        working-directory: gerobug_dashboard
+        run: |
+          python manage.py makemigrations prerequisites
+          python manage.py makemigrations dashboards
+
+      - name: Run test suite
+        working-directory: gerobug_dashboard
+        run: python manage.py test --verbosity 2

@@ -1,8 +1,9 @@
 # Gerobug: The First Open Source Bug Bounty Platform.
 
-![gerobugLogo](https://raw.githubusercontent.com/gerobug/gerobug-docs-images/main/logo.png)
+![gerobugLogo](https://raw.githubusercontent.com/gerosecurity/gerobug-docs-images/main/logo.png)
 
-![CodeQL](https://github.com/gerobug/gerobug/actions/workflows/github-code-scanning/codeql/badge.svg)
+![CI](https://github.com/gerosecurity/gerobug/actions/workflows/ci.yml/badge.svg)
+![CodeQL](https://github.com/gerosecurity/gerobug/actions/workflows/github-code-scanning/codeql/badge.svg)
 [![License](https://img.shields.io/badge/License-AGPLv3-red.svg?&logo=none)](https://www.gnu.org/licenses/agpl-3.0)
 [![Black Hat Arsenal](https://raw.githubusercontent.com/toolswatch/badges/master/arsenal/asia/2023.svg?sanitize=true)](https://www.blackhat.com/asia-23/arsenal/schedule/index.html#gerobug-open-source-private-self-managed-bug-bounty-platform-31241)
 [![Black Hat Arsenal](https://raw.githubusercontent.com/toolswatch/badges/master/arsenal/asia/2024.svg?sanitize=true)](https://www.blackhat.com/asia-24/arsenal/schedule/#gerobug-the-first-open-source-bug-bounty-platform-37538)
@@ -52,7 +53,7 @@ __(You don't need to install anything manually, we'll do it for you!)__
 To deploy gerobug:
 1. Clone this repository
 ```bash
-git clone https://github.com/gerobug/gerobug
+git clone https://github.com/gerosecurity/gerobug
 cd gerobug
 ```
 2. Run the Setup Script: 
@@ -76,6 +77,9 @@ You can read the __detailed documentation [here](https://gerobug.gitbook.io/docu
 ## Main Features
 - Network Segregation<br>
 All services are running on seperate containers. Public users should only able to access the static page (Rules and guidelines).
+
+- Encrypted Credentials<br>
+Mailbox passwords and notification webhook URLs are encrypted at rest in the database.
 
 - Easy and Quick Installation<br>
 Use our run script to install Gerobug, its quick and easy!
@@ -101,11 +105,14 @@ Gerobug has a role-based user management.
 - Report Management<br>
 Manage reports easily using a kanban model dashboard.
 
+- Bounty Prerequisites and NDA<br>
+Request the documents you need before paying a bounty, with or without an NDA, and track what the hunter sends back.
+
 - Report Filtering and Flagging<br>
 Reports from Bug Hunter will be filtered and flagged if there are duplicate indication.
 
 - CVSS / OWASP Risk Calculator<br>
-Gerobug has an integrated CVSS / OWASP Risk Calculator to support the bug review process.
+Gerobug has an integrated CVSS 3.1, CVSS 4.0 and OWASP Risk Rating calculator to support the bug review process.
 
 - Email Blacklisting<br>
 Gerobug can temporarily block and release emails that conducted spam activity.
@@ -136,5 +143,5 @@ If you have any feedback, please reach out to us at __support@gerobug.com__
 
 <br>
 
-Copyright (c) 2025 Gero Security<br>
+Copyright (c) 2025-2026 Gero Security<br>
 Licensed under the GNU AGPLv3.0 License
