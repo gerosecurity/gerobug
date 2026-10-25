@@ -1,91 +1,62 @@
 {% extends "base.html" %}
 {% load static %}
+{% block title %}CVSS Calculator{% endblock title %}
+{% block extra_head %}
+<link rel="stylesheet" href='{% static "/css/owasp-calc.css" %}'>
+<style>
+.btn-group-sm>.btn,
+.btn-sm {
+--bs-btn-padding-y: .20rem;
+--bs-btn-padding-x: .4rem;
+--bs-btn-font-size: .70rem;
+}
+.alert {
+padding: 2px 12px;
+margin: 0 0.5rem 0 1rem;
+border-radius: 6px;
+}
+h4 {
+margin-bottom: 0;
+}
+td p {
+margin-bottom: 0;
+}
+.alert.none,
+.alert.low,
+.alert.medium,
+.alert.high,
+.alert.critical {
+color: #ffffff;
+}
+.alert.none {
+background: #53aa33;
+border-color: #187a00;
+}
+.alert.low {
+background: #ffcb0d;
+border-color: #c79b00;
+}
+.alert.medium {
+background: #f9a009;
+border-color: #c07100;
+}
+.alert.high {
+background: #df3d03;
+border-color: #a50000;
+}
+.alert.critical {
+background: #cc0500;
+border-color: #930000;
+}
+.needBaseMetrics,
+.needBaseMetrics40 {
+margin-bottom: 0;
+}
+</style>
+{% endblock extra_head %}
+
 {% block content %}
 
-<head>
-   <meta charset="UTF-8">
-   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-   <link rel="shortcut icon" href='{% static "favicon.ico" %}' type="image/x-icon">
-   <link rel="icon" href='{% static "favicon.ico" %}' type="image/x-icon">
-   <!-- style -->
-   <link rel="stylesheet" href='{% static "/css/sidebar.css" %}'>
-   <link rel="stylesheet" href='{% static "/css/owasp-calc.css" %}'>
-   <!-- CSS only -->
-   <link href='https://unpkg.com/boxicons@2.0.7/css/boxicons.min.css' rel='stylesheet'>
-   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.js"></script>
-   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.1/font/bootstrap-icons.css">
-   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet"
-      integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
-   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
-      integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
-      crossorigin="anonymous"></script>
-
-   <title>CVSS Calculator</title>
-   <style>
-      .btn-group-sm>.btn,
-      .btn-sm {
-         --bs-btn-padding-y: .20rem;
-         --bs-btn-padding-x: .4rem;
-         --bs-btn-font-size: .70rem;
-      }
-
-      .alert {
-         padding: 0 1rem 0 1rem;
-         margin: 0 0.5rem 0 1rem;
-         border-radius: 0;
-      }
-
-      h4 {
-         margin-bottom: 0;
-      }
-
-      td p {
-         margin-bottom: 0;
-      }
-
-      .alert.none,
-      .alert.low,
-      .alert.medium,
-      .alert.high,
-      .alert.critical {
-         color: #ffffff;
-      }
-
-      .alert.none {
-         background: #53aa33;
-         border-color: #187a00;
-      }
-
-      .alert.low {
-         background: #ffcb0d;
-         border-color: #c79b00;
-      }
-
-      .alert.medium {
-         background: #f9a009;
-         border-color: #c07100;
-      }
-
-      .alert.high {
-         background: #df3d03;
-         border-color: #a50000;
-      }
-
-      .alert.critical {
-         background: #cc0500;
-         border-color: #930000;
-      }
-
-      .needBaseMetrics,
-      .needBaseMetrics40 {
-         margin-bottom: 0;
-      }
-   </style>
-</head>
-
-<body>
    <section class="home-section">
       <header>
          <div class="home-content">
@@ -104,8 +75,8 @@
       <div id="cvss31-container">
          <div id="c1" class="cvss-calculator container mt-3">
             {% include "cvss3_content.html" %}
-         </div>
-      </div>
+         </div> <!-- End of c1 -->
+      </div> <!-- End of cvss31-container -->
 
       <div id="cvss40-container" style="display: none;">
          <div class="cvss-calculator container mt-3">
@@ -148,8 +119,10 @@
             }
 
             let vector = new Vector();
+            // Iterate over all metrics defined in Vector.METRICS
             for (let category in Vector.METRICS) {
                for (let metric in Vector.METRICS[category]) {
+                  // The input name is metric + "40" (e.g. AV40)
                   let inputName = metric + "40";
                   let checked = document.querySelector('input[name="' + inputName + '"]:checked');
                   if (checked) {
@@ -160,15 +133,18 @@
 
             let cvss40 = new CVSS40(vector.raw);
 
+            // Update UI
+            document.querySelectorAll('.needBaseMetrics40').forEach(function (el) { el.style.display = 'none'; });
             let scoreElement = document.getElementById('baseMetricScore40');
             if (scoreElement) scoreElement.innerText = cvss40.score;
 
             let severityElement = document.getElementById('baseSeverity40');
             if (severityElement) {
                severityElement.innerText = "(" + cvss40.severity + ")";
+               // Optional: Update color based on severity
                let parentAlert = severityElement.closest('.alert');
                if (parentAlert) {
-                  parentAlert.className = 'alert';
+                  parentAlert.className = 'alert'; // Reset
                   let severity = cvss40.severity.toLowerCase();
                   if (severity === 'none') parentAlert.classList.add('none');
                   else if (severity === 'low') parentAlert.classList.add('low');
@@ -189,6 +165,7 @@
             var hash = window.location.hash;
             if (hash && hash.startsWith('#CVSS:4.0')) {
                 toggleCVSS('4.0');
+                // Remove the hash symbol
                 parseCVSS40(hash.substring(1));
             } else if (hash && hash.startsWith('#CVSS:3.1')) {
                 toggleCVSS('3.1');
@@ -205,10 +182,14 @@
             }
             try {
                 let vector = new Vector(vectorString);
+                // Iterate over all metrics and set the radio buttons
+                // Vector.METRICS is structured by category, we flatten or iterate
                 for (let category in Vector.METRICS) {
                     for (let metric in Vector.METRICS[category]) {
+                        // The metric value in the vector
                         let val = vector.metrics[metric];
                         if (val) {
+                           // Find the radio button: name="metric40" value="val"
                            let inputName = metric + "40";
                            let radio = document.querySelector('input[name="' + inputName + '"][value="' + val + '"]');
                            if (radio) {
@@ -223,27 +204,26 @@
             }
          }
 
+         // Initialize CVSS 4.0 scores on load if visible (or just in case)
          window.addEventListener('load', function () {
             processHash();
             updateScores40();
          });
-
+         
          window.addEventListener('hashchange', processHash);
       </script>
-</body>
-
 {% endblock content %}
 
 <!--
    CREDITS
    Designed and Developed by Cuberk Solutions Private Limited
    Full copy of the source code available on https://github.com/win3zz/CVSS-3.1-Calculator by Bipin Jitiya
-
+   
    Common Vulnerability Scoring System (CVSS) is a free and open standard. It is owned and managed by FIRST.org
 
    Copyright (c) 2019, FIRST.ORG, INC.
    All rights reserved.
-
+   
    Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
    following conditions are met:
          1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following
@@ -252,7 +232,7 @@
          following disclaimer in the documentation and/or other materials provided with the distribution.
          3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote
          products derived from this software without specific prior written permission.
-
+   
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
    INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
