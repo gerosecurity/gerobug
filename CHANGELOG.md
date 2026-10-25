@@ -2,6 +2,36 @@
 
 ## v3.1 — 25 OCT 2026
 
+### Interface
+
+- **New design system.** The dashboard and the public pages share one skin,
+  driven by the colors already configured in Settings > Personalization. Every
+  surface, accent and action color derives from them, so the interface follows
+  your palette rather than overriding it.
+- **Seven selectable themes.** Settings > Personalization gains a preset
+  gallery (Gero Dark, Gero Classic, Route, Midnight, Forest, Royal, Graphite)
+  with a live preview. Picking one fills the color pickers; nothing is saved
+  until you click Update, and a reset button restores the defaults.
+  Every preset is contrast-checked against WCAG AA for the text the interface
+  actually draws on it.
+- **Kanban drag-and-drop.** Reports can be dragged between columns on the
+  board instead of being opened one at a time. The board also gains a
+  search/severity filter bar and an aging indicator, and sorts the
+  highest-severity report to the top of each column. Hunters receive the same
+  status-change notification as the existing forward button.
+- **Severity names** are shown on the board and the status tables, rather than
+  only the numeric score.
+
+### Upgrade note
+
+The palette shipped before this release used near-white colors for two roles
+the design system fills with light text, which would have been unreadable. On
+first boot, an installation still using those original colors is moved onto
+the new defaults automatically. **If you have customized any of your six
+theme colors, nothing is changed** — your palette is left exactly as it is,
+and the original look is available as the "Gero Classic" preset. No action is
+required either way.
+
 ### Security
 
 - **Outbound emails escape every hunter-controlled value.** Report titles,
