@@ -19,13 +19,11 @@ from django.middleware.csrf import get_token
 from prerequisites.models import MailBox, Webhook
 from .models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization
 from .forms import Requestform, RulesGuidelineForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm, WebhookForm, BlacklistForm, TemplateReportForm, TemplateNDAForm, TemplateCertForm, CertDataForm, PersonalizationForm, CompanyIdentityForm, Invalidform, TroubleshootForm
-from sys import platform
 from geromail import geromailer, gerofilter, geroparser, gerocalculator
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
 
 import threading, os, shutil, secrets, uuid, html, gerocert.gerocert
 import logging
-from logging.handlers import TimedRotatingFileHandler
 
 
 
@@ -139,10 +137,9 @@ class ReportDelete(LoginRequiredMixin,DeleteView):
             BugReportNDA.objects.filter(report_id=self.object.report_id).delete() 
 
     def get_success_url(self):
-        if platform == "win32":
-            shutil.rmtree(os.path.join(MEDIA_ROOT)+"\\"+self.object.report_id)
-        else:
-            shutil.rmtree(os.path.join(MEDIA_ROOT)+"/"+self.object.report_id)
+        report_dir = os.path.join(MEDIA_ROOT, self.object.report_id)
+        if os.path.exists(report_dir):
+            shutil.rmtree(report_dir)
         logging.getLogger("Gerologger").info("REPORT " + str(self.object.report_id) + " DELETED BY " + str(self.request.user.username))
         return reverse_lazy('dashboard')
 

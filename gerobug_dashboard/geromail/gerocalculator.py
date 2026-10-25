@@ -96,6 +96,19 @@ def calculate(severity_string, severity_type):
     else:
         return 0
 
+def get_severity_label(score):
+    if score <= 0.0:
+        return "None"
+    elif score < 4.0:
+        return "Low"
+    elif score < 7.0:
+        return "Medium"
+    elif score < 9.0:
+        return "High"
+    elif score <= 10.0:
+        return "Critical"
+    return "Unknown"
+
 def classify(severity_string):
     cvss = re.search("^CVSS:3\.1\/AV:[NALP]\/AC:[LH]\/PR:[NLH]\/UI:[NR]\/S:[UC]\/C:[NLH]\/I:[NLH]\/A:[N|L|H](\/E:[UPFH])?(\/RL:[OTWU])?(\/RC:[URC])?(\/CR:[LMH])?(\/IR:[LMH])?(\/AR:[LMH])?(\/MAV:[NALP])?(\/MAC:[LH])?(\/MPR:[NLH])?(\/MUI:[NR])?(\/MS:[UC])?(\/MC:[NLH])?(\/MI:[NLH])?(\/MA:[NLH])?$", severity_string)
     cvss4 = re.search("^CVSS:4\.0\/AV:[NALP]\/AC:[LH]\/AT:[NP]\/PR:[NLH]\/UI:[NPA]\/VC:[NLH]\/VI:[NLH]\/VA:[NLH]\/SC:[NLH]\/SI:[NLH]\/SA:[NLH].*$", severity_string)
