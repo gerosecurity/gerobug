@@ -41,6 +41,36 @@ def _get_ssl_context():
     ctx = ssl.create_default_context()
     return ctx
 
+def loop_sender_reason(hunter_email, our_email, auto_submitted=None):
+    """Why auto-replying to this sender risks a mail loop, or "" if it is safe.
+
+    Two Gerobug instances sharing a domain traded "Invalid Report Format"
+    replies every poll cycle until one side stopped; any vacation or ticketing
+    auto-responder can start the same ping-pong.
+
+    Guards, cheapest first: our own address; a sender that declares itself
+    automated (RFC 3834); then anything else on our own domain -- skipped when
+    the mailbox is on a freemail provider, where "our domain" would be
+    gmail.com and the guard would drop nearly every real hunter.
+    """
+    sender = (hunter_email or "").strip().lower()
+    ours = (our_email or "").strip().lower()
+
+    if sender and sender == ours:
+        return "Self Email"
+
+    auto = (auto_submitted or "no").strip().lower()
+    if auto and not auto.startswith("no"):
+        return f"Automated sender (Auto-Submitted: {auto})"
+
+    our_domain = ours.split("@")[-1] if "@" in ours else ""
+    if (our_domain and our_domain not in geromailer.FREEMAIL
+            and sender.endswith("@" + our_domain)):
+        return "Own-domain sender (loop guard)"
+
+    return ""
+
+
 # GENERATE REPORT ID
 def generate_id(email, ts):
     hashed = hashlib.md5(email.encode())
@@ -137,10 +167,22 @@ def rm_html_tags(text):
 
 
 def extract_email_body(msg):
-    # Keeps the last NON-BLANK text part. Apple Mail appends an empty trailing
-    # text/plain part after an inline attachment, which used to overwrite the
-    # real body with "" and fail every SUBMIT with "Details are too short".
-    body = ""
+    # Prefers text/plain over text/html, and within each keeps the last
+    # NON-BLANK part seen.
+    #
+    # Non-blank matters: Apple Mail appends an empty trailing text/plain
+    # part after an inline attachment, which used to overwrite the real
+    # body with "" and fail every SUBMIT with "Details are too short".
+    #
+    # Plain-over-html matters: a multipart/alternative message pairs a
+    # text/plain branch with a separate multipart/mixed branch holding
+    # text/html + the inline attachment. Both texts are non-blank, so
+    # picking whichever comes last in msg.walk() picked html half the
+    # time -- and stripping tags off content like
+    # "the <code>clientId</code> and" glues words together
+    # ("theclientIdand") since the surrounding &nbsp; is stripped too.
+    plain_body = ""
+    html_body = ""
     if msg.is_multipart():
         for part in msg.walk():
             if part.get_content_maintype() == 'multipart':
@@ -148,7 +190,8 @@ def extract_email_body(msg):
             content_disp = str(part.get("Content-Disposition"))
             if "attachment" in content_disp:
                 continue
-            if part.get_content_maintype() != 'text':
+            content_type = part.get_content_type()
+            if content_type not in ('text/plain', 'text/html'):
                 continue
             payload = part.get_payload(decode=True)
             if payload is None:
@@ -158,12 +201,19 @@ def extract_email_body(msg):
                 text = payload.decode(charset, errors='ignore')
             except (LookupError, AttributeError):
                 text = payload.decode('utf-8', errors='ignore')
-            if text.strip():
-                body = text
+            if not text.strip():
+                continue
+            if content_type == 'text/plain':
+                plain_body = text
+            else:
+                html_body = text
+        body = plain_body or html_body
     else:
         payload = msg.get_payload(decode=True)
         if payload is not None:
             body = payload.decode('utf-8', errors='ignore')
+        else:
+            body = ""
 
     return body
 
@@ -254,9 +304,11 @@ def read_mail(mail, folder_name='inbox'):
                             logging.getLogger("Gerologger").info('From : ' + str(hunter_email) + ' (' + str(hunter_name) + ')')
                             logging.getLogger("Gerologger").info('Subject : ' + str(email_subject))
                             
-                            # AVOID SELF LOOP                        
-                            if hunter_email == EMAIL:
-                                logging.getLogger("Gerologger").warning('Self Email, Ignoring Mail!')
+                            # AVOID MAIL LOOPS (see loop_sender_reason)
+                            _loop = loop_sender_reason(hunter_email, EMAIL, msg.get('Auto-Submitted'))
+                            if _loop:
+                                logging.getLogger("Gerologger").warning(
+                                    f'{_loop}, Ignoring Mail! from={hunter_email}')
                                 continue
 
                             # NO-REPLY EXCLUSIONS

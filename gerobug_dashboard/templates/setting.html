@@ -656,5 +656,26 @@
             });
         });
     </script>
+    <script>
+        (function () {
+            var key = "gerobug-settings-tab";
+            $(document).on("shown.bs.tab", 'a[data-toggle="tab"]', function (e) {
+                var href = $(e.target).attr("href");
+                if (href && href.charAt(0) === "#") {
+                    try { localStorage.setItem(key, href); } catch (err) {}
+                }
+            });
+            var target = window.location.hash;
+            if (!target) {
+                try { target = localStorage.getItem(key) || ""; } catch (err) { target = ""; }
+            }
+            if (target) {
+                var trigger = $('a[data-toggle="tab"][href="' + target + '"]');
+                if (trigger.length) {
+                    trigger.each(function () { $(this).tab("show"); });
+                }
+            }
+        })();
+    </script>
 </body>
 {% endblock content %}
