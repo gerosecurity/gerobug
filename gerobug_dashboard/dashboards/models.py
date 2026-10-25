@@ -160,14 +160,121 @@ class CertificateData(models.Model):
         return self.rule_id
     
 class Personalization(models.Model):
+    # ROLES: main_1 CANVAS BG, main_2 ACCENT, secondary_1 SURFACE,
+    # secondary_2 OVERLAY/HOVER, secondary_3 BORDER, button_1 PRIMARY CTA.
+    BRAND_DEFAULTS = {
+        'main_1':      '#1A1A1A',
+        'main_2':      '#C41230',
+        'secondary_1': '#171717',
+        'secondary_2': '#2F2F2F',
+        'secondary_3': '#3A3A3A',
+        'button_1':    '#C41230',
+    }
+
+    # THE PALETTE USED BEFORE THE DESIGN SYSTEM LANDED. KEPT SO apps.py CAN
+    # RECOGNISE AN UNCUSTOMISED LEGACY INSTALL AND MOVE IT ONTO A PALETTE THE
+    # SKIN CAN RENDER LEGIBLY -- secondary_2/3 WERE LIGHT PINKS, AND THE DESIGN
+    # SYSTEM PUTS WHITE TEXT ON BOTH.
+    LEGACY_DEFAULTS = {
+        'main_1':      '#171717',
+        'main_2':      '#E8596A',
+        'secondary_1': '#C82A3D',
+        'secondary_2': '#FA8997',
+        'secondary_3': '#FFE0E0',
+        'button_1':    '#48409E',
+    }
+
+    # SELECTABLE FROM SETTINGS > PERSONALIZATION. ALL ARE DARK-CANVAS THEMES:
+    # THE DESIGN SYSTEM HARDCODES LIGHT TEXT. CONSTRAINTS (ENFORCED BY
+    # ThemePresetTests): button_1 MUST CARRY WHITE BUTTON TEXT AT >=4.5:1, AND
+    # main_2 MUST STAY READABLE AFTER THE --gds-accent-soft MIX
+    # (55% ACCENT / 45% WHITE) ON secondary_2.
+    THEME_PRESETS = {
+        'gero-dark': {
+            'name': 'Gero Dark',
+            'description': 'The Gero brand default - near-black with crimson.',
+            'colors': BRAND_DEFAULTS,
+        },
+        'gero-classic': {
+            'name': 'Gero Classic',
+            'description': 'The original Gerobug identity - signature red with purple actions.',
+            'colors': {
+                'main_1': '#26050C', 'main_2': '#DA0037',
+                'secondary_1': '#3A0A16', 'secondary_2': '#4A101E',
+                'secondary_3': '#5C1A28', 'button_1': '#48409E',
+            },
+        },
+        'route': {
+            'name': 'Route',
+            'description': 'Warm plum darks with a pale-aqua highlight and teal actions.',
+            'colors': {
+                'main_1': '#1A1618', 'main_2': '#9EF5F5',
+                'secondary_1': '#241F22', 'secondary_2': '#322A2F',
+                'secondary_3': '#453A41', 'button_1': '#0F766E',
+            },
+        },
+        'midnight': {
+            'name': 'Midnight',
+            'description': 'Deep navy with an electric blue accent.',
+            'colors': {
+                'main_1': '#10141C', 'main_2': '#3B82F6',
+                'secondary_1': '#171C26', 'secondary_2': '#1F2634',
+                'secondary_3': '#2A3242', 'button_1': '#2563EB',
+            },
+        },
+        'forest': {
+            'name': 'Forest',
+            'description': 'Green-tinted darks with an emerald accent.',
+            'colors': {
+                'main_1': '#0F1512', 'main_2': '#2FA36B',
+                'secondary_1': '#16201B', 'secondary_2': '#1D2A23',
+                'secondary_3': '#2A3A31', 'button_1': '#1C7F53',
+            },
+        },
+        'royal': {
+            'name': 'Royal',
+            'description': 'Violet darks with a bright purple accent.',
+            'colors': {
+                'main_1': '#14101C', 'main_2': '#8B5CF6',
+                'secondary_1': '#1B1626', 'secondary_2': '#241D33',
+                'secondary_3': '#322A44', 'button_1': '#6D4AE0',
+            },
+        },
+        'graphite': {
+            'name': 'Graphite',
+            'description': 'Pure monochrome - no accent color at all.',
+            'colors': {
+                'main_1': '#161616', 'main_2': '#8F8F8F',
+                'secondary_1': '#202020', 'secondary_2': '#2A2A2A',
+                'secondary_3': '#383838', 'button_1': '#5A5A5A',
+            },
+        },
+    }
+
     personalize_id = models.IntegerField(default=1)
     company_name = models.CharField(max_length=30, default="GEROBUG")
-    main_1      = ColorField(default='#DA0037')
-    main_2      = ColorField(default='#E8596A')
-    secondary_1 = ColorField(default='#C82A3D')
-    secondary_2 = ColorField(default='#FA8997')
-    secondary_3 = ColorField(default='#FFE0E0')
-    button_1    = ColorField(default='#48409E')
+    main_1      = ColorField(default=BRAND_DEFAULTS['main_1'])
+    main_2      = ColorField(default=BRAND_DEFAULTS['main_2'])
+    secondary_1 = ColorField(default=BRAND_DEFAULTS['secondary_1'])
+    secondary_2 = ColorField(default=BRAND_DEFAULTS['secondary_2'])
+    secondary_3 = ColorField(default=BRAND_DEFAULTS['secondary_3'])
+    button_1    = ColorField(default=BRAND_DEFAULTS['button_1'])
+
+    @classmethod
+    def migrate_legacy_palette(cls):
+        # MOVE AN UNCUSTOMISED PRE-DESIGN-SYSTEM INSTALL ONTO THE BRAND
+        # DEFAULTS. ONLY AN EXACT MATCH ON EVERY LEGACY COLOR IS MIGRATED, SO
+        # AN OPERATOR WHO PICKED THEIR OWN COLORS KEEPS THEM.
+        theme = cls.objects.filter(personalize_id=1).first()
+        if not theme:
+            return False
+        current = {f: getattr(theme, f).upper() for f in cls.LEGACY_DEFAULTS}
+        if current != {k: v.upper() for k, v in cls.LEGACY_DEFAULTS.items()}:
+            return False
+        for field, value in cls.BRAND_DEFAULTS.items():
+            setattr(theme, field, value)
+        theme.save()
+        return True
 
     def __str__(self):
         return self.personalize_id

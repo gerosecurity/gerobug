@@ -127,21 +127,21 @@ class DashboardsConfig(AppConfig):
             # INIT THEME
             def init_theme_db():
                 if not Personalization.objects.filter(personalize_id=1).exists():
-                    THEME = Personalization()
-                    THEME.personalize_id    = 1
-                    THEME.main_1            = "#171717"
-                    THEME.main_2            = "#E8596A"
-                    THEME.secondary_1       = "#C82A3D"
-                    THEME.secondary_2       = "#FA8997"
-                    THEME.secondary_3       = "#FFE0E0"
-                    THEME.button_1          = "#48409E"
-                    THEME.company_name      = "GEROBUG"
+                    THEME = Personalization(personalize_id=1, company_name="GEROBUG",
+                                            **Personalization.BRAND_DEFAULTS)
                     THEME.save()
 
                     print("[LOG] Init Theme Data success")
                 
                 else:
                     print("[LOG] Theme Data already exists")
+
+            # MIGRATE THE PRE-DESIGN-SYSTEM PALETTE
+            def init_theme_defaults():
+                if Personalization.migrate_legacy_palette():
+                    print("[LOG] Theme migrated to brand defaults")
+                else:
+                    print("[LOG] Theme colors left as configured")
 
             def init_user_profiles():
                 missing = User.objects.filter(profile__isnull=True)
@@ -183,6 +183,7 @@ class DashboardsConfig(AppConfig):
             init_cert_db()
             init_mailbox_db()
             init_theme_db()
+            init_theme_defaults()
             init_user_profiles()
             init_uan_file_flags()
 

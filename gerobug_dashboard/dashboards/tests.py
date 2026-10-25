@@ -133,3 +133,96 @@ class PageRenderTests(TestCase):
                     "/dashboard/cvss-calculator"):
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 200)
+
+
+class ThemePresetTests(TestCase):
+    """The design system puts light text on secondary_1/secondary_2 and white
+    text on button_1, so every selectable palette has to clear AA on those
+    pairings or the skin ships unreadable."""
+
+    FIELDS = ['main_1', 'main_2', 'secondary_1', 'secondary_2', 'secondary_3', 'button_1']
+
+    @staticmethod
+    def _luminance(hex_):
+        channels = [int(hex_[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+        channels = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+                    for c in channels]
+        return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+
+    @classmethod
+    def _contrast(cls, a, b):
+        la, lb = cls._luminance(a), cls._luminance(b)
+        return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+    @staticmethod
+    def _soften(hex_):
+        """Approximates --gds-accent-soft: color-mix(accent 55%, white 45%)."""
+        channels = [int(hex_[i:i + 2], 16) for i in (1, 3, 5)]
+        return '#%02X%02X%02X' % tuple(round(c * 0.55 + 255 * 0.45) for c in channels)
+
+    def test_presets_well_formed(self):
+        import re
+        hexpat = re.compile(r'^#[0-9A-Fa-f]{6}$')
+        self.assertEqual(len(Personalization.THEME_PRESETS), 7)
+        for key, preset in Personalization.THEME_PRESETS.items():
+            self.assertTrue(preset['name'], key)
+            self.assertTrue(preset['description'], key)
+            self.assertEqual(set(preset['colors']), set(self.FIELDS), key)
+            for field in self.FIELDS:
+                self.assertRegex(preset['colors'][field], hexpat)
+
+    def test_gero_dark_matches_brand_defaults(self):
+        self.assertEqual(Personalization.THEME_PRESETS['gero-dark']['colors'],
+                         Personalization.BRAND_DEFAULTS)
+
+    def test_preset_contrast_constraints(self):
+        for key, preset in Personalization.THEME_PRESETS.items():
+            colors = preset['colors']
+            self.assertGreaterEqual(
+                self._contrast(colors['button_1'], '#FFFFFF'), 4.5,
+                f"{key}: CTA fails white-text contrast")
+            self.assertGreaterEqual(
+                self._contrast(self._soften(colors['main_2']), colors['secondary_2']), 4.5,
+                f"{key}: softened accent fails on overlay")
+
+    def test_legacy_palette_would_fail_the_same_check(self):
+        """Why the backfill exists: the pre-design-system palette put white
+        text on a pale pink overlay."""
+        legacy = Personalization.LEGACY_DEFAULTS
+        self.assertLess(self._contrast(legacy['secondary_2'], '#FFFFFF'), 4.5)
+
+
+class LegacyPaletteMigrationTests(TestCase):
+    """Settings > Personalization colors predate the design system. An install
+    still on the old palette has to move, but an operator's own colors must
+    never be overwritten."""
+
+    def _theme(self, **colors):
+        Personalization.objects.all().delete()
+        return Personalization.objects.create(
+            personalize_id=1, company_name="GEROBUG", **colors)
+
+    def test_untouched_legacy_install_is_migrated(self):
+        self._theme(**Personalization.LEGACY_DEFAULTS)
+        self.assertTrue(Personalization.migrate_legacy_palette())
+        theme = Personalization.objects.get(personalize_id=1)
+        for field, value in Personalization.BRAND_DEFAULTS.items():
+            self.assertEqual(getattr(theme, field).upper(), value.upper(), field)
+
+    def test_migration_is_idempotent(self):
+        self._theme(**Personalization.LEGACY_DEFAULTS)
+        self.assertTrue(Personalization.migrate_legacy_palette())
+        self.assertFalse(Personalization.migrate_legacy_palette())
+
+    def test_customized_palette_is_left_alone(self):
+        colors = dict(Personalization.LEGACY_DEFAULTS, main_2="#00FF00")
+        self._theme(**colors)
+        self.assertFalse(Personalization.migrate_legacy_palette())
+        theme = Personalization.objects.get(personalize_id=1)
+        self.assertEqual(theme.main_2.upper(), "#00FF00")
+        self.assertEqual(theme.secondary_2.upper(),
+                         Personalization.LEGACY_DEFAULTS["secondary_2"].upper())
+
+    def test_no_theme_row_is_safe(self):
+        Personalization.objects.all().delete()
+        self.assertFalse(Personalization.migrate_legacy_palette())

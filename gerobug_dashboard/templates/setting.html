@@ -285,13 +285,117 @@
                                     <button class="btn btn-primary" type="submit">Update</button>
                                 </form>
                                 <hr>
-                                <h6>THEME</h6>                                
+                                <h6>THEME</h6>
+                                <p class="text-muted" style="font-size:12px">These colors drive the whole interface — dashboard, login, and the public pages. Pick a preset below, fine-tune the individual colors if you like, then click <strong>Update</strong> to apply.</p>
+
+                                {{ theme_presets|json_script:"gds-theme-presets" }}
+                                <div class="gds-preset-grid">
+                                    {% for key, preset in theme_presets.items %}
+                                    <button type="button" class="gds-preset-card" data-preset="{{ key }}"
+                                            title="{{ preset.description }}"
+                                            style="background:{{ preset.colors.main_1 }};">
+                                        <span class="gds-preset-name">{{ preset.name }}</span>
+                                        <span class="gds-preset-dots">
+                                            <span style="background:{{ preset.colors.main_1 }}"></span>
+                                            <span style="background:{{ preset.colors.main_2 }}"></span>
+                                            <span style="background:{{ preset.colors.secondary_1 }}"></span>
+                                            <span style="background:{{ preset.colors.secondary_2 }}"></span>
+                                            <span style="background:{{ preset.colors.secondary_3 }}"></span>
+                                            <span style="background:{{ preset.colors.button_1 }}"></span>
+                                        </span>
+                                    </button>
+                                    {% endfor %}
+                                </div>
+
+                                <div class="gds-theme-preview" id="gds-theme-preview">
+                                    <div class="gds-preview-sidebar"></div>
+                                    <div class="gds-preview-body">
+                                        <div class="gds-preview-card">
+                                            <div class="gds-preview-title">Dashboard</div>
+                                            <div class="gds-preview-muted">Cards, borders and muted text</div>
+                                            <a class="gds-preview-accent">Accent link</a>
+                                            <span class="gds-preview-btn">Primary action</span>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <form method="POST" enctype="multipart/form-data">
                                     {% csrf_token %}
                                     {{ personalization.media}}
                                     {{ personalization.as_p }}
                                     <button class="btn btn-primary" type="submit">Update</button>
                                 </form>
+                                <form method="POST" style="margin-top:8px">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="personalize_reset" value="1">
+                                    <button class="btn btn-outline-secondary" type="submit">Reset to Gero Dark</button>
+                                </form>
+
+                                <script>
+                                (function () {
+                                    var FIELDS = ['main_1', 'main_2', 'secondary_1', 'secondary_2', 'secondary_3', 'button_1'];
+                                    var presets = JSON.parse(document.getElementById('gds-theme-presets').textContent);
+
+                                    function inputFor(f) { return document.getElementById('id_' + f); }
+
+                                    function soften(hex) { /* approximate --gds-accent-soft: color-mix(accent 55%, white) */
+                                        var m = /^#([0-9a-f]{6})$/i.exec(hex || '');
+                                        if (!m) return hex;
+                                        var n = parseInt(m[1], 16);
+                                        function mix(x) { return Math.round(x * 0.55 + 255 * 0.45); }
+                                        return '#' + [mix(n >> 16 & 255), mix(n >> 8 & 255), mix(n & 255)]
+                                            .map(function (x) { return x.toString(16).padStart(2, '0'); }).join('');
+                                    }
+
+                                    function currentColors() {
+                                        var c = {};
+                                        FIELDS.forEach(function (f) { var el = inputFor(f); c[f] = el ? el.value : ''; });
+                                        return c;
+                                    }
+
+                                    function refreshPreview() {
+                                        var c = currentColors();
+                                        var host = document.getElementById('gds-theme-preview');
+                                        if (!host) return;
+                                        host.style.background = c.main_1;
+                                        host.style.borderColor = c.secondary_3;
+                                        host.querySelector('.gds-preview-sidebar').style.background = c.secondary_1;
+                                        var card = host.querySelector('.gds-preview-card');
+                                        card.style.background = c.secondary_1;
+                                        card.style.borderColor = c.secondary_3;
+                                        host.querySelector('.gds-preview-accent').style.color = soften(c.main_2);
+                                        host.querySelector('.gds-preview-btn').style.background = c.button_1;
+                                        document.querySelectorAll('.gds-preset-card').forEach(function (cardEl) {
+                                            var p = presets[cardEl.dataset.preset];
+                                            var match = p && FIELDS.every(function (f) {
+                                                return (c[f] || '').toUpperCase() === p.colors[f].toUpperCase();
+                                            });
+                                            cardEl.classList.toggle('gds-preset-active', !!match);
+                                        });
+                                    }
+
+                                    function setField(f, hex) {
+                                        var el = inputFor(f);
+                                        if (!el) return;
+                                        if (el.jscolor) { el.jscolor.fromString(hex); }
+                                        else { el.value = hex; }
+                                    }
+
+                                    document.querySelectorAll('.gds-preset-card').forEach(function (cardEl) {
+                                        cardEl.addEventListener('click', function () {
+                                            var p = presets[cardEl.dataset.preset];
+                                            if (!p) return;
+                                            FIELDS.forEach(function (f) { setField(f, p.colors[f]); });
+                                            refreshPreview();
+                                        });
+                                    });
+                                    FIELDS.forEach(function (f) {
+                                        var el = inputFor(f);
+                                        if (el) el.addEventListener('input', refreshPreview);
+                                    });
+                                    refreshPreview();
+                                })();
+                                </script>
                             </div>
 
                             <div class="tab-pane" id="account">

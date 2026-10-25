@@ -726,6 +726,15 @@ def AdminSetting(request):
             messages.success(request,"Company Identity updated successfully!")
             return redirect('setting')
              
+        if request.POST.get('personalize_reset'):
+            theme = Personalization.objects.get(personalize_id=1)
+            for field, value in Personalization.BRAND_DEFAULTS.items():
+                setattr(theme, field, value)
+            theme.save()
+            logging.getLogger("Gerologger").info("Personalization reset to brand defaults")
+            messages.success(request, "Colors reset to the default theme!")
+            return redirect('setting')
+
         personalization = PersonalizationForm(request.POST)
         if personalization.is_valid():
             theme               = Personalization.objects.get(personalize_id=1)
@@ -762,7 +771,7 @@ def AdminSetting(request):
     return render(request,'setting.html',
                   {'form': RulesGuidelineForm(instance=RULES), 'mailbox': MailboxForm(initial=mailbox_initial_data), 'account': AccountForm(),'reviewer': ReviewerForm(),'webhooks': WebhookForm(),'blacklistrule': BlacklistForm(),
                     'templatereport': TemplateReportForm(), 'templatenda': TemplateNDAForm(), 'templatecert': TemplateCertForm(), 'certdata': CertDataForm(), 'companyidentity': CompanyIdentityForm(),
-                    'personalization': PersonalizationForm(instance=THEME), 'troubleshoot': TroubleshootForm(), 'users':users, 'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications,'bl':bl, 'company_name':THEME.company_name})
+                    'personalization': PersonalizationForm(instance=THEME), 'theme_presets': Personalization.THEME_PRESETS, 'troubleshoot': TroubleshootForm(), 'users':users, 'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications,'bl':bl, 'company_name':THEME.company_name})
 
 @login_required
 def ReviewerDelete(request,public_id):
