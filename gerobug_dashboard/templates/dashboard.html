@@ -1,43 +1,23 @@
 {% extends "base.html" %}
 {% load static %}
+{% block title %}Dashboard{% endblock title %}
+{% block extra_head %}
+<link rel="stylesheet" href='{% static "/css/dashboard.css" %}'>
+<link rel="stylesheet" href='https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.2/dragula.min.css'>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.2/dragula.min.js'></script>
+<script>
+window.setTimeout(function() {
+$(".alert").fadeTo(500, 0).slideUp(500, function(){
+$(this).remove();
+});
+}, 1500);
+</script>
+{% endblock extra_head %}
+
 {% block content %}
 
 {% if user.is_authenticated %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Dashboard</title>
-    <link rel="shortcut icon" href='{% static "favicon.ico" %}' type="image/x-icon">
-    <link rel="icon" href='{% static "favicon.ico" %}' type="image/x-icon">
-    
-    <!-- CSS -->
-    <link rel="stylesheet" href='{% static "/css/sidebar.css" %}'>
-    <link rel="stylesheet" href='{% static "/css/dashboard.css" %}'>
-
-    <!-- BOOTSTRAP CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.1/font/bootstrap-icons.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet"
-    integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
-    <link href='https://unpkg.com/boxicons@2.0.7/css/boxicons.min.css' rel='stylesheet'>  
-    
-    <!-- SCRIPTS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.js"></script>
-    <script src="{% static '/script/sidebar.js' %}"></script>
-    <script src='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.3/js/bootstrap.min.js'></script>
-    <script src='https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.2/dragula.min.js'></script>
-    <script>
-      window.setTimeout(function() {
-        $(".alert").fadeTo(500, 0).slideUp(500, function(){
-          $(this).remove();
-        });
-      }, 1500);
-    </script>
-</head>
-
-<body>
     <section class="home-section">
         <header>
           <div class="home-content">
@@ -55,6 +35,34 @@
             {% endif %}
           {% endfor %}
           
+          <div class="gds-page-head">
+            <h1 class="gds-page-title">Dashboard</h1>
+            <div class="gds-page-sub">Welcome back, {{ request.user.username }} · {{ company_name }} Bug Bounty</div>
+          </div>
+
+          <div class="gds-stat-grid">
+            <div class="gds-stat-card gds-accent">
+              <div class="gds-stat-label">Total Reports</div>
+              <div class="gds-stat-value">{{ bugposts|length }}</div>
+              <div class="gds-stat-sub">All time</div>
+            </div>
+            <div class="gds-stat-card">
+              <div class="gds-stat-label">Need to Review</div>
+              <div class="gds-stat-value">{{ total_unreviewed }}</div>
+              <div class="gds-stat-sub">Awaiting first triage</div>
+            </div>
+            <div class="gds-stat-card">
+              <div class="gds-stat-label">In Progress</div>
+              <div class="gds-stat-value">{{ total_inreview|add:total_fixing|add:total_retest|add:total_bounty }}</div>
+              <div class="gds-stat-sub">Review · fixing · retest · bounty</div>
+            </div>
+            <div class="gds-stat-card">
+              <div class="gds-stat-label">Completed</div>
+              <div class="gds-stat-value">{{ total_completed }}</div>
+              <div class="gds-stat-sub">Resolved &amp; rewarded</div>
+            </div>
+          </div>
+
           <a href="{% url 'report_status' 1%}" style="text-decoration:none"></a>
             <div class="notification">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bell"
@@ -66,13 +74,101 @@
             </div>
           </a>
           
+          <div class="gds-kanban-toolbar">
+            <input type="search" id="kanban-search" class="gds-kanban-search"
+                   placeholder="Filter by id, title, or hunter&hellip;" aria-label="Filter reports">
+            <select id="kanban-severity" class="gds-kanban-select" aria-label="Filter by severity">
+              <option value="">All severities</option>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+              <option value="none">None</option>
+            </select>
+            <span class="gds-kanban-hint">Drag cards between columns to change status</span>
+          </div>
+
           {% include "dashboard_varieties/list_report_dashboard.html" %}
-  
+
         </main>
+
+        <script>
+        (function () {
+          // ---- Aging badges: how long since the report last moved ----------
+          var STALE_DAYS = 7, DEAD_DAYS = 14, NOW = Date.now();
+          document.querySelectorAll('.gds-kanban-card').forEach(function (card) {
+            var updated = Date.parse(card.dataset.updated || '');
+            if (isNaN(updated)) return;
+            var days = Math.floor((NOW - updated) / 86400000);
+            if (days < STALE_DAYS) return;
+            var badge = document.createElement('span');
+            badge.className = 'gds-aging' + (days >= DEAD_DAYS ? ' gds-aging-dead' : '');
+            badge.textContent = days + 'd without update';
+            card.querySelector('.card').appendChild(badge);
+          });
+
+          // ---- Filter bar --------------------------------------------------
+          var search = document.getElementById('kanban-search');
+          var severity = document.getElementById('kanban-severity');
+          function applyFilters() {
+            var q = (search.value || '').trim().toLowerCase();
+            var sev = severity.value;
+            document.querySelectorAll('.gds-kanban-card').forEach(function (card) {
+              var hit = (!q || card.dataset.search.indexOf(q) !== -1) &&
+                        (!sev || card.dataset.severity === sev);
+              card.style.display = hit ? '' : 'none';
+            });
+          }
+          search.addEventListener('input', applyFilters);
+          severity.addEventListener('change', applyFilters);
+
+          // ---- Drag-and-drop status transitions ----------------------------
+          if (typeof dragula === 'undefined') return;
+          var cols = Array.prototype.slice.call(document.querySelectorAll('.gds-kanban-col'));
+          var drake = dragula(cols, {
+            moves: function (el) { return el.classList.contains('gds-kanban-card'); }
+          });
+
+          drake.on('drop', function (el, target, source) {
+            if (!target || target === source) return;
+            var id = el.dataset.reportId;
+            var newStatus = target.dataset.status;
+            fetch("{% url 'kanban_move' 'REPORTID' %}".replace('REPORTID', id), {
+              method: 'POST',
+              headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/x-www-form-urlencoded'
+              },
+              body: 'new_status=' + encodeURIComponent(newStatus)
+            }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+              .then(function (res) {
+                if (res.ok) {
+                  window.location.reload(); // server is the source of truth (pills, counts, stats)
+                } else {
+                  source.appendChild(el);   // revert the move
+                  alertBanner(res.data.error || 'Could not move the report.');
+                }
+              })
+              .catch(function () {
+                source.appendChild(el);
+                alertBanner('Could not reach the server — the report was not moved.');
+              });
+          });
+
+          function alertBanner(msg) {
+            var main = document.querySelector('.home-section main');
+            var p = document.createElement('p');
+            p.className = 'alert alert-warning';
+            p.setAttribute('role', 'alert');
+            p.innerHTML = '<span style="font-weight:bold"></span>';
+            p.firstChild.textContent = msg;
+            main.insertBefore(p, main.firstChild);
+            window.setTimeout(function () { p.remove(); }, 4000);
+          }
+        })();
+        </script>
       </section>
     
-</body>
-
 {% else %}
 <h1>Unauthenticated</h1>
 <a href="{% url 'login' %}">Please Login</a>
