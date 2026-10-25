@@ -747,7 +747,7 @@
             if (target) {
                 var trigger = $('a[data-bs-toggle="tab"][href="' + target + '"]');
                 if (trigger.length) {
-                    trigger.each(function () { $(this).tab("show"); });
+                    trigger.each(function () { new bootstrap.Tab(this).show(); });
                 }
             }
         })();
