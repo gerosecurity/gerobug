@@ -4,7 +4,8 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.utils import timezone
 
-from dashboards.models import BugReport
+from dashboards.models import (BlacklistRule, BugReport, CertificateData,
+                               Personalization, ReportStatus, StaticRules)
 from prerequisites.models import MailBox
 
 
@@ -86,3 +87,49 @@ class KanbanMoveTests(TestCase):
         self.client.logout()
         response = self.client.post("/dashboard/kanban-move/AB12CD34EF56", {"new_status": 2})
         self.assertIn(response.status_code, (302, 403))
+
+
+class PageRenderTests(TestCase):
+    """Every dashboard page must render. The templates share base.html and the
+    design system, so a bad block, a missing context key or an unreversible
+    url breaks a whole page rather than one widget."""
+
+    STATUS_NAMES = ["Not Valid", "Need To Review", "In Review", "Fixing", "Retest",
+                    "Bounty Calculation", "Bounty in Process", "Completed"]
+
+    def setUp(self):
+        for i, name in enumerate(self.STATUS_NAMES):
+            ReportStatus.objects.get_or_create(status_id=i, defaults={"status_name": name})
+        # Singletons that apps.py ready() seeds in a real deployment.
+        Personalization.objects.get_or_create(personalize_id=1)
+        BlacklistRule.objects.get_or_create(rule_id=1)
+        for model in (CertificateData, StaticRules):
+            if not model.objects.exists():
+                model.objects.create()
+        MailBox.objects.create(
+            mailbox_id=1, email="ops@example.com", password="pw", mailbox_status=1,
+        )
+        BugReport.objects.create(
+            report_id="AB12CD34EF56",
+            report_datetime=timezone.now(),
+            hunter_email="hunter@example.com",
+            report_reviewer="reviewer",
+            report_title="Test finding",
+            report_summary="s",
+            report_severity=7.5,
+            report_severitytype="",
+            report_status=1,
+        )
+        self.user = User.objects.create_superuser(
+            username="geromin-test", password="x", email="a@b.c")
+        self.client.force_login(self.user)
+
+    def test_pages_render(self):
+        for url in ("/dashboard/",
+                    "/dashboard/report-detail/AB12CD34EF56",
+                    "/dashboard/setting",
+                    "/dashboard/report-status/1",
+                    "/dashboard/owasp-calculator",
+                    "/dashboard/cvss-calculator"):
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 200)
