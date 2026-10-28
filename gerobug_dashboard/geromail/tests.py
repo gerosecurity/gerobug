@@ -762,3 +762,172 @@ class ClassifyActionRobustnessTests(TestCase):
         for subject in ("", "Hello team", "CHECK_", "SUBMIT_", "RANDOM NOISE"):
             with self.subTest(subject=subject):
                 self.assertIsNotNone(gerofilter.classify_action("hunter@example.com", subject))
+
+
+class SubmitValidationTests(MailFlowTestCase):
+
+    def test_rejected_submit_creates_no_media_folder(self):
+        self.deliver(raw_mail("SUBMIT_x", body=SUBMIT_BODY, pdf=MINIMAL_PDF))
+        self.assertEqual(self.sent_codes(), [404])
+        self.assertEqual(self.last_note(), gerofilter.REASON_TITLE)
+        self.assertFalse(BugReport.objects.exists())
+        self.assertEqual(os.listdir(self.media), [])
+
+    def test_submit_without_pdf_is_refused(self):
+        self.deliver(raw_mail("SUBMIT_A good long title", body=SUBMIT_BODY))
+        self.assertEqual(self.sent_codes(), [404])
+        self.assertEqual(self.last_note(), gerofilter.REASON_SUBMIT_NO_PDF)
+        self.assertEqual(os.listdir(self.media), [])
+
+    def test_submit_with_a_non_pdf_attachment_says_so(self):
+        self.deliver(raw_mail("SUBMIT_A good long title", body=SUBMIT_BODY,
+                              pdf=b"this is not a pdf at all", pdf_name="evil.pdf"))
+        self.assertEqual(self.sent_codes(), [404])
+        self.assertEqual(self.last_note(), gerofilter.REASON_PDF_INVALID)
+
+    def test_submit_with_an_oversize_pdf_states_the_size(self):
+        big = make_pdf(pad=gerofilter.MAX_PDF_BYTES)
+        self.deliver(raw_mail("SUBMIT_A good long title", body=SUBMIT_BODY, pdf=big))
+        self.assertEqual(self.sent_codes(), [404])
+        self.assertIn("the limit is 25 MB", self.last_note())
+        self.assertIn(" MB;", self.last_note())
+        self.assertEqual(os.listdir(self.media), [])
+
+    def test_submit_endpoint_up_to_255_is_accepted(self):
+        endpoint = "https://example.com/" + "a" * 200
+        body = ("TYPE=XSS\nENDPOINT=" + endpoint
+                + "\nSUMMARY=A long but valid endpoint should be accepted now.")
+        self.deliver(raw_mail("SUBMIT_A good long title", body=body, pdf=MINIMAL_PDF))
+        self.assertEqual(self.sent_codes(), [201])
+        self.assertEqual(BugReport.objects.get().report_endpoint, endpoint)
+
+    def test_submit_short_summary_names_summary(self):
+        body = "TYPE=XSS\nENDPOINT=https://example.com/a\nSUMMARY=short"
+        self.deliver(raw_mail("SUBMIT_A good long title", body=body, pdf=MINIMAL_PDF))
+        self.assertEqual(self.last_note(), gerofilter.REASON_SUMMARY)
+
+    def test_accepted_submit_stores_one_pdf_under_the_new_id(self):
+        self.deliver(raw_mail("SUBMIT_A good long title", body=SUBMIT_BODY, pdf=MINIMAL_PDF))
+        self.assertEqual(self.sent_codes(), [201])
+        report = BugReport.objects.get()
+        self.assertRegex(report.report_id, r"^[0-9A-F]{12}$")
+        self.assertTrue(os.path.isfile(self.pdf_path(report.report_id, report.report_id)))
+
+class SubmissionOrderingTests(MailFlowTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.report = make_report(report_status=5, report_permission=2)
+
+    def test_rejected_appeal_leaves_no_file_and_no_counter(self):
+        self.deliver(raw_mail("APPEAL_" + self.report.report_id, body="no"))
+        self.assertEqual(self.sent_codes(), [404])
+        self.assertEqual(self.last_note(), gerofilter.REASON_EMPTY_APPEAL)
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.report_appeal, 0)
+        self.assertEqual(self.report.report_permission, 2)
+        self.assertFalse(BugReportAppeal.objects.exists())
+        self.assertEqual(os.listdir(self.media), [])
+
+    def test_second_appeal_after_rejection_stores_its_own_pdf(self):
+        self.deliver(raw_mail("APPEAL_" + self.report.report_id, body="no"))
+        self.report.report_permission = 2
+        self.report.save()
+        self.deliver(raw_mail("APPEAL_" + self.report.report_id,
+                              body="Here is the full reasoning for the appeal.",
+                              pdf=MINIMAL_PDF, date="Tue, 13 May 2025 10:00:00 +0200"))
+        self.assertEqual(self.sent_codes(), [404, 204])
+        appeal = BugReportAppeal.objects.get()
+        self.assertEqual(appeal.appeal_id, self.report.report_id + "A1")
+        self.assertEqual(appeal.appeal_file, 1)
+        with open(self.pdf_path(self.report.report_id, appeal.appeal_id), "rb") as fp:
+            self.assertEqual(fp.read(), MINIMAL_PDF)
+
+    def test_appeal_accepts_a_pdf_with_no_body_text(self):
+        self.deliver(raw_mail("APPEAL_" + self.report.report_id, body="", pdf=MINIMAL_PDF))
+        self.assertEqual(self.sent_codes(), [204])
+        self.assertEqual(BugReportAppeal.objects.get().appeal_file, 1)
+
+    def test_appeal_with_an_oversize_pdf_changes_nothing(self):
+        self.deliver(raw_mail("APPEAL_" + self.report.report_id, body="",
+                              pdf=make_pdf(pad=gerofilter.MAX_PDF_BYTES)))
+        self.assertEqual(self.sent_codes(), [404])
+        self.assertIn("the limit is 25 MB", self.last_note())
+        self.report.refresh_from_db()
+        self.assertEqual((self.report.report_appeal, self.report.report_permission), (0, 2))
+        self.assertEqual(os.listdir(self.media), [])
+
+    def test_existing_file_is_never_overwritten(self):
+        os.makedirs(os.path.join(self.media, self.report.report_id))
+        with open(self.pdf_path(self.report.report_id, self.report.report_id + "A1"), "wb") as fp:
+            fp.write(b"original")
+        self.assertFalse(gerofilter.store_pdf(
+            self.report.report_id, self.report.report_id + "A1", MINIMAL_PDF, base=self.media))
+        with open(self.pdf_path(self.report.report_id, self.report.report_id + "A1"), "rb") as fp:
+            self.assertEqual(fp.read(), b"original")
+
+    def test_store_pdf_blocks_path_escape(self):
+        self.assertFalse(gerofilter.store_pdf(
+            "..", os.path.join("..", "escape"), MINIMAL_PDF, base=self.media))
+        self.assertEqual(os.listdir(self.media), [])
+
+    def test_update_rechecks_permission_under_lock(self):
+        report = make_report("CC11DD22EE33", report_status=2,
+                             report_update_self=gerofilter.SELF_UPDATE_LIMIT - 1)
+        raw = raw_mail("UPDATE_" + report.report_id,
+                       body="Here is the extra detail you asked for.")
+
+        real_classify = gerofilter.classify_action
+
+        def classify_then_exhaust(sender, subject):
+            result = real_classify(sender, subject)
+            BugReport.objects.filter(report_id=report.report_id).update(
+                report_update_self=gerofilter.SELF_UPDATE_LIMIT)
+            return result
+
+        with mock.patch.object(gerofilter, "classify_action", side_effect=classify_then_exhaust):
+            self.deliver(raw)
+
+        self.assertEqual(self.sent_codes(), [407])
+        report.refresh_from_db()
+        self.assertEqual(report.report_update, 0)
+        self.assertFalse(BugReportUpdate.objects.exists())
+        self.assertEqual(os.listdir(self.media), [])
+
+    def test_rejected_update_keeps_the_allowance(self):
+        report = make_report("CC11DD22EE33", report_status=2)
+        self.deliver(raw_mail("UPDATE_" + report.report_id, body="ok"))
+        self.assertEqual(self.sent_codes(), [404])
+        self.assertEqual(self.last_note(), gerofilter.REASON_EMPTY_UPDATE)
+        report.refresh_from_db()
+        self.assertEqual((report.report_update, report.report_update_self), (0, 0))
+
+    def test_accepted_update_spends_the_invitation_first(self):
+        report = make_report("CC11DD22EE33", report_status=2, report_permission=4)
+        self.deliver(raw_mail("UPDATE_" + report.report_id,
+                              body="Here is the extra detail you asked for.",
+                              pdf=MINIMAL_PDF))
+        self.assertEqual(self.sent_codes(), [203])
+        report.refresh_from_db()
+        self.assertEqual((report.report_update, report.report_update_self,
+                          report.report_permission), (1, 0, 0))
+        update = BugReportUpdate.objects.get()
+        self.assertEqual(update.update_id, report.report_id + "U1")
+        self.assertEqual(update.update_file, 1)
+
+    def test_rejected_data_leaves_no_file_and_no_counter(self):
+        report = make_report("CC11DD22EE33", report_status=6, report_permission=1)
+        self.deliver(raw_mail("DATA_" + report.report_id, body="no"))
+        self.assertEqual(self.sent_codes(), [404])
+        report.refresh_from_db()
+        self.assertEqual((report.report_nda, report.report_permission), (0, 1))
+        self.assertEqual(os.listdir(self.media), [])
+
+    def test_data_without_a_pdf_confirms_with_209(self):
+        report = make_report("CC11DD22EE33", report_status=6, report_permission=1)
+        self.deliver(raw_mail("DATA_" + report.report_id,
+                              body="Account holder name and bank details are below."))
+        self.assertEqual(self.sent_codes(), [209])
+        report.refresh_from_db()
+        self.assertEqual((report.report_nda, report.report_permission), (1, 0))
+        self.assertEqual(BugReportNDA.objects.get().nda_file, 0)

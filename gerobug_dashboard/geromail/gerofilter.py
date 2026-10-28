@@ -8,6 +8,30 @@ from django.db import transaction
 
 from dashboards.models import (BOUNTY_CALC_STATUS, BugHunter, BugReport, BugReportUpdate,
                                BugReportAppeal, BugReportNDA, ReportStatus)
+from gerobug.settings import MEDIA_ROOT
+
+
+MAX_PDF_BYTES = 25_000_000
+
+FIELD_LIMITS = {
+    "title": (3, 150),
+    "type": (1, 100),
+    "endpoint": (1, 255),
+    "summary": (10, None),
+}
+
+REASON_PDF_TOO_LARGE = ("Your PDF is {mb:.1f} MB; the limit is 25 MB. "
+                        "Put large evidence behind a link inside the PDF.")
+REASON_PDF_INVALID = "The attachment is not a valid PDF file."
+REASON_SUBMIT_NO_PDF = "Attach your report as a PDF file."
+REASON_TITLE = "Title needs 3 to 150 characters."
+REASON_TYPE = "TYPE is missing or longer than 100 characters."
+REASON_ENDPOINT = "ENDPOINT is missing or longer than 255 characters."
+REASON_SUMMARY = "SUMMARY needs at least 10 characters."
+REASON_EMPTY_UPDATE = "Include a written description in the email body or attach a PDF."
+REASON_EMPTY_APPEAL = "Include your reasoning in the email body or attach a PDF."
+REASON_UNKNOWN_COMMAND = ("We could not recognise the command in the subject. "
+                          "Send an email with the subject HELP for the list of commands.")
 
 
 
@@ -195,52 +219,111 @@ def check_pdf(file):
         return True
 
 
-# VALIDATE AND DOWNLOAD ATTACHMENT
-def validate_attachment(msg, id, FILEPATH):
-    valid = False
-    filePath = ''
+def extract_pdf(msg):
+    found = False
     for part in msg.walk():
         if part.get_content_maintype() == 'multipart':
             continue
-
         if part.get('Content-Disposition') is None:
             continue
-        
-        fileName = part.get_filename()
-        if bool(fileName):
-            report_id = id[:12]
-            fileName = id + '.pdf'
-            fileDir = os.path.join(FILEPATH, report_id)
-            filePath = os.path.join(fileDir, fileName)
+        if not part.get_filename():
+            continue
 
-            real_filepath = os.path.realpath(filePath)
-            real_basepath = os.path.realpath(FILEPATH)
-            if not real_filepath.startswith(real_basepath + os.sep):
-                logging.getLogger("Gerologger").error(f"Path traversal blocked: {filePath} resolves outside {FILEPATH}")
-                break
+        data = part.get_payload(decode=True)
+        if not data:
+            continue
+        found = True
+        size = len(data)
+        logging.getLogger("Gerologger").info('File size = ' + str(size))
 
-            file = part.get_payload(decode=True)
-            fileSize = len(file)
-            logging.getLogger("Gerologger").info('File size = ' + str(fileSize))
+        if size >= MAX_PDF_BYTES:
+            return None, "too_large"
+        if not check_pdf(data):
+            logging.getLogger("Gerologger").warning(
+                'Invalid PDF detected in memory, file not written to disk')
+            continue
+        return data, ""
 
-            if fileSize >= 25000000:
-                pass
-            elif not os.path.isfile(filePath):
-                if not check_pdf(file):
-                    logging.getLogger("Gerologger").warning('Invalid PDF detected in memory, file not written to disk')
-                    continue
+    return None, "not_pdf" if found else "none"
 
-                if not os.path.exists(fileDir):
-                    os.mkdir(fileDir)
 
-                fp = open(filePath, 'wb')
-                fp.write(file)
-                fp.close()
-                valid = True
+def pdf_reason_text(reason, size=0):
+    if reason == "too_large":
+        return REASON_PDF_TOO_LARGE.format(mb=size / 1000000.0)
+    if reason == "not_pdf":
+        return REASON_PDF_INVALID
+    return ""
 
-                break
-    
-    return valid
+
+def attachment_size(msg):
+    for part in msg.walk():
+        if part.get_content_maintype() == 'multipart':
+            continue
+        if part.get('Content-Disposition') is None:
+            continue
+        if not part.get_filename():
+            continue
+        data = part.get_payload(decode=True)
+        if data:
+            return len(data)
+    return 0
+
+
+def store_pdf(report_id, file_id, data, base=None):
+    if base is None:
+        base = MEDIA_ROOT
+    if not data:
+        return False
+
+    file_dir = os.path.join(base, report_id)
+    file_path = os.path.join(file_dir, file_id + '.pdf')
+
+    real_filepath = os.path.realpath(file_path)
+    real_basepath = os.path.realpath(base)
+    if not real_filepath.startswith(real_basepath + os.sep):
+        logging.getLogger("Gerologger").error(
+            f"Path traversal blocked: {file_path} resolves outside {base}")
+        return False
+
+    if os.path.isfile(file_path):
+        logging.getLogger("Gerologger").warning(
+            f"Refusing to overwrite an existing file: {file_path}")
+        return False
+
+    os.makedirs(file_dir, exist_ok=True)
+    with open(file_path, 'wb') as fp:
+        fp.write(data)
+    return True
+
+
+def validate_submit_fields(title, atk_type, endpoint, summary):
+    title = (title or '').strip()
+    atk_type = (atk_type or '').strip()
+    endpoint = (endpoint or '').strip()
+    summary = (summary or '').strip()
+
+    low, high = FIELD_LIMITS["title"]
+    if len(title) < low or len(title) > high:
+        return REASON_TITLE
+    low, high = FIELD_LIMITS["type"]
+    if len(atk_type) < low or len(atk_type) > high:
+        return REASON_TYPE
+    low, high = FIELD_LIMITS["endpoint"]
+    if len(endpoint) < low or len(endpoint) > high:
+        return REASON_ENDPOINT
+    low, high = FIELD_LIMITS["summary"]
+    if len(summary) < low:
+        return REASON_SUMMARY
+    return ""
+
+
+# VALIDATE AND DOWNLOAD ATTACHMENT
+def validate_attachment(msg, id, FILEPATH=None):
+    data, reason = extract_pdf(msg)
+    if reason:
+        return False
+    return store_pdf(str(id)[:12], str(id), data,
+                     base=FILEPATH if FILEPATH is not None else MEDIA_ROOT)
 
 
 # PARSE EMAIL BODY

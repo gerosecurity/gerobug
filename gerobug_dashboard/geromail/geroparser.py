@@ -42,6 +42,18 @@ def _get_ssl_context():
     return ctx
 
 
+def read_submission(msg):
+    body = rm_html_tags(extract_email_body(msg)).strip()
+    pdf, reason = gerofilter.extract_pdf(msg)
+    return body, pdf, reason
+
+
+def read_submission(msg):
+    body = rm_html_tags(extract_email_body(msg)).strip()
+    pdf, reason = gerofilter.extract_pdf(msg)
+    return body, pdf, reason
+
+
 def parse_raw_message(raw):
     if isinstance(raw, bytes):
         return email.message_from_bytes(raw)
@@ -450,63 +462,45 @@ def read_mail(mail, folder_name='inbox'):
 
                             # HUNTER SUBMIT REPORT
                             if(code == 201):
-                                report_id = generate_id(hunter_email, int(msg_ts))
-                                report_title = payload[0]
-
-                                # BUILD PAYLOAD FOR GEROMAIL
-                                payload[0] = report_id
+                                report_title = str(payload[0]).strip()
                                 payload[1] = report_title
 
-                                # CHECK ATTACHMENT AND PARSE BODY
-                                have_attachment = gerofilter.validate_attachment(msg, report_id, MEDIA_ROOT)
-                                if have_attachment:
-                                    email_body = rm_html_tags(extract_email_body(msg))
-                                    logging.getLogger("Gerologger").info('Body : ' + str(email_body) + '\n')
+                                email_body, report_pdf, pdf_reason = read_submission(msg)
+                                reason = gerofilter.pdf_reason_text(
+                                    pdf_reason, gerofilter.attachment_size(msg))
+                                if not reason and report_pdf is None:
+                                    reason = gerofilter.REASON_SUBMIT_NO_PDF
 
-                                    atk_type = ''
-                                    report_endpoint = ''
-                                    report_summary = ''
-                                    atk_type, report_endpoint, report_summary = gerofilter.parse_body(email_body)
-                                    
-                                    # for line in email_body.splitlines():
-                                    #     if line.startswith("TYPE="):
-                                    #         atk_type = line.split("=", 1)[1].strip()
-                                    #     elif line.startswith("ENDPOINT="):
-                                    #         report_endpoint = line.split("=", 1)[1].strip()
-                                    #     elif line.startswith("SUMMARY="):
-                                    #         report_summary = line.split("=", 1)[1].strip()
+                                atk_type, report_endpoint, report_summary = gerofilter.parse_body(email_body)
+                                if not reason:
+                                    reason = gerofilter.validate_submit_fields(
+                                        report_title, atk_type, report_endpoint, report_summary)
 
-                                    logging.getLogger("Gerologger").info('Title : ' + str(report_title))
-                                    logging.getLogger("Gerologger").info('Type : ' + str(atk_type))
-                                    logging.getLogger("Gerologger").info('Endpoint : ' + str(report_endpoint))
-                                    
-                                    # VALIDATE REPORT
-                                    if (len(report_title) < 3) or (atk_type == '') or (report_endpoint == '') or (len(report_summary) < 10):
-                                        logging.getLogger("Gerologger").warning('[ERROR 404] Report not valid (Details are too short)')
-                                        code = 404
-                                        payload[3] = "Details are too short, make sure Title at least < 3, and Summary at least < 10"
-                                        
-                                    elif (len(report_title) > 100) or (len(atk_type) > 100) or (len(report_endpoint) > 100):
-                                        logging.getLogger("Gerologger").warning('[ERROR 404] Report not valid (Details are too long)')
-                                        code = 404
-                                        payload[3] = "Details are too long, make sure title, type, and endpoint are less than 100."
-                                        
-                                    else:
-                                        saveuser(hunter_email, str(hunter_name), 0)
-                                        savereport(report_id, hunter_email, email_date, report_title, atk_type, report_endpoint, report_summary)
-                                        
-                                        gerofilter.check_duplicate(report_id)
-                                        geronotify.notify(report_title, hunter_email, "NEW_REPORT")
-                                        
-                                        logging.getLogger("Gerologger").info('[CODE 201] Bug Hunter Report Saved Successfully')
+                                logging.getLogger("Gerologger").info('Title : ' + str(report_title))
+                                logging.getLogger("Gerologger").info('Type : ' + str(atk_type))
+                                logging.getLogger("Gerologger").info('Endpoint : ' + str(report_endpoint))
 
-                                else: 
-                                    # email_body = msg.get_payload()[0].get_payload()
-                                    # logging.getLogger("Gerologger").info('Body : ' + str(email_body) + '\n')
-                                    logging.getLogger("Gerologger").warning('[ERROR 404] Report not valid (Does not have attachment)')
+                                if reason:
+                                    logging.getLogger("Gerologger").warning(
+                                        '[ERROR 404] Report not valid: ' + reason)
                                     code = 404
-                                    payload[3] = "Don't forget to attach a valid PDF file."
-                                    
+                                    payload[0] = ""
+                                    payload[3] = reason
+
+                                else:
+                                    report_id = generate_id(hunter_email, int(msg_ts))
+                                    payload[0] = report_id
+
+                                    saveuser(hunter_email, str(hunter_name), 0)
+                                    savereport(report_id, hunter_email, email_date, report_title,
+                                               atk_type, report_endpoint, report_summary)
+                                    gerofilter.store_pdf(report_id, report_id, report_pdf)
+
+                                    gerofilter.check_duplicate(report_id)
+                                    geronotify.notify(report_title, hunter_email, "NEW_REPORT")
+
+                                    logging.getLogger("Gerologger").info('[CODE 201] Bug Hunter Report Saved Successfully')
+
                             # HUNTER CHECK STATUS
                             elif(code == 202): 
                                 logging.getLogger("Gerologger").info('Report ID: ' + str(payload[0]))
@@ -518,98 +512,114 @@ def read_mail(mail, folder_name='inbox'):
                             
                             # HUNTER UPDATE/AMEND REPORT
                             elif(code == 203):
-                                logging.getLogger("Gerologger").info('Report ID : ' + str(payload[0]))
-                                report = BugReport.objects.get(report_id=payload[0])
+                                report_id = str(payload[0])
+                                logging.getLogger("Gerologger").info('Report ID : ' + str(report_id))
 
-                                # UPDATE COUNTER
-                                report.report_update += 1
-                                report.save()
-
-                                # GENERATE UPDATE ID
-                                payload[1] = report.report_title
-                                update_id = str(payload[0]) + "U" + str(report.report_update)
-                                logging.getLogger("Gerologger").info('Update ID : ' + str(update_id))
-
-                                update_summary = rm_html_tags(extract_email_body(msg))
+                                update_summary, update_pdf, pdf_reason = read_submission(msg)
                                 logging.getLogger("Gerologger").info('Update Summary : ' + str(update_summary) + '\n')
 
-                                have_attachment = gerofilter.validate_attachment(msg, update_id, MEDIA_ROOT)
-                                update_file_flag = 1 if have_attachment else 0
+                                reason = gerofilter.pdf_reason_text(
+                                    pdf_reason, gerofilter.attachment_size(msg))
+                                if not reason and update_pdf is None and len(update_summary) <= 3:
+                                    reason = gerofilter.REASON_EMPTY_UPDATE
 
-                                if have_attachment or len(update_summary.strip()) > 3:
-                                    remaining = gerofilter.consume_update_allowance(payload[0])
-                                    payload[3] = (
-                                        f"You have {remaining} of {gerofilter.SELF_UPDATE_LIMIT} "
-                                        "self-initiated updates left for this report. Once they are "
-                                        "used up, further updates require a request from our team."
-                                    )
-
-                                    save_uan('U', update_id, str(payload[0]), email_date, update_summary, update_file_flag)
-                                    geronotify.notify(str(payload[0]), hunter_email, "NEW_UPDATE")
-                                    logging.getLogger("Gerologger").info(f'[CODE 203] Bug Hunter Update Saved Successfully (file={update_file_flag})')
+                                if reason:
+                                    payload[1] = BugReport.objects.get(report_id=report_id).report_title
+                                    logging.getLogger("Gerologger").warning(
+                                        '[ERROR 404] Update not valid: ' + reason)
+                                    code = 404
+                                    payload[3] = reason
 
                                 else:
-                                    # UPDATE COUNTER ROLLBACK
-                                    report.report_update -= 1
-                                    report.save()
+                                    with transaction.atomic():
+                                        report = BugReport.objects.select_for_update().get(report_id=report_id)
+                                        payload[1] = report.report_title
 
-                                    logging.getLogger("Gerologger").warning('[ERROR 404] Update not valid (no attachment and no body text)')
-                                    code = 404
-                                    payload[3] = "Please include either a PDF attachment or a written description in your update."
+                                        if report.report_status > BOUNTY_CALC_STATUS:
+                                            code = 408
+                                            payload[2] = report.report_status
+                                        elif not (report.report_permission & 4
+                                                  or report.report_update_self < gerofilter.SELF_UPDATE_LIMIT):
+                                            code = 407
+                                        else:
+                                            if report.report_permission & 4:
+                                                report.report_permission -= 4
+                                            else:
+                                                report.report_update_self += 1
+                                            report.report_update += 1
+                                            update_id = report_id + "U" + str(report.report_update)
+                                            report.save()
+                                            logging.getLogger("Gerologger").info('Update ID : ' + str(update_id))
+
+                                            stored = gerofilter.store_pdf(report_id, update_id, update_pdf)
+                                            update_file_flag = 1 if stored else 0
+                                            remaining = max(0, gerofilter.SELF_UPDATE_LIMIT - report.report_update_self)
+                                            payload[3] = (
+                                                f"You have {remaining} of {gerofilter.SELF_UPDATE_LIMIT} "
+                                                "self-initiated updates left for this report. Once they are "
+                                                "used up, further updates require a request from our team."
+                                            )
+                                            save_uan('U', update_id, report_id, email_date, update_summary, update_file_flag)
+
+                                    if code == 203:
+                                        geronotify.notify(report_id, hunter_email, "NEW_UPDATE")
+                                        logging.getLogger("Gerologger").info(f'[CODE 203] Bug Hunter Update Saved Successfully (file={update_file_flag})')
+                                    else:
+                                        logging.getLogger("Gerologger").warning(
+                                            f'[ERROR {code}] Update refused for {report_id} after locking the row')
 
                             # HUNTER APPEAL REPORT
                             elif(code == 204):
-                                logging.getLogger("Gerologger").info('Report ID : ' + str(payload[0]))
-                                report = BugReport.objects.get(report_id=payload[0])
+                                report_id = str(payload[0])
+                                logging.getLogger("Gerologger").info('Report ID : ' + str(report_id))
 
-                                # UPDATE COUNTER
-                                report.report_appeal += 1 
-                                report.save()
-
-                                payload[1] = report.report_title
-                                
-                                # GENERATE APPEAL ID
-                                appeal_id = str(payload[0]) + "A" + str(report.report_appeal)
-                                logging.getLogger("Gerologger").info('Appeal ID : ' + str(appeal_id))
-                                
-                                # CHECK ATTACHMENT AND PARSE BODY
-                                have_attachment = gerofilter.validate_attachment(msg, appeal_id, MEDIA_ROOT)
-                                if have_attachment:
-                                    # msg_body = msg.get_payload()[0].get_payload()
-                                    # appeal_summary = msg_body[0]
-                                    appeal_file = 1
-                                else: 
-                                    # appeal_summary = msg.get_payload()[0].get_payload()
-                                    appeal_file = 0
-
-                                appeal_summary = rm_html_tags(extract_email_body(msg))
-                                # appeal_summary = re.sub(r"Content-T.*\n", "", str(appeal_summary))
+                                appeal_summary, appeal_pdf, pdf_reason = read_submission(msg)
                                 logging.getLogger("Gerologger").info('Appeal Summary : ' + str(appeal_summary) + '\n')
 
-                                # VALIDATE APPEAL
-                                if len(appeal_summary) > 3:
-                                    # REVOKE PERMISSION AND UPDATE COUNTER
-                                    report.report_permission = report.report_permission - 2
-                                    report.save()
-                                    appeals_left = max(0, gerofilter.APPEAL_LIMIT - report.report_appeal)
-                                    payload[3] = (
-                                        f"You have {appeals_left} of {gerofilter.APPEAL_LIMIT} appeals "
-                                        "left for this report. Once they are used up, our standing "
-                                        "determination becomes final."
-                                    )
+                                reason = gerofilter.pdf_reason_text(
+                                    pdf_reason, gerofilter.attachment_size(msg))
+                                if not reason and appeal_pdf is None and len(appeal_summary) <= 3:
+                                    reason = gerofilter.REASON_EMPTY_APPEAL
 
-                                    save_uan('A', appeal_id, str(payload[0]), email_date, appeal_summary, appeal_file)
-                                    geronotify.notify(str(payload[0]), hunter_email, "NEW_APPEAL")
-                                    logging.getLogger("Gerologger").info('[CODE 204] Bug Hunter Appeal Received Successfully')
-                                
-                                else: 
-                                    # UPDATE COUNTER ROLLBACK
-                                    report.report_appeal -= 1
-                                    report.save()
-
-                                    logging.getLogger("Gerologger").warning('[ERROR 404] Appeal not valid')
+                                if reason:
+                                    payload[1] = BugReport.objects.get(report_id=report_id).report_title
+                                    logging.getLogger("Gerologger").warning(
+                                        '[ERROR 404] Appeal not valid: ' + reason)
                                     code = 404
-                                    payload[3] = "Appeal not valid."
+                                    payload[3] = reason
+
+                                else:
+                                    with transaction.atomic():
+                                        report = BugReport.objects.select_for_update().get(report_id=report_id)
+                                        payload[1] = report.report_title
+
+                                        if not report.report_permission & 2:
+                                            code = 403
+                                        elif report.report_appeal >= gerofilter.APPEAL_LIMIT:
+                                            code = 409
+                                        else:
+                                            report.report_appeal += 1
+                                            report.report_permission -= 2
+                                            appeal_id = report_id + "A" + str(report.report_appeal)
+                                            report.save()
+                                            logging.getLogger("Gerologger").info('Appeal ID : ' + str(appeal_id))
+
+                                            stored = gerofilter.store_pdf(report_id, appeal_id, appeal_pdf)
+                                            appeal_file = 1 if stored else 0
+                                            appeals_left = max(0, gerofilter.APPEAL_LIMIT - report.report_appeal)
+                                            payload[3] = (
+                                                f"You have {appeals_left} of {gerofilter.APPEAL_LIMIT} appeals "
+                                                "left for this report. Once they are used up, our standing "
+                                                "determination becomes final."
+                                            )
+                                            save_uan('A', appeal_id, report_id, email_date, appeal_summary, appeal_file)
+
+                                    if code == 204:
+                                        geronotify.notify(report_id, hunter_email, "NEW_APPEAL")
+                                        logging.getLogger("Gerologger").info('[CODE 204] Bug Hunter Appeal Received Successfully')
+                                    else:
+                                        logging.getLogger("Gerologger").warning(
+                                            f'[ERROR {code}] Appeal refused for {report_id} after locking the row')
 
                             # HUNTER AGREE
                             elif(code == 205):
@@ -631,43 +641,50 @@ def read_mail(mail, folder_name='inbox'):
 
                             # HUNTER SUBMITTED NDA
                             elif(code == 206):
-                                logging.getLogger("Gerologger").info('Report ID: ' + str(payload[0]))
-                                report = BugReport.objects.get(report_id=payload[0])
+                                report_id = str(payload[0])
+                                logging.getLogger("Gerologger").info('Report ID: ' + str(report_id))
 
-                                # UPDATE COUNTER
-                                report.report_nda += 1
-                                report.save()
-
-                                # GENERATE NDA ID
-                                nda_id = str(payload[0]) + "N" + str(report.report_nda)
-                                logging.getLogger("Gerologger").info('NDA ID : ' + str(nda_id))
-
-                                have_attachment = gerofilter.validate_attachment(msg, nda_id, MEDIA_ROOT)
-                                nda_file_flag = 1 if have_attachment else 0
-
-                                nda_summary = rm_html_tags(extract_email_body(msg))
+                                nda_summary, nda_pdf, pdf_reason = read_submission(msg)
                                 logging.getLogger("Gerologger").info('NDA Summary : ' + str(nda_summary) + '\n')
 
-                                if have_attachment or len(nda_summary.strip()) > 3:
-                                    # REVOKE PERMISSION AND UPDATE COUNTER
-                                    report.report_permission = report.report_permission - 1
-                                    report.save()
+                                reason = gerofilter.pdf_reason_text(
+                                    pdf_reason, gerofilter.attachment_size(msg))
+                                if not reason and nda_pdf is None and len(nda_summary) <= 3:
+                                    reason = gerofilter.REASON_EMPTY_UPDATE
 
-                                    save_uan('N', nda_id, str(payload[0]), email_date, nda_summary, nda_file_flag)
-                                    geronotify.notify(str(payload[0]), hunter_email, "NEW_NDA")
-                                    logging.getLogger("Gerologger").info('[CODE 206] Bug Hunter NDA Received Successfully')
-
-                                    if not have_attachment:
-                                        code = 209
+                                if reason:
+                                    payload[1] = BugReport.objects.get(report_id=report_id).report_title
+                                    logging.getLogger("Gerologger").warning(
+                                        '[ERROR 404] Data submission not valid: ' + reason)
+                                    code = 404
+                                    payload[3] = reason
 
                                 else:
-                                    # UPDATE COUNTER ROLLBACK
-                                    report.report_nda -= 1
-                                    report.save()
+                                    with transaction.atomic():
+                                        report = BugReport.objects.select_for_update().get(report_id=report_id)
+                                        payload[1] = report.report_title
 
-                                    logging.getLogger("Gerologger").warning('[ERROR 404] NDA not valid')
-                                    code = 404
-                                    payload[3] = "Submission not valid. Please include the requested information or attach a PDF file."
+                                        if not report.report_permission & 1:
+                                            code = 403
+                                        else:
+                                            report.report_nda += 1
+                                            report.report_permission -= 1
+                                            nda_id = report_id + "N" + str(report.report_nda)
+                                            report.save()
+                                            logging.getLogger("Gerologger").info('NDA ID : ' + str(nda_id))
+
+                                            stored = gerofilter.store_pdf(report_id, nda_id, nda_pdf)
+                                            nda_file_flag = 1 if stored else 0
+                                            save_uan('N', nda_id, report_id, email_date, nda_summary, nda_file_flag)
+                                            if not stored:
+                                                code = 209
+
+                                    if code in (206, 209):
+                                        geronotify.notify(report_id, hunter_email, "NEW_NDA")
+                                        logging.getLogger("Gerologger").info('[CODE 206] Bug Hunter NDA Received Successfully')
+                                    else:
+                                        logging.getLogger("Gerologger").warning(
+                                            f'[ERROR {code}] Data submission refused for {report_id} after locking the row')
 
                             # HUNTER CHECK SCORE
                             elif(code == 207):
