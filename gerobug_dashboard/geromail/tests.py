@@ -1,4 +1,5 @@
 import email
+import email.message
 from datetime import timedelta
 from unittest import mock
 
@@ -378,6 +379,109 @@ class MailTemplateTests(SimpleTestCase):
     def test_no_placeholder_the_oss_mailer_does_not_fill(self):
         for code, body in mail_templates.messagelist.items():
             self.assertNotIn("~BOUNTY~", body, code)
+
+
+class ParseSenderTests(SimpleTestCase):
+    def test_rfc2047_quoted_printable_name_is_decoded(self):
+        name, addr = geroparser.parse_sender("=?utf-8?Q?Jos=C3=A9_Sachs?= <me@example.com>")
+        self.assertEqual(name, "José Sachs")
+        self.assertEqual(addr, "me@example.com")
+
+    def test_rfc2047_base64_name_is_decoded(self):
+        name, _ = geroparser.parse_sender("=?UTF-8?B?SnVhbiBQw6lyZXo=?= <juan@example.com>")
+        self.assertEqual(name, "Juan Pérez")
+
+    def test_plain_name_is_unchanged(self):
+        self.assertEqual(geroparser.parse_sender("Plain Name <p@example.com>"),
+                         ("Plain Name", "p@example.com"))
+
+    def test_bare_address_keeps_its_last_character(self):
+        self.assertEqual(geroparser.parse_sender("me@example.com"), ("me", "me@example.com"))
+
+    def test_quoted_name_with_comma_is_not_split(self):
+        name, addr = geroparser.parse_sender('"Sachs, Jose" <js@example.com>')
+        self.assertEqual(name, "Sachs Jose")
+        self.assertEqual(addr, "js@example.com")
+
+    def test_unknown_charset_degrades_instead_of_raising(self):
+        name, addr = geroparser.parse_sender("=?bogus-charset?Q?Broken?= <b@example.com>")
+        self.assertEqual(addr, "b@example.com")
+        self.assertTrue(name)
+
+    def test_from_without_an_address_is_tolerated(self):
+        self.assertEqual(geroparser.parse_sender("MAILER-DAEMON"), ("", ""))
+
+    def test_missing_header_is_tolerated(self):
+        self.assertEqual(geroparser.parse_sender(None), ("", ""))
+
+
+class SenderAuthTests(SimpleTestCase):
+    def _msg(self, **headers):
+        msg = email.message.EmailMessage()
+        for key, value in headers.items():
+            msg[key.replace("_", "-")] = value
+        return msg
+
+    def test_failed_spf_and_dkim_is_blocked_even_with_matching_return_path(self):
+        msg = self._msg(Return_Path="<victim@example.com>",
+                        Authentication_Results="mx.example.net; spf=fail; dkim=none")
+        self.assertIn("SPF/DKIM failed", geroparser.sender_auth_failure(msg, "victim@example.com"))
+
+    def test_dkim_pass_with_matching_return_path_is_accepted(self):
+        msg = self._msg(Return_Path="<hunter@example.com>",
+                        Authentication_Results="mx.example.net; spf=softfail; dkim=pass header.d=example.com")
+        self.assertIsNone(geroparser.sender_auth_failure(msg, "hunter@example.com"))
+
+    def test_return_path_mismatch_is_blocked(self):
+        msg = self._msg(Return_Path="<attacker@evil.test>")
+        self.assertIn("mismatch", geroparser.sender_auth_failure(msg, "victim@example.com"))
+
+    def test_missing_return_path_is_blocked(self):
+        self.assertIn("no Return-Path", geroparser.sender_auth_failure(self._msg(), "victim@example.com"))
+
+    def test_return_path_comparison_ignores_case(self):
+        msg = self._msg(Return_Path="<Hunter@Example.com>")
+        self.assertIsNone(geroparser.sender_auth_failure(msg, "hunter@example.com"))
+
+
+class CheckDuplicateTests(TestCase):
+    def test_flags_the_later_report_and_links_the_original(self):
+        original = make_report("AA11BB22CC33", report_endpoint="https://API.example.com/v1/orders/",
+                               report_attack="IDOR",
+                               report_datetime=timezone.now() - timedelta(days=2))
+        later = make_report("DD44EE55FF66", report_endpoint="api.example.com/v1/orders?id=1",
+                            report_attack="  idor ")
+        gerofilter.check_duplicate(later.report_id)
+        later.refresh_from_db()
+        original.refresh_from_db()
+        self.assertEqual((later.report_duplicate, later.report_duplicate_of), (1, "AA11BB22CC33"))
+        self.assertEqual(original.report_duplicate, 0)
+
+    def test_out_of_order_processing_still_flags_the_later_report(self):
+        make_report("DD44EE55FF66", report_endpoint="https://example.com/a", report_attack="XSS")
+        original = make_report("AA11BB22CC33", report_endpoint="example.com/a/", report_attack="XSS",
+                               report_datetime=timezone.now() - timedelta(days=2))
+        gerofilter.check_duplicate(original.report_id)
+        original.refresh_from_db()
+        self.assertEqual(original.report_duplicate, 0)
+        later = BugReport.objects.get(report_id="DD44EE55FF66")
+        self.assertEqual((later.report_duplicate, later.report_duplicate_of), (1, "AA11BB22CC33"))
+
+    def test_different_attack_is_not_a_duplicate(self):
+        make_report("AA11BB22CC33", report_endpoint="example.com/a", report_attack="XSS",
+                    report_datetime=timezone.now() - timedelta(days=2))
+        later = make_report("DD44EE55FF66", report_endpoint="example.com/a", report_attack="SQLi")
+        gerofilter.check_duplicate(later.report_id)
+        later.refresh_from_db()
+        self.assertEqual((later.report_duplicate, later.report_duplicate_of), (0, ""))
+
+    def test_empty_endpoint_never_matches(self):
+        make_report("AA11BB22CC33", report_endpoint="", report_attack="XSS",
+                    report_datetime=timezone.now() - timedelta(days=2))
+        later = make_report("DD44EE55FF66", report_endpoint="", report_attack="XSS")
+        gerofilter.check_duplicate(later.report_id)
+        later.refresh_from_db()
+        self.assertEqual(later.report_duplicate, 0)
 
 
 class BounceMatchTests(TestCase):

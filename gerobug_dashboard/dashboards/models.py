@@ -40,6 +40,7 @@ class BugReport(models.Model):
     report_severitytype = models.TextField()
     report_status = models.IntegerField(default=1)
     report_duplicate = models.IntegerField(default=0)
+    report_duplicate_of = models.CharField(max_length=15, blank=True, default='', verbose_name="Duplicate Of")
     report_permission = models.IntegerField(default=0) # 4 (Update) 2 (Appeal) 1 (NDA) --> UAN --> Similar to RWX System
     report_update = models.IntegerField(default=0)
     report_update_self = models.IntegerField(default=0)

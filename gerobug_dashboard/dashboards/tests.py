@@ -392,7 +392,7 @@ class ReportDetailLifecycleTests(PageRenderTests):
         self.assertNotContains(response, "<h6>Appeals")
 
 
-class TroubleshootTests(TestCase):
+class TroubleshootFixture(TestCase):
 
     def setUp(self):
         from django.urls import reverse
@@ -427,6 +427,8 @@ class TroubleshootTests(TestCase):
             return None, None
         return write_mail.call_args[0][0], write_mail.call_args[0][1]
 
+
+class TroubleshootTests(TroubleshootFixture):
 
     def test_company_action_records_what_resend_replays(self):
         from geromail import geromailer, geroparser
@@ -545,3 +547,43 @@ class TroubleshootTests(TestCase):
         self.assertEqual(response.status_code, 200)
         for heading in ("Resend Email", "Override Report Fields", "Hunter Email Sinkhole", "Server Logs"):
             self.assertContains(response, heading)
+
+
+class InvalidDuplicateOfTests(TroubleshootFixture):
+    def _invalid(self, **data):
+        with mock.patch("dashboards.views.geroparser.check_mailbox_status", return_value=True), \
+                mock.patch("dashboards.views.threading.Thread"):
+            self.client.post(self.reverse("invalid_handler", args=[self.report.report_id]),
+                             dict({"invalidreasons": "Duplicate of an earlier finding"}, **data))
+        self.report.refresh_from_db()
+
+    def test_marks_and_links_the_original(self):
+        BugReport.objects.create(
+            report_id="ZZ99YY88XX77", report_datetime=timezone.now(), hunter_email="h2@example.com",
+            report_reviewer="r", report_summary="s", report_severitytype="", report_status=2)
+        self._invalid(duplicate_of="zz99yy88xx77")
+        self.assertEqual((self.report.report_status, self.report.report_duplicate,
+                          self.report.report_duplicate_of), (0, 1, "ZZ99YY88XX77"))
+        response = self.client.get(f"/dashboard/report-detail/{self.report.report_id}")
+        self.assertContains(response, "/dashboard/report-detail/ZZ99YY88XX77")
+
+    def test_unknown_original_is_rejected(self):
+        self._invalid(duplicate_of="ZZ99YY88XX77")
+        self.assertEqual((self.report.report_status, self.report.report_duplicate), (5, 0))
+
+    def test_self_reference_is_rejected(self):
+        self._invalid(duplicate_of=self.report.report_id)
+        self.assertEqual(self.report.report_status, 5)
+
+    def test_blank_keeps_a_plain_invalid_marking(self):
+        self._invalid(duplicate_of="")
+        self.assertEqual((self.report.report_status, self.report.report_duplicate,
+                          self.report.report_duplicate_of), (0, 0, ""))
+
+    def test_override_clearing_the_badge_clears_the_link(self):
+        self.report.report_duplicate, self.report.report_duplicate_of = 1, "ZZ99YY88XX77"
+        self.report.save()
+        self.client.post(self.reverse("report_override"), {
+            "report_id": self.report.report_id, "title": "t", "status": "5"})
+        self.report.refresh_from_db()
+        self.assertEqual((self.report.report_duplicate, self.report.report_duplicate_of), (0, ""))

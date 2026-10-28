@@ -10,20 +10,68 @@ from dashboards.models import (BOUNTY_CALC_STATUS, BugHunter, BugReport, BugRepo
                                BugReportAppeal, BugReportNDA, ReportStatus)
 
 
-# CHECK IF POSSIBLE DUPLICATE (NEED IMPROVEMENTS)
+
+def normalize_endpoint(value):
+    text = (value or "").strip().lower()
+    for prefix in ("https://", "http://"):
+        if text.startswith(prefix):
+            text = text[len(prefix):]
+            break
+    if text.startswith("www."):
+        text = text[4:]
+    for separator in ("#", "?"):
+        text = text.split(separator, 1)[0]
+    return text.rstrip("/")
+
+
+def normalize_attack(value):
+    return " ".join((value or "").split()).casefold()
+
+
+# CHECK IF POSSIBLE DUPLICATE (ADVISORY BADGE ON THE LATER REPORT)
 def check_duplicate(id):
     report = BugReport.objects.get(report_id=id)
-    attack = report.report_attack
-    endpoint = report.report_endpoint
-    
-    endpoint_reports = BugReport.objects.filter(report_endpoint=endpoint)
-    
-    for x in endpoint_reports:
-        if (x.report_id != id) and (x.report_attack == attack):
-            report.report_duplicate = 1
-            report.save()
-            logging.getLogger("Gerologger").warning('Possible Duplicate Report')
-            break
+    attack = normalize_attack(report.report_attack)
+    endpoint = normalize_endpoint(report.report_endpoint)
+    if not endpoint:
+        return
+
+    matches = [
+        other
+        for other in BugReport.objects.exclude(report_id=id).only(
+            "report_id", "report_endpoint", "report_attack",
+            "report_datetime", "report_duplicate",
+        )
+        if normalize_endpoint(other.report_endpoint) == endpoint
+        and normalize_attack(other.report_attack) == attack
+    ]
+    if not matches:
+        return
+
+    logger = logging.getLogger("Gerologger")
+    when = report.report_datetime
+    earlier = [m for m in matches if m.report_datetime and when and m.report_datetime < when]
+    if earlier or not when:
+        report.report_duplicate = 1
+        originals = sorted(earlier or matches, key=lambda m: (m.report_datetime is None, m.report_datetime))
+        report.report_duplicate_of = originals[0].report_id
+        report.save(update_fields=["report_duplicate", "report_duplicate_of"])
+        logger.warning(
+            f"Possible Duplicate Report: {id} matches "
+            f"{', '.join(m.report_id for m in (earlier or matches))} on {endpoint}"
+        )
+        return
+
+    for later in matches:
+        if later.report_duplicate:
+            continue
+        later.report_duplicate = 1
+        later.report_duplicate_of = id
+        later.save(update_fields=["report_duplicate", "report_duplicate_of"])
+        logger.warning(
+            f"Possible Duplicate Report: {later.report_id} matches earlier report {id} "
+            f"on {endpoint}"
+        )
 
 APPEAL_LIMIT = 3
 
