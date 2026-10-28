@@ -1,16 +1,26 @@
 # Usage
 
-If the mailbox has been [setup](../settings.md#mailbox-settings), Gerobug can receive reports from bug hunters.
+Once the [mailbox](../settings.md#mailbox-settings) is active, Gerobug starts receiving reports from bug hunters.
 
-<figure><img src="../.gitbook/assets/Screen Shot 2023-05-17 at 4.36.00 PM.png" alt=""><figcaption><p>Gerobug Dashboard with Reports Received</p></figcaption></figure>
+## Dashboard
 
-_In this current version, drag and drop to move reports is is not possible._
+The dashboard is a Kanban board with one column per active status (Need to Review, In Review, Fixing, Fixing (Retest), Bounty Calculation, Bounty in Process). Each card shows the Report ID, title, hunter and severity name (Informational, Low, Medium, High, Critical).
 
-![](<../.gitbook/assets/Screen Shot 2023-05-17 at 4.36.16 PM.png>)&#x20;
+* **Drag and drop** a card to another column to change its status. The hunter receives the same status-change email as when using the forward button.
+* **Search** by Report ID, title or hunter, and **filter** by severity.
+* The highest-severity report is sorted to the top of each column.
+* **Aging badge.** Cards older than 7 days show their age; older than 14 days they are highlighted.
+* **Duplicate badge.** A warning on a card means it may duplicate an earlier report. Duplicate detection ignores differences in scheme, host case, `www.`, trailing slash, query string and fragment, and compares attack types without case or spacing. It is advisory: always verify manually.
+* **Auto-accept countdown** on reports waiting at Bounty Calculation.
 
-Warning on the right corner means there is a possibility that the report is a **duplicate**
+Reports can also be listed per status, including Not Valid and Completed.
 
-_In this current version, the duplicate detection is far from perfect, so human validation is still needed._
+{% hint style="info" %}
+Status changes and emails to hunters are disabled while the mailbox is not active.
+{% endhint %}
 
-<figure><img src="../.gitbook/assets/Screen Shot 2023-05-17 at 4.36.33 PM.png" alt=""><figcaption><p>Report Grouped by Status</p></figcaption></figure>
+See [Report Detail](report-detail.md) and [Move and Manage Reports](move-and-manage-reports.md).
 
+## Hunter Updates
+
+Hunters may send **3 updates on their own initiative** per report. Updates you request with Request Amend are free and do not count. Updates are accepted until the report leaves Bounty Calculation; after that, hunters get an "updates closed" reply naming the current stage.

@@ -1,110 +1,103 @@
 # Settings
 
-**The setting page is only accessible by admin.**
-
-<figure><img src=".gitbook/assets/Screen Shot 2023-05-17 at 3.33.06 PM.png" alt=""><figcaption><p>Admin Setting Page</p></figcaption></figure>
+**The Settings page is only accessible by the admin (superuser).** Reviewers do not see it. Settings remembers the last tab you opened.
 
 ## Mailbox Settings
 
-Gerobug need a GMAIL Email with [App Password](https://support.google.com/accounts/answer/185833?hl=en) implemented. Without this, Gerobug can not receive any reports submitted by the bug hunter. It is **RECOMMENDED** to use a **dedicated email** for this. Do not use the mailbox email for other purposes to avoid issues / conflicts during the parsing process.
+Gerobug needs a mailbox to receive reports and send replies. Use a **dedicated** mailbox for the program and do not use it for anything else, to avoid conflicts during parsing.
 
-<div align="left"><figure><img src=".gitbook/assets/Screenshot 2024-04-14 at 02.44.41.png" alt=""><figcaption><p>Sample Configured Mailbox</p></figcaption></figure></div>
+| Email Type | IMAP | SMTP |
+| --- | --- | --- |
+| GMAIL | `imap.gmail.com:993` | `smtp.gmail.com:465` |
+| OUTLOOK | `outlook.office365.com:993` | `smtp.office365.com:587` |
+| CUSTOM | Your IMAP server and port (SSL) | Your SMTP server and port (SSL or STARTTLS) |
 
-If the email is configured successfully, you will see that the email is **ACTIVE**, and Gerobug will able to receive bug reports and send emails.
+Gmail and Outlook require an [App Password](https://support.google.com/accounts/answer/185833), not your normal password. The password is stored encrypted.
 
-<figure><img src=".gitbook/assets/Screenshot 2024-04-14 at 02.46.01.png" alt=""><figcaption><p>Submission Guideline Page will be Updated Automatically</p></figcaption></figure>
+When the mailbox connects successfully, its status becomes **ACTIVE**, and the program's address appears automatically on the public Submit Guidelines page.
+
+{% hint style="warning" %}
+For spoofing protection, use a mail provider that adds an `Authentication-Results` header to incoming mail (Gmail and Outlook do). See [Filter & Validation](filter-and-validation.md#sender-authentication).
+{% endhint %}
 
 ## User Account Settings
 
-<figure><img src=".gitbook/assets/Screen Shot 2023-05-17 at 3.41.58 PM.png" alt=""><figcaption><p>User Account Setting</p></figcaption></figure>
-
-You can change user email and password from this setting.
+Change the email and password of a user account.
 
 ## Personalization
 
-<figure><img src=".gitbook/assets/Screenshot 2024-04-14 at 02.47.04.png" alt=""><figcaption><p>Personalization Setting</p></figcaption></figure>
-
-You can change the Gerobug logo to your own company/organization logo&#x20;
-
-(Will affect the homepage and certificate generated)
+* **Company identity.** Set the company name and upload a logo (PNG). Both are used on the public pages, the dashboard and generated certificates.
+* **Theme presets.** Pick one of seven themes: Gero Dark (default), Gero Classic, Route, Midnight, Forest, Royal and Graphite. A live preview shows the result. Picking a preset only fills the color pickers; nothing is saved until you click **Update**.
+* **Custom colors.** Six colors drive the whole interface (dashboard and public pages): canvas background, accent, surface, overlay/hover, border and primary button.
+* **Reset** restores the default Gero Dark colors.
 
 ## Edit Rules and Guidelines
 
-<figure><img src=".gitbook/assets/Screen Shot 2023-05-17 at 3.47.57 PM.png" alt=""><figcaption><p>Edit Rules and Guidelines</p></figcaption></figure>
-
-You can change the rules and guidelines for your bug bounty program.
+Edit the public Rules and Guidelines page with a rich-text editor. Sections: Bounty Terms, In Scope, Out of Scope, Responsible Disclosure Policy, Report Guidelines and FAQ.
 
 ## Manage Roles
 
-<figure><img src=".gitbook/assets/Screen Shot 2023-05-17 at 3.50.41 PM.png" alt=""><figcaption><p>Manage Roles</p></figcaption></figure>
+The admin can create and delete **Reviewer** accounts. Reviewers can review, triage and manage reports, but cannot open Settings.
 
-Admin can create and delete users with lesser privilege (Reviewer). These users can be used to manage bug reports (Review and Triage) without having the permission to access the setting page.
-
-The default password for the reviewer users are <mark style="color:red;">`G3r0bUg_@dM!n_1337yipPie13579246810121337`</mark>&#x20;
-
-Each users can reset the password using the forgot password feature.&#x20;
-
-{% hint style="info" %}
-Please enforce the users to change the default password to minimize security risks!
-{% endhint %}
+* Usernames must be 3-30 characters, use only letters, numbers and `. _ -`, and start and end with a letter or number. Reserved names such as `admin`, `root` or `geromin` are rejected.
+* Each reviewer needs a unique email address.
+* A random password is generated for every new reviewer. If the mailbox is active, Gerobug emails the reviewer a **password reset link** so they set their own password. Otherwise, ask the reviewer to use **Forgot Password** on the login page.
 
 ## Notification Channels
 
-<figure><img src=".gitbook/assets/Screen Shot 2023-05-17 at 3.55.54 PM.png" alt=""><figcaption><p>Notification Channels</p></figcaption></figure>
+Gerobug sends notifications to Slack and/or Telegram for:
 
-Gerobug support Slack and Telegram as notification channels, which Gerobug will send notification when there are new reports.
+* New report
+* New update/amend
+* New appeal
+* Hunter agreement (including automatic acceptance after 30 days)
+* New NDA / data submission
+* Email delivery failure (bounce), with the failed recipient, Report ID and SMTP error
+
+Webhook URLs are stored encrypted.
 
 ### [Slack Webhook](https://api.slack.com/messaging/webhooks)
 
-Format: https://hooks.slack.com/services/<mark style="color:orange;">T00000000</mark>/<mark style="color:orange;">B00000000</mark>/<mark style="color:orange;">XXXXXXXXXXXXXXXXXXXXXXXX</mark>
+Format: `https://hooks.slack.com/services/<workspace_id>/<channel_id>/<token>`
 
-![](<.gitbook/assets/Screen Shot 2023-05-17 at 4.07.31 PM.png>)
+### [Telegram Bot](https://core.telegram.org/bots)
 
-### [Telegram Webhook](https://core.telegram.org/bots)
-
-Format: https://api.telegram.org/bot<mark style="color:blue;">\<token></mark>/sendMessage?chat\_id=<mark style="color:blue;">\<channel\_id></mark>
-
-![](<.gitbook/assets/Screen Shot 2023-05-17 at 4.08.36 PM.png>)
+Format: `https://api.telegram.org/bot<token>/sendMessage?chat_id=<channel_id>`
 
 ## Blacklist Rule
 
-<figure><img src=".gitbook/assets/Screen Shot 2023-05-17 at 4.14.00 PM.png" alt=""><figcaption><p>Blacklist Rule Setting</p></figcaption></figure>
+A simple rate limit that blocks email addresses sending too many emails.
 
-Gerobug is equipped with Blacklist Rule (a simple rate limit) to block any email address that conducted Spam.
+| Field | Default | Meaning |
+| --- | --- | --- |
+| Max Counter | 10 | Emails allowed within the monitor window |
+| Monitor Buffer | 60 seconds | Length of the monitor window |
+| Blacklist Duration | 3600 seconds | How long an address stays blocked before automatic release |
+
+A blocked hunter is told once that they are temporarily restricted.
 
 ## Report Template
 
-<figure><img src=".gitbook/assets/Screen Shot 2023-05-17 at 4.16.05 PM.png" alt=""><figcaption><p>Report Template Setting</p></figcaption></figure>
-
-You can set report template (PDF) for bug hunters, which they can download at the Rules and Guidelines Page.
-
-
+Upload a report template (`.docx`) that hunters can download from the Rules and Guidelines page.
 
 ## NDA Template
 
-<figure><img src=".gitbook/assets/Screen Shot 2023-05-17 at 4.16.19 PM.png" alt=""><figcaption><p>NDA Template Setting</p></figcaption></figure>
-
-You can set NDA template (PDF) for bug hunters, which will be sent to bug hunters before the bounty is processed.
-
-
+Upload an NDA template (`.pdf`). It is sent to the hunter when you request prerequisites **with** an NDA.
 
 ## Certificate Template
 
-<figure><img src=".gitbook/assets/Screen Shot 2023-05-17 at 4.19.38 PM.png" alt=""><figcaption><p>Certificate Template</p></figcaption></figure>
+Gerobug generates a certificate of appreciation automatically when a report is completed and emails it to the hunter.
 
-Gerobug will generate and send certificate of appreciation to bug hunter automatically when a report is fixed and completed.
-
-You can update the certificate template (JPG) to your own design, but we **do not recommend** it since it may broke the generated certificate due to different sizing and positioning.&#x20;
+You can replace the template (`.jpg`), but this is **not recommended**, since different sizing and positioning may break the generated certificate.
 
 ```
-Our certificate template
-Dimensions: 3508 × 2480
+Default certificate template
+Dimensions: 3508 x 2480
 Resolution: 300x300
 ```
 
-We will produce more certificate template options in the future.
+You can also set the officer name, title and signature (`.jpg` or `.png`). A sample certificate is regenerated after each change.
 
-You can also change the data (Officer name, signature, and title) and generate a sample certificate.
+## Troubleshooting
 
-<figure><img src=".gitbook/assets/Screen Shot 2023-05-17 at 4.22.21 PM.png" alt=""><figcaption><p>Sample Certificate</p></figcaption></figure>
-
+Admin-only maintenance tools. See [Troubleshooting](troubleshooting.md).
