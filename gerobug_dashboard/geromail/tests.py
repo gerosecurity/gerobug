@@ -1344,3 +1344,120 @@ class OperatorSubjectTests(SimpleTestCase):
         self.assertNotIn("simply reply to this", body)
         self.assertIn("<b>CHECK_</b>", body)
         self.assertIn("<b>COMMENT_</b>", body)
+class ThreadHeaderTests(SimpleTestCase):
+
+    def test_reply_sets_in_reply_to_and_references(self):
+        parent, references = geromailer.thread_headers(
+            "AB12CD34EF56", "example.com", "<inbound@mail.example>")
+        self.assertEqual(parent, "<inbound@mail.example>")
+        self.assertEqual(
+            references,
+            "<gerobug-report-AB12CD34EF56@example.com> <inbound@mail.example>")
+
+    def test_report_token_is_present_without_a_parent(self):
+        parent, references = geromailer.thread_headers(
+            "AB12CD34EF56", "example.com", None)
+        self.assertEqual(parent, "")
+        self.assertEqual(references, "<gerobug-report-AB12CD34EF56@example.com>")
+
+    def test_no_report_id_means_no_token(self):
+        for report_id in ("", " ", None, "AB12CD34EF56U1", "SHORT"):
+            with self.subTest(report_id=report_id):
+                self.assertEqual(
+                    geromailer.report_thread_token(report_id, "example.com"), "")
+
+    def test_header_newlines_stripped(self):
+        parent, references = geromailer.thread_headers(
+            "AB12CD34EF56", "example.com",
+            "<a@b>\r\nBcc: victim@example.com")
+        self.assertNotIn("\r", parent + references)
+        self.assertNotIn("\n", parent + references)
+        self.assertEqual(parent, "<a@b>Bcc: victim@example.com")
+
+    def test_clean_header_strips_cr_and_lf(self):
+        self.assertEqual(
+            geromailer.clean_header("Subject line\r\nX-Injected: yes"),
+            "Subject lineX-Injected: yes")
+        self.assertEqual(geromailer.clean_header(None), "")
+
+
+class ThreadedReplyTests(TestCase):
+
+    def setUp(self):
+        self.media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.media, ignore_errors=True)
+        for status_id, name in enumerate(
+                ["Invalid", "Received", "In Review", "Reproduced", "Fixing",
+                 "Bounty Calculation", "Bounty in Process", "Completed"]):
+            ReportStatus.objects.get_or_create(status_id=status_id,
+                                               defaults={"status_name": name})
+        MailBox.objects.get_or_create(
+            mailbox_id=1, defaults={"email": "bounty@example.com",
+                                    "password": "secret"})
+        self.report = make_report()
+        closer = mock.patch.object(geromailer.connection, "close")
+        closer.start()
+        self.addCleanup(closer.stop)
+
+    def _sent_message(self, in_reply_to, subject_override=None):
+        sent = {}
+
+        class Recorder:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def login(self, user, password):
+                return None
+
+            def sendmail(self, sender, destination, raw):
+                sent["raw"] = raw
+
+            def close(self):
+                return None
+
+        payload = [self.report.report_id, self.report.report_title, "", "", ""]
+        if subject_override is not None:
+            patch_subject = mock.patch.dict(
+                mail_templates.subjectlist, {202: subject_override})
+            patch_subject.start()
+            self.addCleanup(patch_subject.stop)
+        with mock.patch.object(geromailer.smtplib, "SMTP_SSL", Recorder):
+            geromailer.write_mail(202, payload, "hunter@example.com",
+                                  in_reply_to=in_reply_to)
+        return email.message_from_string(sent["raw"])
+
+    def test_reply_carries_in_reply_to_and_both_references(self):
+        msg = self._sent_message("<inbound-123@mail.example>")
+        self.assertEqual(msg["In-Reply-To"], "<inbound-123@mail.example>")
+        self.assertIn("<inbound-123@mail.example>", msg["References"])
+        self.assertIn("<gerobug-report-" + self.report.report_id + "@example.com>",
+                      msg["References"])
+
+    def test_unsolicited_mail_still_carries_the_report_token(self):
+        msg = self._sent_message(None)
+        self.assertIsNone(msg["In-Reply-To"])
+        self.assertEqual(
+            msg["References"],
+            "<gerobug-report-" + self.report.report_id + "@example.com>")
+
+    def test_injected_newlines_never_reach_the_headers(self):
+        msg = self._sent_message("<a@b>\r\nBcc: victim@example.com",
+                                 subject_override="Status\r\nX-Injected: yes")
+        self.assertNotIn("x-injected", [name.lower() for name in msg.keys()])
+        self.assertNotIn("bcc", [name.lower() for name in msg.keys()])
+        self.assertIsNone(msg["X-Injected"])
+        self.assertIsNone(msg["Bcc"])
+        for name, value in msg.items():
+            with self.subTest(header=name):
+                self.assertNotIn("\r", value)
+                self.assertNotIn("\n", value)
+
+
+class ReplyThreadingFlowTests(MailFlowTestCase):
+
+    def test_read_mail_passes_the_inbound_message_id(self):
+        report = make_report()
+        self.deliver(raw_mail("CHECK_" + report.report_id))
+        self.assertEqual(self.sent_codes(), [202])
+        self.assertIn("in_reply_to", self.write_mail.call_args[1])
+        self.assertTrue(self.write_mail.call_args[1]["in_reply_to"])

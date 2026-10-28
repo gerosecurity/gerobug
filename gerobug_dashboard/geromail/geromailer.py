@@ -1,6 +1,7 @@
 import smtplib
 import os
 import html
+import re
 import logging
 import time
 
@@ -26,6 +27,25 @@ FREEMAIL = {"gmail.com", "yahoo.com", "outlook.com", "hotmail.com"}
 # ALLOW A SMALL SET OF FORMATTING TAGS, ESCAPE EVERYTHING ELSE
 ALLOWED_TAGS = ["br", "br/", "br /", "b", "/b", "strong", "/strong", "i", "/i"]
 
+REPORT_ID_RE = re.compile(r"^[0-9A-Za-z]{12}$")
+
+
+def clean_header(value):
+    return str(value or "").replace("\r", "").replace("\n", "").strip()
+
+
+def report_thread_token(report_id, sending_domain):
+    if not REPORT_ID_RE.match(str(report_id or "")):
+        return ""
+    return "<gerobug-report-" + str(report_id) + "@" + str(sending_domain) + ">"
+
+
+def thread_headers(report_id, sending_domain, in_reply_to):
+    parent = clean_header(in_reply_to)
+    token = report_thread_token(report_id, sending_domain)
+    references = [ref for ref in (token, parent) if ref]
+    return parent, " ".join(references)
+
 def safe_html_format(text):
     if text is None:
         return "-"
@@ -36,7 +56,7 @@ def safe_html_format(text):
 
 
 # WRITE EMAIL REPLY (CONFIRMATIONS)
-def write_mail(code, payload, Destination):
+def write_mail(code, payload, Destination, in_reply_to=None):
     # Close stale DB connections when called from threads
     try:
         connection.close()
@@ -106,12 +126,18 @@ def write_mail(code, payload, Destination):
             body = body.replace("~SEVERITY~", html.escape(str(payload[4])))     #SEVERITY
 
             # BUILD EMAIL MESSAGE (identity fixed above so retries are the same message)
+            parent, references = thread_headers(payload[0], sending_domain, in_reply_to)
+
             message = MIMEMultipart("alternative")
-            message["From"] = mailbox.email
-            message["To"] = Destination
-            message["Subject"] = subject
-            message["Date"] = msg_date
-            message["Message-ID"] = msg_id
+            message["From"] = clean_header(mailbox.email)
+            message["To"] = clean_header(Destination)
+            message["Subject"] = clean_header(subject)
+            message["Date"] = clean_header(msg_date)
+            message["Message-ID"] = clean_header(msg_id)
+            if parent:
+                message["In-Reply-To"] = parent
+            if references:
+                message["References"] = references
             # RFC 3834: tells other auto-responders not to reply to us, so a
             # vacation responder or another ticketing system can't start a loop.
             message["Auto-Submitted"] = "auto-generated"

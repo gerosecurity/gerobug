@@ -465,7 +465,8 @@ def read_mail(mail, folder_name='inbox'):
                                 # NOTIFY USER IF BLACKLISTED (ONLY ONCE)
                                 if inform:
                                     payload = ["","","",str(note),""] # ID, TITLE, STATUS, NOTE, SEVERITY
-                                    geromailer.write_mail(406, payload, hunter_email)
+                                    geromailer.write_mail(406, payload, hunter_email,
+                                                          in_reply_to=msg['Message-ID'])
                                     
                                 continue
                             
@@ -756,7 +757,8 @@ def read_mail(mail, folder_name='inbox'):
                                 payload[0] = ""
 
                             logging.getLogger("Gerologger").info('============================')
-                            geromailer.write_mail(code, payload, hunter_email)
+                            geromailer.write_mail(code, payload, hunter_email,
+                                                  in_reply_to=msg['Message-ID'])
                 
                 except Exception as e:
                     logging.getLogger("Gerologger").error(f"Error processing email ID {i}: {str(e)}")
