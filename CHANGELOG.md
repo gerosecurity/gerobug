@@ -1,5 +1,35 @@
 # Changelog
 
+## Unreleased
+
+### Hunter lifecycle
+
+- **Unappealed bounties are accepted automatically.** A bounty calculation
+  with no appeal for 30 days is treated as agreed: the report moves from
+  Bounty Calculation to Bounty in Process and the hunter is told why. The
+  countdown shows on the report detail page and on the Kanban card.
+- **Hunters may send 3 updates on their own initiative.** An update requested
+  by the triager is free and does not count. Once the allowance is spent the
+  hunter gets a clear "update limit reached" reply instead of "not authorized".
+- **Updates close after Bounty Calculation.** A late update gets an "updates
+  closed" reply naming the current stage.
+- **Appeal allowance is stated.** Every appeal confirmation says how many are
+  left, and a fourth appeal gets "determination is final" instead of
+  "not authorized".
+- **Every hunter submission is listed.** The report detail page lists all
+  updates, appeals and data submissions, newest first, each with its own
+  detail link and PDF download.
+- **Hunter emails restyled** to a single inline-styled layout.
+
+### Upgrade note
+
+The submission guidelines gained a bullet asking hunters to share videos,
+archives and exploit code as links inside the PDF. Installations that already
+have their rules saved keep the stored text, so paste the bullet into
+Settings > Rules if you want it. Reports already at Bounty Calculation before
+the upgrade never auto-accept, because their hunters were not told about the
+30-day window; re-send the calculation to start it.
+
 ## v3.1 — 25 OCT 2026
 
 ### Interface

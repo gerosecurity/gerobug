@@ -60,6 +60,48 @@ class RenderDashboardAdmin(LoginRequiredMixin,ListView):
         return context
 
     
+# The three hunter-submission tables differ only by field prefix
+# (update_id/update_datetime/..., appeal_id/..., nda_id/...), so one loop
+# covers all three. Key, prefix, model, detail route, singular label.
+_SUBMISSION_KINDS = (
+    ('updates', 'update', BugReportUpdate, 'update_detail', 'Update'),
+    ('appeals', 'appeal', BugReportAppeal, 'appeal_detail', 'Appeal'),
+    ('data',    'nda',    BugReportNDA,    'nda_detail',    'Submission'),
+)
+
+
+def build_hunter_submissions(report):
+    """Every update / appeal / data submission a hunter sent, newest first.
+
+    The detail page used to link only the newest of each kind, so earlier ones
+    were effectively lost: their PDFs were unreachable from any URL the page
+    offered. Returns one list per kind, keyed for the template, which renders
+    a card per kind off a shared row partial.
+    """
+    out = {}
+    for key, prefix, model, route, label in _SUBMISSION_KINDS:
+        rows = []
+        for row in model.objects.filter(report_id=report.report_id):
+            ident = getattr(row, prefix + '_id')
+            rows.append({
+                'ident': ident,
+                # The sequence tag the hunter's own ids carry: AB12CD34EF56U2 -> "U2".
+                'tag': ident[len(report.report_id):],
+                'label': label,
+                'when': getattr(row, prefix + '_datetime'),
+                'summary': getattr(row, prefix + '_summary'),
+                'detail_url': reverse(route, kwargs={'pk': ident}),
+                # The per-row flag says an attachment was accepted; the file
+                # can still be gone (restored database, pruned media), and a
+                # dead download link is worse than none.
+                'has_file': bool(getattr(row, prefix + '_file')) and os.path.isfile(
+                    os.path.join(MEDIA_ROOT, report.report_id, ident + '.pdf')),
+            })
+        rows.sort(key=lambda r: r['when'], reverse=True)
+        out[key] = rows
+    return out
+
+
 class ReportDetails(LoginRequiredMixin,DetailView):
     login_url = '/login/'
     redirect_field_name = 'login'
@@ -76,21 +118,11 @@ class ReportDetails(LoginRequiredMixin,DetailView):
 
         report = BugReport.objects.get(report_id=self.kwargs.get('pk'))
 
-        context['update_file_exists'] = False
-        if report.report_update > 0:
-            try:
-                latest_update = BugReportUpdate.objects.get(update_id=report.report_id + 'U' + str(report.report_update))
-                context['update_file_exists'] = (latest_update.update_file == 1)
-            except BugReportUpdate.DoesNotExist:
-                pass
+        report_file = os.path.join(MEDIA_ROOT, report.report_id, report.report_id + '.pdf')
+        context['report_file_exists'] = os.path.isfile(report_file)
 
-        context['nda_file_exists'] = False
-        if report.report_nda > 0:
-            try:
-                latest_nda = BugReportNDA.objects.get(nda_id=report.report_id + 'N' + str(report.report_nda))
-                context['nda_file_exists'] = (latest_nda.nda_file == 1)
-            except BugReportNDA.DoesNotExist:
-                pass
+        # EVERY HUNTER SUBMISSION, NOT JUST THE NEWEST OF EACH KIND
+        context['submissions'] = build_hunter_submissions(report)
 
         # COMPANY NAME
         THEME = Personalization.objects.get(personalize_id=1)

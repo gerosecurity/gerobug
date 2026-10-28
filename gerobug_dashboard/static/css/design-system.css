@@ -397,6 +397,10 @@ main .alert {
 .home-section main.gds-panel .resource-card h6 { color: var(--color-dark-200); }
 .home-section main.gds-panel .file-link,
 .home-section main.gds-panel .file-link:hover { color: var(--gds-accent-soft); }
+/* Submission rows carry their own muted text; only the download link needs
+   the panel accent, the rest inherits (see reportDetail.css). */
+.home-section main.gds-panel .submission-file,
+.home-section main.gds-panel .submission-file:hover { color: var(--gds-accent-soft); }
 
 /* Severity chips on the detail pages (ids from reportDetail.css/detailUAN.css) */
 .home-section main.gds-panel #none     { background: rgba(255,255,255,0.08); color: var(--color-text-faint-dark); }
@@ -691,6 +695,33 @@ main .alert {
 .kanban .card .card-type { font-size: 12px; font-weight: 600; color: #fff; line-height: 1.4; }
 .kanban .card .card-hunter { color: var(--color-text-faint-dark); font-size: 10px; }
 .kanban .card .card-time { color: var(--color-text-faint-dark); font-size: 10px; }
+/* Pending auto-accept: an unappealed bounty calculation geroparser will move
+   on by itself (BugReport.auto_accept_at). Warning-tinted because it is a
+   deadline the triager may want to pre-empt, not a finished state. */
+.kanban .card .card-auto-accept {
+  display: block;
+  margin-top: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #E8A24C;
+}
+.auto-accept-notice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(217,124,16,0.15);
+  border: 1px solid rgba(217,124,16,0.4);
+  color: #E8A24C;
+  font-size: 11px;
+  font-weight: 600;
+}
+.auto-accept-notice .auto-accept-date {
+  font-weight: 400;
+  opacity: 0.85;
+}
 .kanban .card .card-severity { padding-top: 6px; }
 /* One-line truncation for long titles/URLs in cards and table cells.
    #string_overflow is the legacy id still used on the detail pages. */

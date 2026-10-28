@@ -29,5 +29,10 @@ The data-* attributes feed drag-and-drop (report-id), the filter bar
         <div class="card-severity severity-{{ report.severity_label|lower }}" style="font-size: 10px; font-weight: bold; padding-top: 4px;">Severity: {{ report.severity_label }}</div>
         <div class="card-hunter">by: {{ report.hunter_email }}</div>
         <span class="card-time"><i class="bi bi-clock"></i> {{ report.report_datetime }}</span>
+        {% if report.auto_accept_at %}
+        <div class="card-auto-accept" title="Auto-accepts {{ report.auto_accept_at|date:'j M Y, H:i' }} unless the hunter appeals">
+            <i class="bi bi-hourglass-split"></i> auto-accepts in {{ report.auto_accept_at|timeuntil }}
+        </div>
+        {% endif %}
     </div>
 </a>

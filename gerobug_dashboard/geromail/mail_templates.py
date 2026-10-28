@@ -1,471 +1,413 @@
 # MAIL TEMPLATES FOR GEROBUG
+#
+# ── SHARED EMAIL LAYOUT ───────────────────────────────────────────────────────
+# Every template is built from the helpers below so all emails stay visually
+# consistent and the HTML is handled correctly. Deliverability / anti-spam rules
+# baked into this layout:
+#   - Inline CSS only (no <style> blocks, which many clients strip or penalise)
+#   - No images, no tracking pixels, no remote resources
+#   - Minimal, purposeful links and a healthy text-to-HTML ratio
+#   - Neutral, transactional wording and an identifying automated-message footer
+#
+# Placeholders (~ID~, ~TITLE~, ~STATUS~, ~NOTE~, ~SEVERITY~, ~USERNAME~, ~DOMAIN~,
+# ~UID~, ~TOKEN~) are substituted by the mailer/views and must be preserved.
+
+_P    = "margin:0 0 16px 0;"                                            # standard paragraph
+_LAST = "margin:0;"                                                     # final paragraph (no trailing gap)
+_LIST = "margin:0 0 16px 0; padding-left:22px;"                         # ordered / unordered list
+_NOTE = ("margin:0 0 16px 0; padding:12px 16px; background-color:#f0f4f8; "
+         "border-left:4px solid #1f2933; border-radius:4px;")          # highlighted callout box
+_LINK = "color:#1f6feb;"                                                # inline hyperlink
+_BTN  = ("display:inline-block; padding:10px 18px; background-color:#1f2933; "
+         "color:#ffffff; text-decoration:none; border-radius:4px;")     # call-to-action button
+
+
+def _para(text, style=_P):
+    """A standard body paragraph."""
+    return '<p style="' + style + '">' + text + "</p>"
+
+
+def _note(label, token):
+    """A bold label followed by a highlighted callout box (reasons / instructions / notes)."""
+    return ('<p style="margin:0 0 6px 0; font-weight:bold;">' + label + "</p>"
+            '<div style="' + _NOTE + '">' + token + "</div>")
+
+
+def _list(items):
+    """An ordered list rendered from a sequence of HTML strings."""
+    return ('<ol style="' + _LIST + '">'
+            + "".join("<li>" + item + "</li>" for item in items)
+            + "</ol>")
+
+
+def _wrap(content):
+    """Wrap inner content in the shared, inline-styled email shell."""
+    return (
+        "<html>"
+        '<body style="margin:0; padding:0; background-color:#f4f4f5;">'
+        '<div style="max-width:640px; margin:0 auto; padding:24px; '
+        "font-family:Arial, Helvetica, sans-serif; color:#1f2933; "
+        'font-size:14px; line-height:1.6;">'
+        + content +
+        '<p style="margin:24px 0 0 0; padding-top:16px; '
+        "border-top:1px solid #e4e7eb; color:#7b8794; font-size:12px;\">"
+        "This is an automated message from the Gerobug Bug Bounty Platform. "
+        "If you received it in error, you may safely disregard it."
+        "</p>"
+        "</div>"
+        "</body>"
+        "</html>"
+    )
+
+
+_HELLO   = _para("Hello,")
+_SIGNOFF = _para("Best Regards,<br>Gerobug Bug Bounty Platform", _LAST)
+
+
+# ── CONFIRMATION TEMPLATES ────────────────────────────────────────────────────
 subject_201 = "Report Submission Confirmed: ~ID~"
-message_201 = """\
-        <html><body>
-            <p>
-                Hello,<br><br>
-
-                We confirm that your report titled "<b>~TITLE~</b>" has been received.<br>
-                This submission has been assigned Report ID: <b>~ID~</b>.<br><br>
-
-                Our security team is currently validating your findings. We will respond once the assessment is complete or if further clarification is required.<br><br>
-
-                We appreciate your assistance in securing our infrastructure.<br><br>
-
-                Best Regards,<br>
-                Gerobug Bug Bounty Platform
-            </p>
-        </body></html>
-        """
+message_201 = _wrap(
+    _HELLO
+    + _para('We confirm that your report titled "<b>~TITLE~</b>" has been received. '
+            "This submission has been assigned Report ID: <b>~ID~</b>.")
+    + _para("Our security team is currently validating your findings. We will respond "
+            "once the assessment is complete or if further clarification is required.")
+    + _para("We appreciate your assistance in securing our infrastructure.")
+    + _SIGNOFF
+)
 
 subject_202 = "Status of Report ID ~ID~"
-message_202 = """\
-        <html><body>
-            <p>
-                Hello,<br><br>
-
-                This email provides an update on your bug report.<br><br>
-
-                The current status of Report ID <b>~ID~</b> (<b>~TITLE~</b>) is
-                <b>~STATUS~</b>.<br><br>
-
-                We will notify you if there are further updates or if additional
-                information is required.<br><br>
-
-                Best Regards,<br>
-                Gerobug Bug Bounty Platform
-            </p>
-        </body></html>
-        """
+message_202 = _wrap(
+    _HELLO
+    + _para("This email provides an update on your bug report.")
+    + _para("The current status of Report ID <b>~ID~</b> (<b>~TITLE~</b>) is <b>~STATUS~</b>.")
+    + _para("We will notify you if there are further updates or if additional "
+            "information is required.")
+    + _SIGNOFF
+)
 
 subject_203 = "Confirmation: Update Received for Report ~ID~"
-message_203 = """\
-        <html><body>
-            <p>
-                Hello,<br><br>
-
-                This is a confirmation that your update for Report ID
-                <b>~ID~</b> (<b>~TITLE~</b>) has been successfully received.<br><br>
-
-                Our team will review the update and follow up if additional
-                information is required.<br><br>
-
-                Best Regards,<br>
-                Gerobug Bug Bounty Platform
-            </p>
-        </body></html>
-        """
+message_203 = _wrap(
+    _HELLO
+    + _para("This is a confirmation that your update for Report ID <b>~ID~</b> "
+            "(<b>~TITLE~</b>) has been successfully received.")
+    + _para("Our team will review the update and follow up if additional "
+            "information is required.")
+    + _note("Update Allowance:", "~NOTE~")
+    + _SIGNOFF
+)
 
 subject_204 = "Confirmation: Appeal Request Received for Report ~ID~"
-message_204 = """\
-        <html><body>
-            <p>
-                Hello,<br><br>
-
-                This is a confirmation that your appeal request for Report ID
-                <b>~ID~</b> (<b>~TITLE~</b>) has been successfully received.<br><br>
-
-                Our team will review the appeal and notify you if additional
-                information is required or once a decision has been made.<br><br>
-
-                Best Regards,<br>
-                Gerobug Bug Bounty Platform
-            </p>
-        </body></html>
-        """
+message_204 = _wrap(
+    _HELLO
+    + _para("This is a confirmation that your appeal request for Report ID <b>~ID~</b> "
+            "(<b>~TITLE~</b>) has been successfully received.")
+    + _para("Our team will review the appeal and notify you if additional information "
+            "is required or once a decision has been made.")
+    + _note("Appeal Allowance:", "~NOTE~")
+    + _SIGNOFF
+)
 
 subject_205 = "Confirmation: Agreement Received for Report ~ID~"
-message_205 = """\
-        <html><body>
-            <p>
-                Hello,<br><br>
-
-                This is a confirmation that your agreement regarding the bounty
-                calculation for Report ID <b>~ID~</b> has been received.<br><br>
-
-                The bounty processing will proceed according to the program
-                guidelines. You will be notified once there are further updates.<br><br>
-
-                Best Regards,<br>
-                Gerobug Bug Bounty Platform
-            </p>
-        </body></html>
-        """
+message_205 = _wrap(
+    _HELLO
+    + _para("This is a confirmation that your agreement regarding the bounty calculation "
+            "for Report ID <b>~ID~</b> has been received.")
+    + _para("The bounty processing will proceed according to the program guidelines. "
+            "You will be notified once there are further updates.")
+    + _SIGNOFF
+)
 
 subject_206 = "Confirmation: Documents Received for Report ~ID~"
-message_206 = """\
-        <html><body>
-            <p>
-                Hello,<br>
-                We acknowledge receipt of the NDA and bounty prerequisites for Report ID <b>~ID~</b>.
-                <br>
-                Our team will review the documents and notify you regarding the next steps shortly.<br>
-
-                <br><br>
-
-                Best Regards,<br>
-                Gerobug Bug Bounty Platform
-            </p>
-        </body></html>
-        """
+message_206 = _wrap(
+    _HELLO
+    + _para("We acknowledge receipt of the NDA and bounty prerequisites for "
+            "Report ID <b>~ID~</b>.")
+    + _para("Our team will review the documents and notify you regarding the next "
+            "steps shortly.")
+    + _SIGNOFF
+)
 
 subject_209 = "Confirmation: Data Received for Report ~ID~"
-message_209 = """\
-        <html><body>
-            <p>
-                Hello,<br>
-                We acknowledge receipt of the bounty prerequisites for Report ID <b>~ID~</b>.
-                <br>
-                Our team will review the data and notify you regarding the next steps shortly.<br>
-
-                <br><br>
-
-                Best Regards,<br>
-                Gerobug Bug Bounty Platform
-            </p>
-        </body></html>
-        """
+message_209 = _wrap(
+    _HELLO
+    + _para("We acknowledge receipt of the bounty prerequisites for Report ID <b>~ID~</b>.")
+    + _para("Our team will review the data and notify you regarding the next steps shortly.")
+    + _SIGNOFF
+)
 
 subject_207 = "Current Score for This Bug Bounty Program"
-message_207 = """\
-        <html><body>
-            <p>
-                Hello,<br>
-                This is an update regarding your score in the program.<br>
-                Your accumulated score currently stands at: <b>~NOTE~</b>.
-                <br>
-                You may verify your ranking by visiting the Hall of Fame page.
-                
-                <br><br>
-                <b>Good luck with your next hunt.</b>
-                <br><br>
-
-                Best Regards,<br>
-                Gerobug Bug Bounty Platform
-            </p>
-        </body></html>
-        """
+message_207 = _wrap(
+    _HELLO
+    + _para("This is an update regarding your score in the program. "
+            "Your accumulated score currently stands at: <b>~NOTE~</b>.")
+    + _para("You may verify your ranking by visiting the Hall of Fame page.")
+    + _para("<b>Good luck with your next hunt.</b>")
+    + _SIGNOFF
+)
 
 subject_208 = "Submission Summary: Report Overview"
-message_208 = """\
-        <html><body>
-            <p>
-                Hello,<br>
-                We are providing an overview of your report history.<br>
-                You have submitted a total of <b>~ID~</b> reports.
-                <br>
-                The current status of each report is listed below:
-                <br><br>
-                
-                <table border="1">
-                <tr>
-                    <th>Report ID</th>
-                    <th>Title</th>
-                    <th>Status</th>
-                </tr>
-                ~NOTE~
-                </table>
-                
-                <br><br>
+message_208 = _wrap(
+    _HELLO
+    + _para("Here is an overview of your report history with our bug bounty program. "
+            "You have submitted a total of <b>~ID~</b> report(s). The current status "
+            "of each is listed below.")
+    + '<table role="presentation" cellpadding="0" cellspacing="0" '
+      'style="width:100%; border-collapse:collapse; margin:8px 0 20px 0; font-size:14px;">'
+        "<thead><tr>"
+            '<th align="left" style="padding:10px 12px; background-color:#1f2933; '
+            'color:#ffffff; border:1px solid #1f2933;">Report ID</th>'
+            '<th align="left" style="padding:10px 12px; background-color:#1f2933; '
+            'color:#ffffff; border:1px solid #1f2933;">Title</th>'
+            '<th align="left" style="padding:10px 12px; background-color:#1f2933; '
+            'color:#ffffff; border:1px solid #1f2933;">Status</th>'
+        "</tr></thead>"
+        "<tbody>~NOTE~</tbody>"
+      "</table>"
+    + _para("If you have any questions about a specific report, simply reply to this "
+            "email and our team will follow up.")
+    + _SIGNOFF
+)
 
-                Best Regards,<br>
-                Gerobug Bug Bounty Platform
-            </p>
-        </body></html>
-        """
 
-# ERROR TEMPLATES FOR GEROBUG
+# ── ERROR TEMPLATES ───────────────────────────────────────────────────────────
 subject_403 = "Authorization Failure: Report ~ID~"
-message_403 = """\
-        <html><body>
-            <p>
-                Hello,<br>
-                We have received your submission.<br><br>
-
-                However, we could not process the request because this email address is not authorized to perform actions for Report ID: <b>~ID~</b>.
-                <br><br>
-                Please verify the following details:<br> 
-                1. Ensure you are sending from the email address associated with this report.<br>
-                2. specific Verify that the Report ID is correct.<br>
-                3. Ensure you have received instructions to submit this specific request.<br>
-
-                <br><br>
-
-                Best Regards,<br>
-                Gerobug Bug Bounty Platform
-            </p>
-        </body></html>
-        """
+message_403 = _wrap(
+    _HELLO
+    + _para("We have received your submission. However, we could not process the request "
+            "because this email address is not authorized to perform actions for "
+            "Report ID: <b>~ID~</b>.")
+    + _para("Please verify the following details:")
+    + _list([
+        "Ensure you are sending from the email address associated with this report.",
+        "Verify that the Report ID is correct.",
+        "Ensure you have received instructions to submit this specific request.",
+    ])
+    + _SIGNOFF
+)
 
 subject_404 = "Submission Error: Invalid Report Format"
-message_404 = """\
-        <html><body>
-            <p>
-                Hello,<br>
-                We have received your submission.<br><br>
-
-                Regrettably, this report has been marked as <b>Invalid</b> and cannot be processed in its current state.
-                <br>
-                Reason for rejection:<br> 
-                <b>~NOTE~</b>
-                <br>
-                Please verify your input and ensure it adheres to the required format as defined <a href="https://gerobug.gitbook.io/documentation/filter-and-validation" target="_blank">in our documentation</a>.<br>
-
-                <br><br>
-
-                Best Regards,<br>
-                Gerobug Bug Bounty Platform
-            </p>
-        </body></html>
-        """
+message_404 = _wrap(
+    _HELLO
+    + _para("We have received your submission. Regrettably, this report has been marked "
+            "as <b>Invalid</b> and cannot be processed in its current state.")
+    + _note("Reason for rejection:", "~NOTE~")
+    + _para("Please verify your input and ensure it adheres to the required format as "
+            'defined <a href="https://gerobug.gitbook.io/documentation/filter-and-validation" '
+            'style="' + _LINK + '" target="_blank">in our documentation</a>.')
+    + _SIGNOFF
+)
 
 subject_405 = "Submission Error: Invalid Report ID ~ID~"
-message_405 = """\
-        <html><body>
-            <p>
-                Hello,<br>
-                We have received your request.<br><br>
-
-                However, we were unable to process it because the submitted Report ID (<b>~ID~</b>) was not found in our system.
-                <br>
-                Please verify the Report ID against your records to ensure it is correct and try again.<br>
-
-                <br><br>
-
-                Best Regards,<br>
-                Gerobug Bug Bounty Platform
-            </p>
-        </body></html>
-        """
+message_405 = _wrap(
+    _HELLO
+    + _para("We have received your request. However, we were unable to process it because "
+            "the submitted Report ID (<b>~ID~</b>) was not found in our system.")
+    + _para("Please verify the Report ID against your records to ensure it is correct "
+            "and try again.")
+    + _SIGNOFF
+)
 
 subject_406 = "Submission Blocked: Temporary Restriction"
-message_406 = """\
-        <html><body>
-            <p>
-                Hello,<br>
-                Your email address has been temporarily blacklisted due to detected spam activity.<br><br>
-
-                This restriction will be lifted in <b>~NOTE~</b> seconds.
-                <br> 
-                Please wait for this period to expire before attempting to submit again.<br>
-
-                <br><br>
-
-                Best Regards,<br>
-                Gerobug Bug Bounty Platform
-            </p>
-        </body></html>
-        """
+message_406 = _wrap(
+    _HELLO
+    + _para("Your email address has been temporarily blacklisted due to detected "
+            "spam activity.")
+    + _para("This restriction will be lifted in <b>~NOTE~</b> seconds. Please wait for "
+            "this period to expire before attempting to submit again.")
+    + _SIGNOFF
+)
 
 
-# NOTIFICATION TEMPLATES FOR GEROBUG
+# ── NOTIFICATION TEMPLATES ────────────────────────────────────────────────────
 subject_300 = "Notification: Status Update for Report ~ID~"
-message_300 = """\
-        <html><body>
-            <p>
-                Hello,<br>
-                This email is to notify you of a status change regarding your report.<br>
-                The current status for Report ID <b>~ID~</b> ("~TITLE~") is now: <b>~STATUS~</b>.
-                <br><br>
-                Reason / Additional Notes:<br> 
-                <b>~NOTE~</b>
-
-                <br><br>
-                Thank you for your continued efforts in helping secure our systems.
-                <br><br>
-                
-                Best Regards,<br>
-                Gerobug Bug Bounty Platform
-            </p>
-        </body></html>
-        """
+message_300 = _wrap(
+    _HELLO
+    + _para("This email is to notify you of a status change regarding your report. "
+            'The current status for Report ID <b>~ID~</b> ("~TITLE~") is now: <b>~STATUS~</b>.')
+    + _note("Reason / Additional Notes:", "~NOTE~")
+    + _para("Thank you for your continued efforts in helping secure our systems.")
+    + _SIGNOFF
+)
 
 subject_301 = "Notification: Status Update for Report ~ID~"
-message_301 = """\
-        <html><body>
-            <p>
-                Hello,<br>
-                We are writing to notify you of a change regarding your submission.<br>
-                The current status of Report ID <b>~ID~</b> (~TITLE~) is now: <b>~STATUS~</b>.
-                <br> 
-                Please await further updates as we continue our review process.<br>
-
-                <br><br>
-
-                Best Regards,<br>
-                Gerobug Bug Bounty Platform
-            </p>
-        </body></html>
-        """
+message_301 = _wrap(
+    _HELLO
+    + _para("We are writing to notify you of a change regarding your submission. "
+            "The current status of Report ID <b>~ID~</b> (~TITLE~) is now: <b>~STATUS~</b>.")
+    + _para("Please await further updates as we continue our review process.")
+    + _SIGNOFF
+)
 
 
+subject_302 = "Bounty Accepted by Default: Report ~ID~"
+message_302 = _wrap(
+    _HELLO
+    + _para('Our bounty calculation for Report ID <b>~ID~</b> ("~TITLE~") was sent to '
+            "you 30 days ago and we have not received an appeal within that period.")
+    + _para("Determined Severity: <b>~SEVERITY~</b>")
+    + _para("As set out in the bounty decision email, the valuation is therefore "
+            "considered accepted and the report has moved to <b>~STATUS~</b>. No "
+            "action is required from you at this stage.")
+    + _para("We will contact you with the next steps for the reward process.")
+    + _SIGNOFF
+)
 
-# REQUEST TEMPLATES FOR GEROBUG
+
+subject_409 = "Appeal Limit Reached: Report ~ID~"
+message_409 = _wrap(
+    _HELLO
+    + _para("We have received your appeal for Report ID <b>~ID~</b>, but it could not "
+            "be recorded: you have already used all <b>3</b> appeals available to you "
+            "on this report.")
+    + _para("As stated in our bounty decision email, the valuation standing after the "
+            "third appeal is final. It is therefore treated as accepted, and the report "
+            "will proceed to bounty processing. No further action is required from you.")
+    + _para("We do appreciate the time you put into the submission, and we hope to see "
+            "your next one.")
+    + _SIGNOFF
+)
+
+
+subject_408 = "Updates Closed: Report ~ID~"
+message_408 = _wrap(
+    _HELLO
+    + _para("We have received your update for Report ID <b>~ID~</b>, but it could not "
+            "be recorded: the report has already moved past the assessment stage and is "
+            "now at <b>~STATUS~</b>.")
+    + _para("At this point the finding itself is settled and the remaining steps concern "
+            "the reward process only, so updates to the report are closed.")
+    + _para("If your message concerns the reward process rather than the finding, our "
+            "team will reach out to you about it directly.")
+    + _SIGNOFF
+)
+
+
+subject_407 = "Update Limit Reached: Report ~ID~"
+message_407 = _wrap(
+    _HELLO
+    + _para("We have received your update for Report ID <b>~ID~</b>, but it could not "
+            "be recorded: you have already used all <b>3</b> updates available to you "
+            "on this report without a request from our team.")
+    + _para("This is not a rejection of your finding. Our team can invite a further "
+            "update at any time, and an update sent in response to such a request "
+            "does not count against the limit.")
+    + _para("Please wait for our team to contact you if more information is needed.")
+    + _SIGNOFF
+)
+
+# ── REQUEST TEMPLATES ─────────────────────────────────────────────────────────
 subject_701 = "Action Required: Additional Info for Report ~ID~"
-message_701 = """\
-        <html><body>
-            <p>
-                Hello,<br>
-                Our team requires additional details regarding Report ID <b>~ID~</b> (~TITLE~) to proceed with the validation process.<br>
-
-                <br>
-                Request Details:<br> 
-                <b>~NOTE~</b>
-                
-                <br><br>
-                Please submit the requested information by replying to this email. You must strictly follow this format:<br>
-                1. Set the Email Subject to: "<b>UPDATE_~ID~</b>"<br>
-                2. Include a text-only <b>Summary</b> of the update in the email body.<br>
-                3. Ensure the full detailed report is attached as a <b>PDF File</b>.<br>
-                
-                <br>For detailed formatting rules, please refer to our guideline page.<br>
-                
-                <br><br>
-                We look forward to your response.<br>
-                Best Regards,<br>
-                Gerobug Bug Bounty Platform
-            </p>
-        </body></html>
-        """
+message_701 = _wrap(
+    _HELLO
+    + _para("Our team requires additional details regarding Report ID <b>~ID~</b> "
+            "(~TITLE~) to proceed with the validation process.")
+    + _note("Request Details:", "~NOTE~")
+    + _para("Please submit the requested information by replying to this email. "
+            "You must strictly follow this format:")
+    + _list([
+        'Set the email subject to: "<b>UPDATE_~ID~</b>"',
+        "Include a text-only <b>Summary</b> of the update in the email body.",
+        "Ensure the full detailed report is attached as a <b>PDF file</b>.",
+    ])
+    + _para("An update sent in reply to this request does <b>not</b> count against "
+            "the 3 updates you may send on your own initiative.")
+    + _para("For detailed formatting rules, please refer to our guideline page.")
+    + _para("We look forward to your response.")
+    + _SIGNOFF
+)
 
 subject_702 = "Bounty Decision: Report ~ID~"
-message_702 = """\
-        <html><body>
-            <p>
-                Hello,<br>
-                We have completed the bounty calculation for Report ID <b>~ID~</b> ("~TITLE~").<br>
-                
-                <br>
-                Determined Severity: <b>~SEVERITY~</b><br>
-
-                <br>
-                Assessment Notes:<br> 
-                <b>~NOTE~</b>
-                
-                <br><br>
-                Please review this valuation and choose one of the following actions:<br><br>
-
-                <b>Option 1: Accept the Bounty</b><br>
-                Send an email with the subject "<b>AGREE_~ID~</b>". Leave the email body empty.<br>
-                <br>
-                <b>Option 2: Appeal the Decision</b><br>
-                Send an email with the subject "<b>APPEAL_~ID~</b>". You must include your <b>Reason/Justification</b> in the email body (text only).<br>
-
-                <br>
-                <b>Important:</b> You are limited to a maximum of <b>3 appeals</b>. If this limit is exceeded, the current determination will be considered final and processed accordingly.
-                <br>
-                
-                <br>For detailed formatting rules, please refer to our guideline page.<br>
-
-                <br><br>
-                We look forward to your response.<br>
-                Best Regards,<br>
-                Gerobug Bug Bounty Platform
-            </p>
-        </body></html>
-        """
+message_702 = _wrap(
+    _HELLO
+    + _para('We have completed the bounty calculation for Report ID <b>~ID~</b> ("~TITLE~").')
+    + _para("Determined Severity: <b>~SEVERITY~</b>")
+    + _note("Assessment Notes:", "~NOTE~")
+    + _para("Please review this valuation and choose one of the following actions:")
+    + _para("<b>Option 1: Accept the Bounty</b><br>"
+            'Send an email with the subject "<b>AGREE_~ID~</b>". Leave the email body empty.')
+    + _para("<b>Option 2: Appeal the Decision</b><br>"
+            'Send an email with the subject "<b>APPEAL_~ID~</b>". You must include your '
+            "<b>Reason/Justification</b> in the email body (text only).")
+    + _para("<b>Important:</b> You are limited to a maximum of <b>3 appeals</b>. If this "
+            "limit is exceeded, the current determination will be considered final and "
+            "processed accordingly.")
+    + _para("<b>Please note:</b> if we do not hear from you within <b>30 days</b> of this "
+            "email, the valuation above will be treated as accepted and the report will "
+            "move on to bounty processing automatically.")
+    + _para("For detailed formatting rules, please refer to our guideline page.")
+    + _para("We look forward to your response.")
+    + _SIGNOFF
+)
 
 subject_703 = "Action Required: Bounty Prerequisites for Report ~ID~"
-message_703 = """\
-        <html><body>
-            <p>
-                Hello,<br>
-                We are preparing to process the reward payout for Report ID <b>~ID~</b> ("~TITLE~").<br>
-                Before we can proceed, we require specific documentation and details.<br>
-
-                <br>
-                Requirements / Instructions:<br> 
-                <b>~NOTE~</b>
-                
-                <br><br>
-                To complete this step, please reply to this email following these strict guidelines:<br>
-                1. Set the Email Subject to: "<b>NDA_~ID~</b>"<br>
-                2. Provide the requested information in the email body (text only).<br>
-                3. You must attach the <b>signed NDA</b> document.<br>
-                
-                <br>For detailed formatting rules, please refer to our guideline page.<br>
-
-                <br><br>
-                We look forward to receiving your documents.<br>
-                Best Regards,<br>
-                Gerobug Bug Bounty Platform
-            </p>
-        </body></html>
-        """
-
-subject_705 = "Action Required: Bounty Prerequisites for Report ~ID~"
-message_705 = """\
-        <html><body>
-            <p>
-                Hello,<br>
-                We are preparing to process the reward payout for Report ID <b>~ID~</b> ("~TITLE~").<br>
-                Before we can proceed, we require specific information and details.<br>
-
-                <br>
-                Requirements / Instructions:<br>
-                <b>~NOTE~</b>
-
-                <br><br>
-                To complete this step, please reply to this email following these strict guidelines:<br>
-                1. Set the Email Subject to: "<b>DATA_~ID~</b>"<br>
-                2. Provide the requested information in the email body (text only).<br>
-
-                <br>For detailed formatting rules, please refer to our guideline page.<br>
-
-                <br><br>
-                We look forward to receiving your information.<br>
-                Best Regards,<br>
-                Gerobug Bug Bounty Platform
-            </p>
-        </body></html>
-        """
+message_703 = _wrap(
+    _HELLO
+    + _para('We are preparing to process the reward payout for Report ID <b>~ID~</b> '
+            '("~TITLE~"). Before we can proceed, we require specific documentation '
+            "and details.")
+    + _note("Requirements / Instructions:", "~NOTE~")
+    + _para("To complete this step, please reply to this email following these "
+            "strict guidelines:")
+    + _list([
+        'Set the email subject to: "<b>DATA_~ID~</b>"',
+        "Provide the requested information in the email body (text only).",
+        "You must attach the <b>signed NDA</b> document.",
+    ])
+    + _para("For detailed formatting rules, please refer to our guideline page.")
+    + _para("We look forward to receiving your documents.")
+    + _SIGNOFF
+)
 
 subject_704 = "Processing Complete: Report ~ID~"
-message_704 = """\
-        <html><body>
-            <p>
-                Hello,<br>
-                Congratulations! We are pleased to confirm that the reward processing for your submission has been completed.<br>
-                <br>
-                Notes:<br> 
-                <b>~NOTE~</b>
-                
-                <br><br>
-                Your Certificate of Appreciation is attached to this email. Additionally, your score has been updated on our Hall of Fame to reflect this achievement.<br>
-                <br>
-                Thank you for your valuable contribution to our security with Report ID <b>~ID~</b> ("~TITLE~").<br>
-                <br> 
-                Good luck with your next hunt.<br>
+message_704 = _wrap(
+    _HELLO
+    + _para("Congratulations! We are pleased to confirm that the reward processing for "
+            "your submission has been completed.")
+    + _note("Notes:", "~NOTE~")
+    + _para("Your Certificate of Appreciation is attached to this email. Additionally, "
+            "your score has been updated on our Hall of Fame to reflect this achievement.")
+    + _para("Thank you for your valuable contribution to our security with Report ID "
+            '<b>~ID~</b> ("~TITLE~").')
+    + _para("Good luck with your next hunt.")
+    + _SIGNOFF
+)
 
-                <br><br>
-                Best Regards,<br>
-                Gerobug Bug Bounty Platform
-            </p>
-        </body></html>
-        """
+subject_705 = "Action Required: Bounty Prerequisites for Report ID ~ID~"
+message_705 = _wrap(
+    _HELLO
+    + _para('We are preparing to process the reward payout for Report ID <b>~ID~</b> '
+            '("~TITLE~"). Before we can proceed, we require specific documentation '
+            "and details.")
+    + _note("Requirements / Instructions:", "~NOTE~")
+    + _para("To complete this step, please reply to this email following these "
+            "strict guidelines:")
+    + _list([
+        'Set the email subject to: "<b>DATA_~ID~</b>"',
+        "Provide the requested information in the email body (text only).",
+    ])
+    + _para("For detailed formatting rules, please refer to our guideline page.")
+    + _para("We look forward to receiving your documents.")
+    + _SIGNOFF
+)
 
+
+# ── ACCOUNT TEMPLATES ─────────────────────────────────────────────────────────
 subject_9999 = "Gerobug: Password Reset Request"
-message_9999 = """\
-        <html><body>
-            <p>
-                Hello,<br>
-                We received a request to reset the password associated with this email address.<br><br>
-
-                <b>Your username (use this to log in):</b> ~USERNAME~<br><br>
-
-                <b>Please click the link below to set a new password:</b><br>
-                <a href="~DOMAIN~:6320/login/reset/~UID~/~TOKEN~/">Reset Gerobug Account Password</a>
-                <br><br>
-
-                This is a secure, one-time link. It will expire after use.<br>
-                If you did not request a password reset, you may safely ignore this email.<br>
-                <br><br>
-
-                Best Regards,<br>
-                Gerobug Bug Bounty Platform
-            </p>
-        </body></html>
-        """
+message_9999 = _wrap(
+    _HELLO
+    + _para("We received a request to reset the password associated with this "
+            "email address.")
+    + _note("Your username (use this to log in):", "~USERNAME~")
+    + _para("Please click the button below to set a new password:")
+    + '<p style="margin:0 0 16px 0;">'
+        '<a href="~DOMAIN~:6320/login/reset/~UID~/~TOKEN~/" style="' + _BTN + '">'
+        "Reset Account Password</a>"
+      "</p>"
+    + _para("This is a secure, one-time link and it will expire after use. "
+            "If you did not request a password reset, you may safely ignore this email.")
+    + _SIGNOFF
+)
 
 
 # DICTIONARY VARIABLES
@@ -478,19 +420,23 @@ subjectlist = {
     206: subject_206,   # NDA SUCCESS (ID)
     207: subject_207,   # CHECK SCORE (NOTE)
     208: subject_208,   # CHECK ALL STATUS (ID, NOTE)
-    209: subject_209,   # DATA RECEIVED - INFO ONLY (ID)
+    209: subject_209,   # BOUNTY PREREQUISITES RECEIVED - INFO ONLY (ID)
 
     300: subject_300,   # INVALID NOTIFICATION (TITLE, ID, STATUS, NOTE)
     301: subject_301,   # STATUS UPDATE NOTIFICATION (TITLE, ID, STATUS)
-    
+    302: subject_302,   # BOUNTY AUTO-ACCEPTED, NO APPEAL (TITLE, ID, STATUS, SEVERITY)
+
     403: subject_403,   # UNAUTHORIZED (ID)
     404: subject_404,   # INVALID FORMAT
     405: subject_405,   # INVALID REPORT ID (ID)
     406: subject_406,   # BLACKLIST (NOTE)
+    407: subject_407,   # SELF-INITIATED UPDATE LIMIT REACHED (ID)
+    408: subject_408,   # UPDATES CLOSED, PAST BOUNTY CALCULATION (ID, STATUS)
+    409: subject_409,   # APPEAL LIMIT REACHED, DETERMINATION FINAL (ID)
 
     701: subject_701,   # REQUEST UPDATE/AMEND (TITLE, ID, NOTE, URL)
     702: subject_702,   # SEND BOUNTY CALCULATIONS (TITLE, ID, NOTE, URL)
-    703: subject_703,   # REQUEST NDA (TITLE, ID, NOTE, URL)
+    703: subject_703,   # REQUEST NDA + PREREQUISITES (TITLE, ID, NOTE, URL)
     704: subject_704,   # SEND BOUNTY + PROOF (TITLE, ID)
     705: subject_705,   # REQUEST PREREQUISITES - NO NDA (TITLE, ID, NOTE)
 
@@ -510,11 +456,15 @@ messagelist = {
 
     300: message_300,
     301: message_301,
+    302: message_302,
 
     403: message_403,
     404: message_404,
     405: message_405,
     406: message_406,
+    407: message_407,
+    408: message_408,
+    409: message_409,
 
     701: message_701,
     702: message_702,

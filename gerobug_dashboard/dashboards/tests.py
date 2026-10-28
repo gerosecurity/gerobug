@@ -226,3 +226,108 @@ class LegacyPaletteMigrationTests(TestCase):
     def test_no_theme_row_is_safe(self):
         Personalization.objects.all().delete()
         self.assertFalse(Personalization.migrate_legacy_palette())
+
+
+class ReportDetailLifecycleTests(PageRenderTests):
+    """Auto-accept deadline and the full hunter-submission lists on the report
+    detail page. Reuses PageRenderTests' seeded statuses and report."""
+
+    URL = "/dashboard/report-detail/AB12CD34EF56"
+
+    def setUp(self):
+        super().setUp()
+        self.report = BugReport.objects.get(report_id="AB12CD34EF56")
+
+    def test_pages_render(self):
+        pass  # covered by PageRenderTests itself
+
+    # ---- auto-accept deadline ----
+
+    def _await_auto_accept(self, days_ago):
+        from datetime import timedelta
+        self.report.report_status = 5
+        self.report.report_permission = 2   # appeal still open
+        self.report.report_calc_sent_at = timezone.now() - timedelta(days=days_ago)
+        self.report.save()
+
+    def test_detail_page_shows_the_auto_accept_deadline(self):
+        from django.template.defaultfilters import date as date_filter
+        self._await_auto_accept(days_ago=10)
+        response = self.client.get(self.URL)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Auto-accepts in")
+        self.assertContains(response, date_filter(self.report.auto_accept_at, "j M Y, H:i"))
+
+    def test_detail_page_hides_the_deadline_once_appealed(self):
+        self._await_auto_accept(days_ago=10)
+        self.report.report_permission = 0   # appeal arrived, bit consumed
+        self.report.save()
+        self.assertNotContains(self.client.get(self.URL), "Auto-accepts in")
+
+    def test_detail_page_has_no_deadline_before_a_calculation(self):
+        self.assertNotContains(self.client.get(self.URL), "Auto-accepts in")
+
+    def test_kanban_card_shows_the_deadline(self):
+        self._await_auto_accept(days_ago=10)
+        self.assertContains(self.client.get("/dashboard/"), "auto-accepts in")
+
+    # ---- hunter submissions (all, not just the newest) ----
+
+    def _submit(self, kind, n, days_ago, summary, has_file=0):
+        from datetime import timedelta
+        from dashboards.models import BugReportAppeal, BugReportNDA, BugReportUpdate
+        model, prefix = {'U': (BugReportUpdate, 'update'),
+                         'A': (BugReportAppeal, 'appeal'),
+                         'N': (BugReportNDA, 'nda')}[kind]
+        ident = self.report.report_id + kind + str(n)
+        return model.objects.create(**{
+            prefix + '_id': ident,
+            'report_id': self.report.report_id,
+            prefix + '_datetime': timezone.now() - timedelta(days=days_ago),
+            prefix + '_summary': summary,
+            prefix + '_file': has_file,
+        })
+
+    def test_every_submission_is_listed_newest_first(self):
+        from dashboards.views import build_hunter_submissions
+        self._submit('U', 1, days_ago=9, summary="first update")
+        self._submit('U', 2, days_ago=5, summary="second update")
+        self._submit('U', 3, days_ago=1, summary="third update")
+        self._submit('A', 1, days_ago=3, summary="appealing the valuation")
+        self._submit('N', 1, days_ago=2, summary="bank details")
+
+        subs = build_hunter_submissions(self.report)
+        self.assertEqual([r['tag'] for r in subs['updates']], ['U3', 'U2', 'U1'])
+        self.assertEqual([r['tag'] for r in subs['appeals']], ['A1'])
+        self.assertEqual([r['tag'] for r in subs['data']], ['N1'])
+
+        response = self.client.get(self.URL)
+        self.assertEqual(response.status_code, 200)
+        for summary in ("first update", "second update", "third update",
+                        "appealing the valuation", "bank details"):
+            self.assertContains(response, summary)
+        for tag in ("U1", "U2", "U3"):
+            self.assertContains(response, f"update-detail/{self.report.report_id}{tag}")
+
+    def test_download_link_only_when_the_pdf_is_really_there(self):
+        import os
+        from dashboards.views import build_hunter_submissions
+        from gerobug.settings import MEDIA_ROOT
+        self._submit('U', 1, days_ago=1, summary="claims a file", has_file=1)
+        self.assertFalse(build_hunter_submissions(self.report)['updates'][0]['has_file'])
+
+        os.makedirs(os.path.join(MEDIA_ROOT, self.report.report_id), exist_ok=True)
+        pdf = os.path.join(MEDIA_ROOT, self.report.report_id, self.report.report_id + 'U1.pdf')
+        try:
+            with open(pdf, 'wb') as fh:
+                fh.write(b'%PDF-1.4')
+            self.assertTrue(build_hunter_submissions(self.report)['updates'][0]['has_file'])
+            self.assertContains(self.client.get(self.URL), "Download PDF")
+        finally:
+            os.remove(pdf)
+
+    def test_cards_are_omitted_when_nothing_was_submitted(self):
+        response = self.client.get(self.URL)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "<h6>Updates")
+        self.assertNotContains(response, "<h6>Appeals")
