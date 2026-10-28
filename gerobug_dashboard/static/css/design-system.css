@@ -397,8 +397,6 @@ main .alert {
 .home-section main.gds-panel .resource-card h6 { color: var(--color-dark-200); }
 .home-section main.gds-panel .file-link,
 .home-section main.gds-panel .file-link:hover { color: var(--gds-accent-soft); }
-/* Submission rows carry their own muted text; only the download link needs
-   the panel accent, the rest inherits (see reportDetail.css). */
 .home-section main.gds-panel .submission-file,
 .home-section main.gds-panel .submission-file:hover { color: var(--gds-accent-soft); }
 
@@ -695,9 +693,6 @@ main .alert {
 .kanban .card .card-type { font-size: 12px; font-weight: 600; color: #fff; line-height: 1.4; }
 .kanban .card .card-hunter { color: var(--color-text-faint-dark); font-size: 10px; }
 .kanban .card .card-time { color: var(--color-text-faint-dark); font-size: 10px; }
-/* Pending auto-accept: an unappealed bounty calculation geroparser will move
-   on by itself (BugReport.auto_accept_at). Warning-tinted because it is a
-   deadline the triager may want to pre-empt, not a finished state. */
 .kanban .card .card-auto-accept {
   display: block;
   margin-top: 6px;

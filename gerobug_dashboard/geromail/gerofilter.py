@@ -10,7 +10,6 @@ from dashboards.models import (BOUNTY_CALC_STATUS, BugHunter, BugReport, BugRepo
                                BugReportAppeal, BugReportNDA, ReportStatus)
 
 
-
 # CHECK IF POSSIBLE DUPLICATE (NEED IMPROVEMENTS)
 def check_duplicate(id):
     report = BugReport.objects.get(report_id=id)
@@ -26,8 +25,6 @@ def check_duplicate(id):
             logging.getLogger("Gerologger").warning('Possible Duplicate Report')
             break
 
-# APPEALS A HUNTER MAY RAISE AGAINST A BOUNTY CALCULATION. Never reset: once
-# spent, the standing determination is final (see mail template 702).
 APPEAL_LIMIT = 3
 
 
@@ -37,42 +34,20 @@ def validate_appeal(id):
     return report.report_appeal < APPEAL_LIMIT
 
 
-# HUNTER-INITIATED UPDATES ALLOWED WITHOUT A TRIAGER AMEND REQUEST (CODE 701).
-# Never reset: once spent, further updates need an invitation from the triager.
 SELF_UPDATE_LIMIT = 3
 
 
-# VALIDATE THE REPORT IS STILL AT A STAGE THAT TAKES UPDATES
 def validate_update_stage(id):
-    """Updates close once the bounty is in process.
-
-    From that point on the finding itself is settled and the remaining exchange
-    is about payment, so a late update would land on a report nobody is
-    triaging any more. Checked independently of the Update permission bit: a
-    grant made back at "In Review" and never spent would otherwise still open
-    the door at "Bounty in Process" or "Completed".
-    """
     report = BugReport.objects.get(report_id=id)
     return report.report_status <= BOUNTY_CALC_STATUS
 
 
-# VALIDATE HUNTER-INITIATED UPDATE QUOTA
 def validate_self_update(id):
     report = BugReport.objects.get(report_id=id)
     return report.report_update_self < SELF_UPDATE_LIMIT
 
 
-# PAY FOR ONE ACCEPTED UPDATE
 def consume_update_allowance(id):
-    """Charge an accepted update to whichever of the two budgets applies and
-    return the hunter's remaining self-initiated allowance.
-
-    An outstanding amend request (the U bit, 4) pays for the update and is
-    consumed, leaving the allowance untouched -- that is what makes a
-    triager-requested update free. Otherwise the allowance pays. Subtracting 4
-    unconditionally would drive the permission mask negative for a
-    self-initiated update and hand the hunter an appeal/NDA bit by accident.
-    """
     with transaction.atomic():
         report = BugReport.objects.select_for_update().get(report_id=id)
         if report.report_permission >= 4:
@@ -269,10 +244,6 @@ def classify_action(email, subject):
                 if validate_user(email, id):
                     if not validate_update_stage(id):
                         return 408, id
-                    # An outstanding amend request (the U bit, granted by mail
-                    # code 701) is free; without one the hunter spends their own
-                    # quota. Exhausting it means "ask the triager", not "not
-                    # authorized", so it gets its own reply.
                     if validate_permission("U", id) or validate_self_update(id):
                         return 203, id
                     else:
@@ -291,9 +262,6 @@ def classify_action(email, subject):
                         if validate_appeal(id):
                             return 204, id
                         else:
-                            # Out of appeals means the standing determination
-                            # is final, which template 409 explains; 403 "not
-                            # authorized" said nothing useful.
                             return 409, id
                     else:
                         return 403, id

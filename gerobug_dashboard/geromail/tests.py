@@ -205,15 +205,11 @@ def make_report(report_id="AB12CD34EF56", **fields):
 
 
 class HunterAllowanceTests(TestCase):
-    """Update/appeal allowances and the update stage gate (gerofilter)."""
 
     def setUp(self):
         self.report = make_report()
 
     def test_classify_update_allowed_within_self_quota(self):
-        """A hunter may update on their own initiative SELF_UPDATE_LIMIT times
-        with no amend request outstanding; the next one is refused with 407
-        ("ask the triager"), not the generic 403 ("not authorized")."""
         self.report.report_update_self = gerofilter.SELF_UPDATE_LIMIT - 1
         self.report.save()
         code, _ = gerofilter.classify_action("hunter@example.com", "UPDATE_AB12CD34EF56")
@@ -225,7 +221,6 @@ class HunterAllowanceTests(TestCase):
         self.assertEqual(code, 407)
 
     def test_classify_update_allowed_on_invitation_past_quota(self):
-        """An outstanding amend request (the U bit) outranks an exhausted quota."""
         self.report.report_update_self = gerofilter.SELF_UPDATE_LIMIT + 5
         self.report.report_permission = 4
         self.report.save()
@@ -238,36 +233,32 @@ class HunterAllowanceTests(TestCase):
             self.report.refresh_from_db()
             self.assertEqual(self.report.report_update_self, spent)
             self.assertEqual(remaining, gerofilter.SELF_UPDATE_LIMIT - spent)
-            self.assertEqual(self.report.report_permission, 0)  # mask never goes negative
+            self.assertEqual(self.report.report_permission, 0)
 
     def test_consume_update_allowance_spends_the_invitation_first(self):
-        """An amend request pays for the update, so the allowance is untouched;
-        the appeal (2) and NDA (1) bits must survive losing the update bit."""
         self.report.report_permission = 4 + 2 + 1
         self.report.save()
         remaining = gerofilter.consume_update_allowance(self.report.report_id)
         self.report.refresh_from_db()
         self.assertEqual(self.report.report_update_self, 0)
         self.assertEqual(remaining, gerofilter.SELF_UPDATE_LIMIT)
-        self.assertEqual(self.report.report_permission, 3)  # appeal + NDA intact
+        self.assertEqual(self.report.report_permission, 3)
 
     def test_classify_update_closed_once_bounty_is_in_process(self):
-        """The stage outranks the permission bit: a grant issued back at
-        "In Review" and never spent must not open the door later."""
         self.report.report_permission = 4
-        for closed_status in (6, 7):            # Bounty in Process, Completed
+        for closed_status in (6, 7):
             self.report.report_status = closed_status
             self.report.save()
             code, _ = gerofilter.classify_action("hunter@example.com", "UPDATE_AB12CD34EF56")
             self.assertEqual(code, 408, f"status {closed_status} should refuse updates")
 
-        self.report.report_status = 5           # Bounty Calculation: still open
+        self.report.report_status = 5
         self.report.save()
         code, _ = gerofilter.classify_action("hunter@example.com", "UPDATE_AB12CD34EF56")
         self.assertEqual(code, 203)
 
     def test_classify_appeal_stops_at_the_limit(self):
-        self.report.report_permission = 2       # appeal window open
+        self.report.report_permission = 2
         self.report.report_appeal = gerofilter.APPEAL_LIMIT - 1
         self.report.save()
         code, _ = gerofilter.classify_action("hunter@example.com", "APPEAL_AB12CD34EF56")
@@ -276,10 +267,9 @@ class HunterAllowanceTests(TestCase):
         self.report.report_appeal = gerofilter.APPEAL_LIMIT
         self.report.save()
         code, _ = gerofilter.classify_action("hunter@example.com", "APPEAL_AB12CD34EF56")
-        self.assertEqual(code, 409)   # "determination is final", not "not authorized"
+        self.assertEqual(code, 409)
 
     def test_classify_appeal_without_the_window_open_is_unauthorized(self):
-        """Nothing invited an appeal, so 403 stays correct."""
         self.report.report_permission = 0
         self.report.save()
         code, _ = gerofilter.classify_action("hunter@example.com", "APPEAL_AB12CD34EF56")
@@ -291,12 +281,8 @@ class HunterAllowanceTests(TestCase):
 
 
 class AutoAgreeTests(TestCase):
-    """geroparser.check_auto_agree(): a bounty calculation nobody appealed
-    within APPEAL_WINDOW_DAYS is accepted on the hunter's behalf, exactly as
-    their own AGREE_ reply would be."""
 
     def setUp(self):
-        # Status 5 = Bounty Calculation, permission 2 = appeal window open.
         self.report = make_report(report_status=5, report_permission=2)
 
     def _calculation_sent(self, days_ago):
@@ -314,8 +300,8 @@ class AutoAgreeTests(TestCase):
         self._calculation_sent(days_ago=APPEAL_WINDOW_DAYS + 1)
         write_mail, notify = self._sweep()
 
-        self.assertEqual(self.report.report_status, 6)      # Bounty in Process
-        self.assertEqual(self.report.report_permission, 0)  # appeal bit consumed
+        self.assertEqual(self.report.report_status, 6)
+        self.assertEqual(self.report.report_permission, 0)
         code, payload, destination = write_mail.call_args[0]
         self.assertEqual(code, 302)
         self.assertEqual(destination, "hunter@example.com")
@@ -331,9 +317,6 @@ class AutoAgreeTests(TestCase):
         write_mail.assert_not_called()
 
     def test_an_appeal_stops_the_clock(self):
-        """Permission 4 (an older amend request) is >= 2 but holds no appeal
-        bit, so a value test rather than a bit test would both move the report
-        and corrupt the mask."""
         self.report.report_permission = 4
         self._calculation_sent(days_ago=APPEAL_WINDOW_DAYS + 10)
         write_mail, _ = self._sweep()
@@ -347,7 +330,7 @@ class AutoAgreeTests(TestCase):
         write_mail.assert_not_called()
 
     def test_only_sweeps_the_bounty_calculation_stage(self):
-        self.report.report_status = 3   # Fixing
+        self.report.report_status = 3
         self._calculation_sent(days_ago=APPEAL_WINDOW_DAYS + 10)
         write_mail, _ = self._sweep()
         self.assertEqual(self.report.report_status, 3)
@@ -358,16 +341,25 @@ class AutoAgreeTests(TestCase):
         self.assertEqual(self.report.auto_accept_at,
                          self.report.report_calc_sent_at + timedelta(days=APPEAL_WINDOW_DAYS))
 
-        self.report.report_permission = 4   # appealed: appeal bit consumed
+        self.report.report_permission = 4
         self.assertIsNone(self.report.auto_accept_at)
 
         self.report.report_permission = 2
-        self.report.report_status = 6       # already in process
+        self.report.report_status = 6
         self.assertIsNone(self.report.auto_accept_at)
 
+    def test_round_trip_through_triage_does_not_fire_a_stale_window(self):
+        self._calculation_sent(days_ago=APPEAL_WINDOW_DAYS + 10)
+        self.report.report_status = 3
+        self.report.save()
+        self.report.report_status = 5
+        self.report.save()
+        write_mail, _ = self._sweep()
+        self.assertEqual((self.report.report_status, self.report.report_permission), (5, 0))
+        self.assertIsNone(self.report.auto_accept_at)
+        write_mail.assert_not_called()
+
     def test_sending_a_calculation_restarts_the_window(self):
-        """company_action(702) stamps the clock, so a re-sent calculation after
-        an appeal gives the hunter a fresh window."""
         self._calculation_sent(days_ago=APPEAL_WINDOW_DAYS + 10)
         with mock.patch.object(geromailer, "write_mail"):
             geroparser.company_action(self.report.report_id, "recalculated", 702)
@@ -384,8 +376,6 @@ class MailTemplateTests(SimpleTestCase):
             self.assertIn(code, mail_templates.messagelist)
 
     def test_no_placeholder_the_oss_mailer_does_not_fill(self):
-        """Enterprise templates carry ~BOUNTY~; the OSS mailer never substitutes
-        it, so a stray copy would reach the hunter literally."""
         for code, body in mail_templates.messagelist.items():
             self.assertNotIn("~BOUNTY~", body, code)
 

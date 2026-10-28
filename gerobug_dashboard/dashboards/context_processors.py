@@ -1,6 +1,4 @@
 def troubleshoot(request):
-    """Expose the hunter-email-sinkhole state to every template so base.html
-    can show a persistent warning banner while it's active."""
     from dashboards.models import TroubleshootSettings
     row = TroubleshootSettings.objects.filter(settings_id=1).first()
     return {

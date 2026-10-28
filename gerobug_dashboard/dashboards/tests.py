@@ -292,8 +292,6 @@ class LegacyPaletteMigrationTests(TestCase):
 
 
 class ReportDetailLifecycleTests(PageRenderTests):
-    """Auto-accept deadline and the full hunter-submission lists on the report
-    detail page. Reuses PageRenderTests' seeded statuses and report."""
 
     URL = "/dashboard/report-detail/AB12CD34EF56"
 
@@ -302,14 +300,13 @@ class ReportDetailLifecycleTests(PageRenderTests):
         self.report = BugReport.objects.get(report_id="AB12CD34EF56")
 
     def test_pages_render(self):
-        pass  # covered by PageRenderTests itself
+        pass
 
-    # ---- auto-accept deadline ----
 
     def _await_auto_accept(self, days_ago):
         from datetime import timedelta
         self.report.report_status = 5
-        self.report.report_permission = 2   # appeal still open
+        self.report.report_permission = 2
         self.report.report_calc_sent_at = timezone.now() - timedelta(days=days_ago)
         self.report.save()
 
@@ -323,7 +320,7 @@ class ReportDetailLifecycleTests(PageRenderTests):
 
     def test_detail_page_hides_the_deadline_once_appealed(self):
         self._await_auto_accept(days_ago=10)
-        self.report.report_permission = 0   # appeal arrived, bit consumed
+        self.report.report_permission = 0
         self.report.save()
         self.assertNotContains(self.client.get(self.URL), "Auto-accepts in")
 
@@ -334,7 +331,6 @@ class ReportDetailLifecycleTests(PageRenderTests):
         self._await_auto_accept(days_ago=10)
         self.assertContains(self.client.get("/dashboard/"), "auto-accepts in")
 
-    # ---- hunter submissions (all, not just the newest) ----
 
     def _submit(self, kind, n, days_ago, summary, has_file=0):
         from datetime import timedelta
@@ -397,7 +393,6 @@ class ReportDetailLifecycleTests(PageRenderTests):
 
 
 class TroubleshootTests(TestCase):
-    """Settings > Troubleshooting: resend, sinkhole, override, server logs."""
 
     def setUp(self):
         from django.urls import reverse
@@ -411,9 +406,6 @@ class TroubleshootTests(TestCase):
             report_title="Test finding", report_summary="s", report_severity=7.5,
             report_severitytype="", report_status=5, report_permission=2,
         )
-        # Singletons apps.py ready() seeds in a real deployment. Explicit pk=1:
-        # the views fetch them by id, and Postgres sequences are not reset
-        # between test cases.
         Personalization.objects.get_or_create(personalize_id=1)
         BlacklistRule.objects.get_or_create(rule_id=1)
         CertificateData.objects.get_or_create(pk=1)
@@ -422,11 +414,6 @@ class TroubleshootTests(TestCase):
         self.client.force_login(self.admin)
 
     def resend(self):
-        """POST the resend form with the SMTP hand-off captured; return the
-        (code, payload) write_mail would have been called with."""
-        # The resend thread runs inline so the call can be inspected. Its
-        # connection.close() would close the test's own Postgres connection,
-        # so it is neutralised for the duration.
         with mock.patch("dashboards.views.geroparser.check_mailbox_status", return_value=True), \
                 mock.patch("dashboards.views.geromailer.write_mail") as write_mail, \
                 mock.patch("dashboards.views.geromailer.notify") as notify, \
@@ -435,12 +422,11 @@ class TroubleshootTests(TestCase):
                            side_effect=lambda target, args=(), **kw: mock.Mock(
                                start=lambda: target(*args))):
             self.client.post(self.reverse("resend_email"), {"report_id": self.report.report_id})
-        notify.assert_not_called()   # a resend never fabricates a notification
+        notify.assert_not_called()
         if not write_mail.called:
             return None, None
         return write_mail.call_args[0][0], write_mail.call_args[0][1]
 
-    # ---- resend ----
 
     def test_company_action_records_what_resend_replays(self):
         from geromail import geromailer, geroparser
@@ -453,8 +439,6 @@ class TroubleshootTests(TestCase):
         self.assertEqual(self.resend(), (None, None))
 
     def test_resent_calculation_restarts_the_appeal_window(self):
-        """A calculation is resent because the hunter never got it, so the
-        30-day window must count from the resend, not the bounced original."""
         from datetime import timedelta
         from dashboards.models import APPEAL_WINDOW_DAYS
         self.report.report_calc_sent_at = timezone.now() - timedelta(days=25)
@@ -466,7 +450,7 @@ class TroubleshootTests(TestCase):
         self.report.refresh_from_db()
         self.assertGreater(self.report.auto_accept_at,
                            timezone.now() + timedelta(days=APPEAL_WINDOW_DAYS - 1))
-        self.assertEqual(self.report.report_permission, 2)   # no permission side effects
+        self.assertEqual(self.report.report_permission, 2)
         self.assertEqual(self.report.report_status, 5)
 
     def test_resend_past_bounty_calculation_leaves_the_clock_alone(self):
@@ -503,7 +487,6 @@ class TroubleshootTests(TestCase):
         self.report.save()
         self.assertEqual(self.resend(), (None, None))
 
-    # ---- sinkhole ----
 
     def test_sinkhole_toggle_and_banner(self):
         from dashboards.models import TroubleshootSettings
@@ -528,7 +511,6 @@ class TroubleshootTests(TestCase):
             self.assertTrue(geromailer.write_mail(702, payload, "hunter@example.com"))
             smtp_ssl.assert_not_called()
 
-    # ---- override ----
 
     def test_override_loads_and_saves(self):
         from dashboards.models import BugHunter
@@ -552,7 +534,6 @@ class TroubleshootTests(TestCase):
         self.report.refresh_from_db()
         self.assertEqual(self.report.report_title, "Test finding")
 
-    # ---- logs ----
 
     def test_view_logs_is_superuser_only(self):
         self.assertIn(self.client.get(self.reverse("view_logs")).status_code, (200,))

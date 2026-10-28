@@ -1,47 +1,31 @@
 # MAIL TEMPLATES FOR GEROBUG
-#
-# ── SHARED EMAIL LAYOUT ───────────────────────────────────────────────────────
-# Every template is built from the helpers below so all emails stay visually
-# consistent and the HTML is handled correctly. Deliverability / anti-spam rules
-# baked into this layout:
-#   - Inline CSS only (no <style> blocks, which many clients strip or penalise)
-#   - No images, no tracking pixels, no remote resources
-#   - Minimal, purposeful links and a healthy text-to-HTML ratio
-#   - Neutral, transactional wording and an identifying automated-message footer
-#
-# Placeholders (~ID~, ~TITLE~, ~STATUS~, ~NOTE~, ~SEVERITY~, ~USERNAME~, ~DOMAIN~,
-# ~UID~, ~TOKEN~) are substituted by the mailer/views and must be preserved.
 
-_P    = "margin:0 0 16px 0;"                                            # standard paragraph
-_LAST = "margin:0;"                                                     # final paragraph (no trailing gap)
-_LIST = "margin:0 0 16px 0; padding-left:22px;"                         # ordered / unordered list
+_P    = "margin:0 0 16px 0;"
+_LAST = "margin:0;"
+_LIST = "margin:0 0 16px 0; padding-left:22px;"
 _NOTE = ("margin:0 0 16px 0; padding:12px 16px; background-color:#f0f4f8; "
-         "border-left:4px solid #1f2933; border-radius:4px;")          # highlighted callout box
-_LINK = "color:#1f6feb;"                                                # inline hyperlink
+         "border-left:4px solid #1f2933; border-radius:4px;")
+_LINK = "color:#1f6feb;"
 _BTN  = ("display:inline-block; padding:10px 18px; background-color:#1f2933; "
-         "color:#ffffff; text-decoration:none; border-radius:4px;")     # call-to-action button
+         "color:#ffffff; text-decoration:none; border-radius:4px;")
 
 
 def _para(text, style=_P):
-    """A standard body paragraph."""
     return '<p style="' + style + '">' + text + "</p>"
 
 
 def _note(label, token):
-    """A bold label followed by a highlighted callout box (reasons / instructions / notes)."""
     return ('<p style="margin:0 0 6px 0; font-weight:bold;">' + label + "</p>"
             '<div style="' + _NOTE + '">' + token + "</div>")
 
 
 def _list(items):
-    """An ordered list rendered from a sequence of HTML strings."""
     return ('<ol style="' + _LIST + '">'
             + "".join("<li>" + item + "</li>" for item in items)
             + "</ol>")
 
 
 def _wrap(content):
-    """Wrap inner content in the shared, inline-styled email shell."""
     return (
         "<html>"
         '<body style="margin:0; padding:0; background-color:#f4f4f5;">'
@@ -64,7 +48,6 @@ _HELLO   = _para("Hello,")
 _SIGNOFF = _para("Best Regards,<br>Gerobug Bug Bounty Platform", _LAST)
 
 
-# ── CONFIRMATION TEMPLATES ────────────────────────────────────────────────────
 subject_201 = "Report Submission Confirmed: ~ID~"
 message_201 = _wrap(
     _HELLO
@@ -170,7 +153,6 @@ message_208 = _wrap(
 )
 
 
-# ── ERROR TEMPLATES ───────────────────────────────────────────────────────────
 subject_403 = "Authorization Failure: Report ~ID~"
 message_403 = _wrap(
     _HELLO
@@ -219,7 +201,6 @@ message_406 = _wrap(
 )
 
 
-# ── NOTIFICATION TEMPLATES ────────────────────────────────────────────────────
 subject_300 = "Notification: Status Update for Report ~ID~"
 message_300 = _wrap(
     _HELLO
@@ -261,8 +242,10 @@ message_409 = _wrap(
             "be recorded: you have already used all <b>3</b> appeals available to you "
             "on this report.")
     + _para("As stated in our bounty decision email, the valuation standing after the "
-            "third appeal is final. It is therefore treated as accepted, and the report "
-            "will proceed to bounty processing. No further action is required from you.")
+            "third appeal is final. It is treated as accepted: you may confirm it now "
+            "by sending an email with the subject \"<b>AGREE_~ID~</b>\", or it will be "
+            "accepted automatically 30 days after the latest bounty decision email. "
+            "No further action is required from you.")
     + _para("We do appreciate the time you put into the submission, and we hope to see "
             "your next one.")
     + _SIGNOFF
@@ -296,7 +279,6 @@ message_407 = _wrap(
     + _SIGNOFF
 )
 
-# ── REQUEST TEMPLATES ─────────────────────────────────────────────────────────
 subject_701 = "Action Required: Additional Info for Report ~ID~"
 message_701 = _wrap(
     _HELLO
@@ -392,7 +374,6 @@ message_705 = _wrap(
 )
 
 
-# ── ACCOUNT TEMPLATES ─────────────────────────────────────────────────────────
 subject_9999 = "Gerobug: Password Reset Request"
 message_9999 = _wrap(
     _HELLO
@@ -420,23 +401,23 @@ subjectlist = {
     206: subject_206,   # NDA SUCCESS (ID)
     207: subject_207,   # CHECK SCORE (NOTE)
     208: subject_208,   # CHECK ALL STATUS (ID, NOTE)
-    209: subject_209,   # BOUNTY PREREQUISITES RECEIVED - INFO ONLY (ID)
+    209: subject_209,
 
     300: subject_300,   # INVALID NOTIFICATION (TITLE, ID, STATUS, NOTE)
     301: subject_301,   # STATUS UPDATE NOTIFICATION (TITLE, ID, STATUS)
-    302: subject_302,   # BOUNTY AUTO-ACCEPTED, NO APPEAL (TITLE, ID, STATUS, SEVERITY)
+    302: subject_302,
 
     403: subject_403,   # UNAUTHORIZED (ID)
     404: subject_404,   # INVALID FORMAT
     405: subject_405,   # INVALID REPORT ID (ID)
     406: subject_406,   # BLACKLIST (NOTE)
-    407: subject_407,   # SELF-INITIATED UPDATE LIMIT REACHED (ID)
-    408: subject_408,   # UPDATES CLOSED, PAST BOUNTY CALCULATION (ID, STATUS)
-    409: subject_409,   # APPEAL LIMIT REACHED, DETERMINATION FINAL (ID)
+    407: subject_407,
+    408: subject_408,
+    409: subject_409,
 
     701: subject_701,   # REQUEST UPDATE/AMEND (TITLE, ID, NOTE, URL)
     702: subject_702,   # SEND BOUNTY CALCULATIONS (TITLE, ID, NOTE, URL)
-    703: subject_703,   # REQUEST NDA + PREREQUISITES (TITLE, ID, NOTE, URL)
+    703: subject_703,
     704: subject_704,   # SEND BOUNTY + PROOF (TITLE, ID)
     705: subject_705,   # REQUEST PREREQUISITES - NO NDA (TITLE, ID, NOTE)
 

@@ -35,7 +35,6 @@ def safe_html_format(text):
     return escaped
 
 
-
 # WRITE EMAIL REPLY (CONFIRMATIONS)
 def write_mail(code, payload, Destination):
     # Close stale DB connections when called from threads
@@ -44,10 +43,6 @@ def write_mail(code, payload, Destination):
     except:
         pass
 
-    # TROUBLESHOOTING: silently drop hunter-facing email while the sinkhole
-    # is active (Settings > Troubleshooting). Callers still get True so their
-    # own side effects (permission bumps, last_email_code bookkeeping) run
-    # unaffected; only the SMTP hand-off is skipped.
     if TroubleshootSettings.objects.filter(settings_id=1, hunter_email_sinkhole=True).exists():
         logging.getLogger("Gerologger").warning(
             f"Email to hunter SUPPRESSED by sinkhole (troubleshooting mode) | "
