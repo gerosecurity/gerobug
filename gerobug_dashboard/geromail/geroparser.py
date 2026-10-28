@@ -768,6 +768,14 @@ def company_action(id, note, code):
     payload = [id, report.report_title, report.report_status, note, report.report_severity]
     destination = report.hunter_email
 
+    # REMEMBER WHAT WAS SENT SO IT CAN BE RE-SENT IF DELIVERY BOUNCES
+    try:
+        report.last_email_code = code
+        report.last_email_note = note or ''
+        report.save(update_fields=['last_email_code', 'last_email_note'])
+    except Exception as e:
+        logging.getLogger("Gerologger").warning(f"Could not record last email for {id}: {e}")
+
     geromailer.write_mail(code, payload, destination)
 
 def check_mailbox_status():

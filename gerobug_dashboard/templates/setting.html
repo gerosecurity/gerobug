@@ -680,15 +680,219 @@
                             </div>
 
                             <div class="tab-pane" id="troubleshoot">
-                                <h6>TROUBLESHOOTING</h6>
-                                <hr>
-                                <form method="POST" enctype="multipart/form-data">
+                                <h5 class="card-title">Troubleshooting</h5>
+                                <p class="text-muted">Recover missing files, resend failed emails, override report fields, and inspect server logs without SSH access.</p>
 
-                                    {% csrf_token %}
-                                    {{ troubleshoot.as_p }}
-                                    
-                                    <button class="btn btn-primary" type="submit" id="troubleshoot-1">Run</button>
-                                </form>
+                                {% for message in messages %}
+                                    {% if message.tags == "success" %}
+                                    <p class="alert alert-success" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                    {% elif message.tags == "warning" %}
+                                    <p class="alert alert-warning" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                    {% else %}
+                                    <p class="alert alert-danger" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                                    {% endif %}
+                                {% endfor %}
+
+                                <!-- RECOVER LOSS REPORT FILES -->
+                                <div class="card mb-4 shadow-sm">
+                                    <div class="card-header bg-light"><h6 class="mb-0 fw-bold">Recover Loss Report Files</h6></div>
+                                    <div class="card-body">
+                                        <p class="small text-muted">Re-process reports whose attachment files are missing from disk.</p>
+                                        <form method="POST" enctype="multipart/form-data">
+                                            {% csrf_token %}
+                                            {{ troubleshoot.as_p }}
+                                            <button class="btn btn-primary" type="submit" id="troubleshoot-1">Run Recovery</button>
+                                        </form>
+                                    </div>
+                                </div>
+
+                                <!-- RESEND NOTIFICATION EMAIL -->
+                                <div class="card mb-4 shadow-sm">
+                                    <div class="card-header bg-light"><h6 class="mb-0 fw-bold">Resend Email</h6></div>
+                                    <div class="card-body">
+                                        <p class="small text-muted">If an email failed to reach the hunter (e.g. a bounced delivery), resend the <strong>last email an operator initiated</strong> for a report &mdash; invalid notices, amend/update requests, bounty calculations, NDA/prerequisite requests, status notifications, and completion emails (certificate). Automated replies to the hunter (invalid format, unauthorized, unknown report ID) are never resent. The original message text, reasons, and attachments are re-sent as-is; no status, score, or permission changes are made. Resending a <strong>bounty calculation</strong> while the report is still at Bounty Calculation restarts the hunter's 30-day appeal window from the resend. Enter the Report ID.</p>
+                                        <form method="POST" action="{% url 'resend_email' %}">
+                                            {% csrf_token %}
+                                            <div class="row g-2 align-items-center">
+                                                <div class="col-md-6 mb-2">
+                                                    <input type="text" name="report_id" class="form-control" placeholder="Report ID (e.g. A1B2C3D4E5F6)" required>
+                                                </div>
+                                                <div class="col-md-3 mb-2">
+                                                    <button class="btn btn-primary w-100" type="submit">Resend</button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+
+                                <!-- OVERRIDE REPORT FIELDS -->
+                                <div class="card mb-4 shadow-sm">
+                                    <div class="card-header bg-light"><h6 class="mb-0 fw-bold">Override Report Fields</h6></div>
+                                    <div class="card-body">
+                                        <p class="small text-muted">Manually correct a report's <strong>title</strong>, <strong>status</strong>, <strong>endpoint</strong>, <strong>attack type</strong>, <strong>duplicate tag</strong> or <strong>hunter name</strong> without touching the database. Enter a Report ID and click <strong>Load</strong>, edit the fields, then <strong>Save</strong>. No emails are sent and the hunter's score/permissions are not changed.</p>
+                                        <div class="row g-2 align-items-center mb-2">
+                                            <div class="col-md-6 mb-2">
+                                                <input type="text" id="override_report_id" class="form-control" placeholder="Report ID (e.g. A1B2C3D4E5F6)">
+                                            </div>
+                                            <div class="col-md-3 mb-2">
+                                                <button type="button" id="override-load" class="btn btn-outline-primary w-100">Load</button>
+                                            </div>
+                                        </div>
+                                        <div id="override-msg" class="small mb-2"></div>
+                                        <form method="POST" action="{% url 'report_override' %}" id="overrideForm" style="display:none;">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="report_id" id="override_hidden_id">
+                                            <div class="form-group">
+                                                <label class="small text-muted mb-1">Hunter Name <span class="text-muted" id="override_hunter_email_hint"></span></label>
+                                                <input type="text" name="hunter_name" id="override_hunter_name" class="form-control" maxlength="50">
+                                                <small class="form-text text-muted">Updating the name affects all of this hunter's reports and the Hall of Fame.</small>
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="small text-muted mb-1">Title</label>
+                                                <input type="text" name="title" id="override_title" class="form-control" maxlength="255" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="small text-muted mb-1">Status</label>
+                                                <select name="status" id="override_status" class="form-control">
+                                                    {% for s in report_statuses %}
+                                                    <option value="{{ s.status_id }}">{{ s.status_id }} &mdash; {{ s.status_name }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="small text-muted mb-1">Endpoint</label>
+                                                <input type="text" name="endpoint" id="override_endpoint" class="form-control" maxlength="255">
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="small text-muted mb-1">Attack Type</label>
+                                                <input type="text" name="attack" id="override_attack" class="form-control" maxlength="255">
+                                            </div>
+                                            <div class="form-check mb-3">
+                                                <input type="checkbox" name="duplicate" value="1" id="override_duplicate" class="form-check-input">
+                                                <label class="form-check-label small" for="override_duplicate">Duplicate tag <span class="text-muted">(ticked = flagged as duplicate)</span></label>
+                                            </div>
+                                            <button type="submit" class="btn btn-primary">Save Override</button>
+                                        </form>
+                                    </div>
+                                </div>
+
+                                <div class="card mb-4 shadow-sm">
+                                    <div class="card-header bg-light"><h6 class="mb-0 fw-bold">Hunter Email Sinkhole</h6></div>
+                                    <div class="card-body">
+                                        <p class="small text-muted">While active, every outgoing email to bug hunters (status notifications, NDA/bounty/completion emails, auto-replies) is silently dropped &mdash; nothing is sent, but report status/permission updates still happen normally. Use this before manually re-requesting an update or marking a hunter email unread for re-ingestion, to avoid double-notifying them. Admin password-reset email and Slack/Telegram notifications are <strong>not</strong> affected. This does not auto-disable &mdash; turn it off here when you're done.</p>
+                                        {% if hunter_email_sinkhole_active %}
+                                        <p class="small text-danger fw-bold">Currently: ON &mdash; enabled by {{ sinkhole_enabled_by }} at {{ sinkhole_enabled_at }}.</p>
+                                        {% else %}
+                                        <p class="small text-muted">Currently: OFF.</p>
+                                        {% endif %}
+                                        <form method="POST" action="{% url 'toggle_hunter_sinkhole' %}">
+                                            {% csrf_token %}
+                                            {% if hunter_email_sinkhole_active %}
+                                            <button type="submit" class="btn btn-outline-secondary">Disable Sinkhole</button>
+                                            {% else %}
+                                            <button type="submit" class="btn btn-danger">Enable Sinkhole</button>
+                                            {% endif %}
+                                        </form>
+                                    </div>
+                                </div>
+
+                                <script>
+                                (function() {
+                                    var loadBtn = document.getElementById('override-load');
+                                    var idInput = document.getElementById('override_report_id');
+                                    var form = document.getElementById('overrideForm');
+                                    var msg = document.getElementById('override-msg');
+                                    if (!loadBtn) return;
+
+                                    loadBtn.addEventListener('click', function() {
+                                        var rid = (idInput.value || '').trim().toUpperCase();
+                                        if (rid.length !== 12 || !/^[0-9A-Z]+$/.test(rid)) {
+                                            msg.className = 'small mb-2 text-danger';
+                                            msg.textContent = 'Invalid Report ID format (12 alphanumeric characters).';
+                                            form.style.display = 'none';
+                                            return;
+                                        }
+                                        msg.className = 'small mb-2 text-muted';
+                                        msg.textContent = 'Loading…';
+                                        fetch("{% url 'report_override' %}?report_id=" + encodeURIComponent(rid), {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+                                            .then(function(r){ return r.json(); })
+                                            .then(function(data){
+                                                if (!data.ok) {
+                                                    msg.className = 'small mb-2 text-danger';
+                                                    msg.textContent = data.error || 'Report not found.';
+                                                    form.style.display = 'none';
+                                                    return;
+                                                }
+                                                document.getElementById('override_hidden_id').value = rid;
+                                                document.getElementById('override_hunter_name').value = data.hunter_name || '';
+                                                document.getElementById('override_hunter_email_hint').textContent = data.hunter_email ? '(' + data.hunter_email + ')' : '';
+                                                document.getElementById('override_title').value = data.title;
+                                                document.getElementById('override_endpoint').value = data.endpoint;
+                                                document.getElementById('override_attack').value = data.attack;
+                                                document.getElementById('override_duplicate').checked = (data.duplicate == 1);
+                                                document.getElementById('override_status').value = data.status;
+                                                form.style.display = '';
+                                                msg.className = 'small mb-2 text-success';
+                                                msg.textContent = 'Loaded ' + rid + '. Edit the fields and click Save Override.';
+                                            })
+                                            .catch(function(err){ msg.className = 'small mb-2 text-danger'; msg.textContent = 'Error: ' + err; });
+                                    });
+                                })();
+                                </script>
+
+                                <!-- SERVER LOGS -->
+                                <div class="card mb-4 shadow-sm">
+                                    <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap">
+                                        <h6 class="mb-0 fw-bold">Server Logs (gerobug.log)</h6>
+                                        <div class="d-flex align-items-center">
+                                            <select id="log-lines" class="form-select form-select-sm d-inline-block me-2" style="width:auto;">
+                                                <option value="100">Last 100</option>
+                                                <option value="200" selected>Last 200</option>
+                                                <option value="500">Last 500</option>
+                                                <option value="1000">Last 1000</option>
+                                            </select>
+                                            <button type="button" id="log-refresh" class="btn btn-sm btn-outline-secondary">Refresh</button>
+                                        </div>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <pre id="log-output" style="max-height:420px; overflow:auto; margin:0; padding:1rem; background:#1e1e1e; color:#d4d4d4; font-size:12px; line-height:1.45; white-space:pre-wrap; word-break:break-word;">Loading logs…</pre>
+                                    </div>
+                                </div>
+
+                                <script>
+                                (function() {
+                                    var logOutput = document.getElementById('log-output');
+                                    var refreshBtn = document.getElementById('log-refresh');
+                                    var linesSel = document.getElementById('log-lines');
+                                    if (!logOutput) return;
+
+                                    function fetchLogs() {
+                                        var n = linesSel ? linesSel.value : 200;
+                                        logOutput.textContent = 'Loading logs…';
+                                        fetch("{% url 'view_logs' %}?lines=" + encodeURIComponent(n), {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+                                            .then(function(r){ return r.json(); })
+                                            .then(function(data){
+                                                if (data.ok) {
+                                                    logOutput.textContent = data.lines.join('\n') || '(log is empty)';
+                                                    logOutput.scrollTop = logOutput.scrollHeight;
+                                                } else {
+                                                    logOutput.textContent = 'Unable to load logs: ' + (data.error || 'unknown error');
+                                                }
+                                            })
+                                            .catch(function(err){ logOutput.textContent = 'Error loading logs: ' + err; });
+                                    }
+
+                                    if (refreshBtn) refreshBtn.addEventListener('click', fetchLogs);
+                                    if (linesSel) linesSel.addEventListener('change', fetchLogs);
+
+                                    // Load logs when the troubleshoot tab is opened
+                                    var trigger = document.querySelector('a[href="#troubleshoot"]');
+                                    if (trigger) trigger.addEventListener('click', function(){ setTimeout(fetchLogs, 150); });
+
+                                    // Or immediately if the page is already on #troubleshoot
+                                    if (window.location.hash === '#troubleshoot') setTimeout(fetchLogs, 300);
+                                })();
+                                </script>
                             </div>
                         </div>
                     </div>

@@ -21,6 +21,22 @@
   detail link and PDF download.
 - **Hunter emails restyled** to a single inline-styled layout.
 
+### Troubleshooting
+
+Settings > Troubleshooting gains four tools (superuser only):
+
+- **Resend Email.** Replays the last email a triager sent for a report
+  (invalid notice, amend request, bounty calculation, NDA/prerequisite
+  request, status notification, completion certificate) after a bounce. No
+  status, score or permission changes. Resending a bounty calculation while
+  the report is still at Bounty Calculation restarts the hunter's 30-day
+  appeal window, since that is when they can actually read it.
+- **Override Report Fields.** Correct a report's title, status, endpoint,
+  attack type, duplicate tag or hunter name without touching the database.
+- **Hunter Email Sinkhole.** Silently drops every outgoing hunter email while
+  on, with a banner on every page until it is turned off.
+- **Server Logs.** Tail gerobug.log from the dashboard.
+
 ### Upgrade note
 
 The submission guidelines gained a bullet asking hunters to share videos,
@@ -28,7 +44,8 @@ archives and exploit code as links inside the PDF. Installations that already
 have their rules saved keep the stored text, so paste the bullet into
 Settings > Rules if you want it. Reports already at Bounty Calculation before
 the upgrade never auto-accept, because their hunters were not told about the
-30-day window; re-send the calculation to start it.
+30-day window; re-send the calculation (report page or Troubleshooting >
+Resend) to start it. Resend only knows about emails sent after the upgrade.
 
 ## v3.1 — 25 OCT 2026
 

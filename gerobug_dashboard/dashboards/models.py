@@ -59,6 +59,11 @@ class BugReport(models.Model):
     # restarts it. Null on reports calculated before this field existed, so
     # those never auto-accept: their hunters were never told about the window.
     report_calc_sent_at = models.DateTimeField(null=True, blank=True)
+    # The last email an operator initiated (template code + its ~NOTE~ text),
+    # so Settings > Troubleshooting > Resend can replay it after a bounce.
+    # Parser auto-replies to the hunter (2xx/4xx) are never recorded here.
+    last_email_code = models.IntegerField(default=0)
+    last_email_note = models.TextField(blank=True, default='')
 
     class Meta:
       ordering = ['-report_datetime']
@@ -314,3 +319,16 @@ class Personalization(models.Model):
 
     def __str__(self):
         return self.personalize_id
+
+
+class TroubleshootSettings(models.Model):
+    """Singleton (settings_id=1) troubleshooting toggles, editable from
+    Settings > Troubleshooting (superuser only).
+    """
+    settings_id = models.IntegerField(default=1, unique=True)
+    hunter_email_sinkhole = models.BooleanField(default=False)
+    sinkhole_enabled_by = models.CharField(max_length=150, blank=True, default='')
+    sinkhole_enabled_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"TroubleshootSettings (sinkhole={'on' if self.hunter_email_sinkhole else 'off'})"

@@ -12,7 +12,7 @@ from email import encoders
 from django.db import connection
 
 from . import mail_templates
-from dashboards.models import ReportStatus
+from dashboards.models import ReportStatus, TroubleshootSettings
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
 from prerequisites.models import MailBox
 
@@ -43,6 +43,17 @@ def write_mail(code, payload, Destination):
         connection.close()
     except:
         pass
+
+    # TROUBLESHOOTING: silently drop hunter-facing email while the sinkhole
+    # is active (Settings > Troubleshooting). Callers still get True so their
+    # own side effects (permission bumps, last_email_code bookkeeping) run
+    # unaffected; only the SMTP hand-off is skipped.
+    if TroubleshootSettings.objects.filter(settings_id=1, hunter_email_sinkhole=True).exists():
+        logging.getLogger("Gerologger").warning(
+            f"Email to hunter SUPPRESSED by sinkhole (troubleshooting mode) | "
+            f"To: {Destination} | Template: {code}"
+        )
+        return True
     
     # MINT THE MESSAGE IDENTITY ONCE, OUTSIDE THE RETRY LOOP.
     # A retry has to re-send the *same* message. Without a Message-ID the relay

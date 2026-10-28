@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import LogoutForm, ReportFiles, ReportStatusView, ReportUpdateStatus, KanbanMove, FormHandler, InvalidHandler, AdminSetting, OWASPCalculator, CVSSCalculator, ReviewerDelete, NotificationDelete, RenderDashboardAdmin, ReportDetails, UpdateDetails, AppealDetails, NDADetails, ReportUpdate, ReportDelete
+from .views import LogoutForm, ReportFiles, ReportStatusView, ReportUpdateStatus, KanbanMove, FormHandler, InvalidHandler, AdminSetting, OWASPCalculator, CVSSCalculator, ReviewerDelete, NotificationDelete, RenderDashboardAdmin, ReportDetails, UpdateDetails, AppealDetails, NDADetails, ReportUpdate, ReportDelete, ResendEmail, ToggleHunterEmailSinkhole, ViewLogs, ReportOverride
 
 urlpatterns = [
     path("", RenderDashboardAdmin.as_view(), name="dashboard"),
@@ -23,6 +23,10 @@ urlpatterns = [
     path("notification-delete/<str:service>", NotificationDelete,name="notification_handler"),
     
     path("setting", AdminSetting, name="setting"),
+    path("resend-email", ResendEmail, name="resend_email"),
+    path("view-logs", ViewLogs, name="view_logs"),
+    path("report-override", ReportOverride, name="report_override"),
+    path("toggle-hunter-sinkhole", ToggleHunterEmailSinkhole, name="toggle_hunter_sinkhole"),
     path("owasp-calculator", OWASPCalculator, name="owasp-calculator"),
     path("cvss-calculator", CVSSCalculator, name="cvss-calculator"),
     path("logout/", LogoutForm, name="logout"),

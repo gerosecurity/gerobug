@@ -331,3 +331,173 @@ class ReportDetailLifecycleTests(PageRenderTests):
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "<h6>Updates")
         self.assertNotContains(response, "<h6>Appeals")
+
+
+class TroubleshootTests(TestCase):
+    """Settings > Troubleshooting: resend, sinkhole, override, server logs."""
+
+    def setUp(self):
+        from django.urls import reverse
+        self.reverse = reverse
+        for i, name in enumerate(PageRenderTests.STATUS_NAMES):
+            ReportStatus.objects.get_or_create(status_id=i, defaults={"status_name": name})
+        MailBox.objects.create(mailbox_id=1, email="ops@example.com", password="pw", mailbox_status=1)
+        self.report = BugReport.objects.create(
+            report_id="AB12CD34EF56", report_datetime=timezone.now(),
+            hunter_email="hunter@example.com", report_reviewer="reviewer",
+            report_title="Test finding", report_summary="s", report_severity=7.5,
+            report_severitytype="", report_status=5, report_permission=2,
+        )
+        # Singletons apps.py ready() seeds in a real deployment. Explicit pk=1:
+        # the views fetch them by id, and Postgres sequences are not reset
+        # between test cases.
+        Personalization.objects.get_or_create(personalize_id=1)
+        BlacklistRule.objects.get_or_create(rule_id=1)
+        CertificateData.objects.get_or_create(pk=1)
+        StaticRules.objects.get_or_create(pk=1)
+        self.admin = User.objects.create_superuser(username="admin1", password="x", email="a@b.c")
+        self.client.force_login(self.admin)
+
+    def resend(self):
+        """POST the resend form with the SMTP hand-off captured; return the
+        (code, payload) write_mail would have been called with."""
+        # The resend thread runs inline so the call can be inspected. Its
+        # connection.close() would close the test's own Postgres connection,
+        # so it is neutralised for the duration.
+        with mock.patch("dashboards.views.geroparser.check_mailbox_status", return_value=True), \
+                mock.patch("dashboards.views.geromailer.write_mail") as write_mail, \
+                mock.patch("dashboards.views.geromailer.notify") as notify, \
+                mock.patch("django.db.connection.close"), \
+                mock.patch("dashboards.views.threading.Thread",
+                           side_effect=lambda target, args=(), **kw: mock.Mock(
+                               start=lambda: target(*args))):
+            self.client.post(self.reverse("resend_email"), {"report_id": self.report.report_id})
+        notify.assert_not_called()   # a resend never fabricates a notification
+        if not write_mail.called:
+            return None, None
+        return write_mail.call_args[0][0], write_mail.call_args[0][1]
+
+    # ---- resend ----
+
+    def test_company_action_records_what_resend_replays(self):
+        from geromail import geromailer, geroparser
+        with mock.patch.object(geromailer, "write_mail"):
+            geroparser.company_action(self.report.report_id, "7.5 HIGH", 702)
+        code, payload = self.resend()
+        self.assertEqual((code, payload[3]), (702, "7.5 HIGH"))
+
+    def test_nothing_recorded_sends_nothing(self):
+        self.assertEqual(self.resend(), (None, None))
+
+    def test_resent_calculation_restarts_the_appeal_window(self):
+        """A calculation is resent because the hunter never got it, so the
+        30-day window must count from the resend, not the bounced original."""
+        from datetime import timedelta
+        from dashboards.models import APPEAL_WINDOW_DAYS
+        self.report.report_calc_sent_at = timezone.now() - timedelta(days=25)
+        self.report.last_email_code, self.report.last_email_note = 702, "7.5 HIGH"
+        self.report.save()
+
+        code, payload = self.resend()
+        self.assertEqual((code, payload[3]), (702, "7.5 HIGH"))
+        self.report.refresh_from_db()
+        self.assertGreater(self.report.auto_accept_at,
+                           timezone.now() + timedelta(days=APPEAL_WINDOW_DAYS - 1))
+        self.assertEqual(self.report.report_permission, 2)   # no permission side effects
+        self.assertEqual(self.report.report_status, 5)
+
+    def test_resend_past_bounty_calculation_leaves_the_clock_alone(self):
+        from datetime import timedelta
+        stamp = timezone.now() - timedelta(days=40)
+        self.report.report_status = 6
+        self.report.report_calc_sent_at = stamp
+        self.report.last_email_code, self.report.last_email_note = 702, "7.5 HIGH"
+        self.report.save()
+        self.assertEqual(self.resend()[0], 702)
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.report_calc_sent_at, stamp)
+
+    def test_resend_of_other_emails_does_not_touch_the_clock(self):
+        self.report.last_email_code, self.report.last_email_note = 701, "need a PoC"
+        self.report.save()
+        self.assertEqual(self.resend()[0], 701)
+        self.report.refresh_from_db()
+        self.assertIsNone(self.report.report_calc_sent_at)
+
+    def test_invalid_handler_records_its_reason(self):
+        with mock.patch("dashboards.views.geroparser.check_mailbox_status", return_value=True), \
+                mock.patch("dashboards.views.threading.Thread"):
+            self.client.post(self.reverse("invalid_handler", args=[self.report.report_id]),
+                             {"invalidreasons": "Out of scope: staging host"})
+        self.report.refresh_from_db()
+        self.assertEqual((self.report.last_email_code, self.report.last_email_note),
+                         (300, "Out of scope: staging host"))
+
+    def test_resend_requires_superuser(self):
+        reviewer = User.objects.create_user(username="rev", password="x")
+        self.client.force_login(reviewer)
+        self.report.last_email_code = 702
+        self.report.save()
+        self.assertEqual(self.resend(), (None, None))
+
+    # ---- sinkhole ----
+
+    def test_sinkhole_toggle_and_banner(self):
+        from dashboards.models import TroubleshootSettings
+        self.client.post(self.reverse("toggle_hunter_sinkhole"))
+        row = TroubleshootSettings.objects.get(settings_id=1)
+        self.assertTrue(row.hunter_email_sinkhole)
+        self.assertEqual(row.sinkhole_enabled_by, "admin1")
+        self.assertContains(self.client.get("/dashboard/"), "Hunter email sinkhole is ACTIVE")
+
+        self.client.post(self.reverse("toggle_hunter_sinkhole"))
+        row.refresh_from_db()
+        self.assertFalse(row.hunter_email_sinkhole)
+        self.assertNotContains(self.client.get("/dashboard/"), "Hunter email sinkhole is ACTIVE")
+
+    def test_sinkhole_suppresses_smtp_but_reports_success(self):
+        from dashboards.models import TroubleshootSettings
+        from geromail import geromailer
+        TroubleshootSettings.objects.create(settings_id=1, hunter_email_sinkhole=True)
+        payload = [self.report.report_id, "Title", 5, "note", 7.5]
+        with mock.patch.object(geromailer, "connection"), \
+                mock.patch.object(geromailer.smtplib, "SMTP_SSL") as smtp_ssl:
+            self.assertTrue(geromailer.write_mail(702, payload, "hunter@example.com"))
+            smtp_ssl.assert_not_called()
+
+    # ---- override ----
+
+    def test_override_loads_and_saves(self):
+        from dashboards.models import BugHunter
+        BugHunter.objects.create(hunter_email="hunter@example.com", hunter_username="old", hunter_scores=0)
+        data = self.client.get(self.reverse("report_override"),
+                               {"report_id": self.report.report_id}).json()
+        self.assertTrue(data["ok"])
+        self.assertEqual((data["title"], data["hunter_name"]), ("Test finding", "old"))
+
+        self.client.post(self.reverse("report_override"), {
+            "report_id": self.report.report_id, "title": "Fixed title", "status": "3",
+            "endpoint": "https://e", "attack": "XSS", "duplicate": "1", "hunter_name": "new"})
+        self.report.refresh_from_db()
+        self.assertEqual((self.report.report_title, self.report.report_status,
+                          self.report.report_duplicate), ("Fixed title", 3, 1))
+        self.assertEqual(BugHunter.objects.get(hunter_email="hunter@example.com").hunter_username, "new")
+
+    def test_override_rejects_unknown_status(self):
+        self.client.post(self.reverse("report_override"), {
+            "report_id": self.report.report_id, "title": "x", "status": "99"})
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.report_title, "Test finding")
+
+    # ---- logs ----
+
+    def test_view_logs_is_superuser_only(self):
+        self.assertIn(self.client.get(self.reverse("view_logs")).status_code, (200,))
+        self.client.force_login(User.objects.create_user(username="rev", password="x"))
+        self.assertEqual(self.client.get(self.reverse("view_logs")).status_code, 403)
+
+    def test_settings_page_renders_the_troubleshoot_tab(self):
+        response = self.client.get("/dashboard/setting")
+        self.assertEqual(response.status_code, 200)
+        for heading in ("Resend Email", "Override Report Fields", "Hunter Email Sinkhole", "Server Logs"):
+            self.assertContains(response, heading)
