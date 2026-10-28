@@ -1,6 +1,7 @@
 import datetime as dt
 import email
 import email.message
+import inspect
 import io
 import os
 import re
@@ -18,8 +19,9 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-from dashboards.models import (APPEAL_WINDOW_DAYS, BlacklistRule, BugHunter, BugReport,
-                               BugReportAppeal, BugReportNDA, BugReportUpdate, ReportStatus)
+from dashboards.models import (APPEAL_WINDOW_DAYS, PROCESSED_MAIL_RETENTION_DAYS,
+                               BlacklistRule, BugHunter, BugReport, BugReportAppeal,
+                               BugReportNDA, BugReportUpdate, ProcessedMail, ReportStatus)
 from geromail import gerocalculator, gerofilter, geromailer, geronotify, geroparser, mail_templates
 from prerequisites.models import MailBox
 
@@ -1461,3 +1463,122 @@ class ReplyThreadingFlowTests(MailFlowTestCase):
         self.assertEqual(self.sent_codes(), [202])
         self.assertIn("in_reply_to", self.write_mail.call_args[1])
         self.assertTrue(self.write_mail.call_args[1]["in_reply_to"])
+class MailFingerprintTests(SimpleTestCase):
+
+    def _msg(self, **headers):
+        msg = email.message.EmailMessage()
+        for name, value in headers.items():
+            msg[name.replace("_", "-")] = value
+        msg.set_content("body text")
+        return msg
+
+    def test_message_id_is_the_fingerprint(self):
+        msg = self._msg(Message_ID="<abc@mail.example>")
+        self.assertEqual(geroparser.mail_fingerprint(msg), "<abc@mail.example>")
+
+    def test_folded_message_id_is_normalised(self):
+        folded = geroparser.parse_raw_message(
+            b"Message-ID: <abc\r\n @mail.example>\r\nSubject: x\r\n\r\nbody")
+        self.assertEqual(geroparser.mail_fingerprint(folded), "<abc@mail.example>")
+
+    def test_missing_message_id_uses_content_hash(self):
+        msg = self._msg(From="h@example.com", Date="Mon, 12 May 2025 10:00:00 +0200",
+                        Subject="CHECK_AB12CD34EF56")
+        fingerprint = geroparser.mail_fingerprint(msg)
+        self.assertRegex(fingerprint, r"^[0-9a-f]{64}$")
+        self.assertEqual(fingerprint, geroparser.mail_fingerprint(msg))
+
+    def test_content_hash_differs_per_message(self):
+        a = self._msg(From="h@example.com", Subject="CHECK_AB12CD34EF56")
+        b = self._msg(From="h@example.com", Subject="CHECK_CC11DD22EE33")
+        self.assertNotEqual(geroparser.mail_fingerprint(a),
+                            geroparser.mail_fingerprint(b))
+
+    def test_overlong_message_id_is_hashed_to_fit_the_column(self):
+        msg = self._msg(Message_ID="<" + "a" * 400 + "@mail.example>")
+        self.assertRegex(geroparser.mail_fingerprint(msg), r"^[0-9a-f]{64}$")
+
+
+class IngestDedupeTests(MailFlowTestCase):
+
+    def test_same_message_id_processed_once(self):
+        report = make_report()
+        raw = raw_mail("CHECK_" + report.report_id)
+        self.deliver(raw)
+        self.deliver(raw)
+        self.assertEqual(self.sent_codes(), [202])
+        self.assertEqual(ProcessedMail.objects.count(), 1)
+
+    def test_distinct_mail_is_still_answered(self):
+        report = make_report()
+        self.deliver(raw_mail("CHECK_" + report.report_id))
+        self.deliver(raw_mail("CHECK_" + report.report_id,
+                              date="Tue, 13 May 2025 10:00:00 +0200"))
+        self.assertEqual(self.sent_codes(), [202, 202])
+        self.assertEqual(ProcessedMail.objects.count(), 2)
+
+    def test_mail_without_a_message_id_dedupes_on_content(self):
+        report = make_report()
+        msg = MIMEMultipart("mixed")
+        msg["From"] = "Hunter <hunter@example.com>"
+        msg["Subject"] = "CHECK_" + report.report_id
+        msg["Date"] = "Mon, 12 May 2025 10:00:00 +0200"
+        msg["Return-Path"] = "<hunter@example.com>"
+        msg.attach(MIMEText("", "plain"))
+        raw = msg.as_bytes()
+        self.deliver(raw)
+        self.deliver(raw)
+        self.assertEqual(self.sent_codes(), [202])
+        row = ProcessedMail.objects.get()
+        self.assertRegex(row.fingerprint, r"^[0-9a-f]{64}$")
+
+    def test_a_submit_is_never_saved_twice(self):
+        raw = raw_mail("SUBMIT_A good long title", body=SUBMIT_BODY, pdf=MINIMAL_PDF)
+        self.deliver(raw)
+        self.deliver(raw)
+        self.assertEqual(self.sent_codes(), [201])
+        self.assertEqual(BugReport.objects.count(), 1)
+
+    def test_dedupe_runs_after_the_spoof_check(self):
+        report = make_report()
+        msg = MIMEMultipart("mixed")
+        msg["From"] = "Hunter <hunter@example.com>"
+        msg["Subject"] = "CHECK_" + report.report_id
+        msg["Date"] = "Mon, 12 May 2025 10:00:00 +0200"
+        msg["Message-ID"] = "<spoofed@example.com>"
+        msg["Return-Path"] = "<someone.else@example.com>"
+        msg.attach(MIMEText("", "plain"))
+        self.deliver(msg.as_bytes())
+        self.assertEqual(self.sent_codes(), [])
+        self.assertFalse(ProcessedMail.objects.exists())
+
+    def test_a_database_failure_does_not_drop_the_mail(self):
+        report = make_report()
+        with mock.patch.object(ProcessedMail.objects, "get_or_create",
+                               side_effect=RuntimeError("boom")):
+            self.deliver(raw_mail("CHECK_" + report.report_id))
+        self.assertEqual(self.sent_codes(), [202])
+
+
+class RetentionSweepTests(TestCase):
+
+    def test_retention_sweep_keeps_recent_rows(self):
+        now = timezone.now()
+        ProcessedMail.objects.create(fingerprint="<old@example.com>",
+                                     received_at=now - timedelta(days=181))
+        ProcessedMail.objects.create(fingerprint="<edge@example.com>",
+                                     received_at=now - timedelta(days=179))
+        ProcessedMail.objects.create(fingerprint="<new@example.com>",
+                                     received_at=now)
+        self.assertEqual(geroparser.sweep_processed_mail(), 1)
+        self.assertEqual(
+            sorted(ProcessedMail.objects.values_list("fingerprint", flat=True)),
+            ["<edge@example.com>", "<new@example.com>"])
+
+    def test_retention_window_is_180_days(self):
+        self.assertEqual(PROCESSED_MAIL_RETENTION_DAYS, 180)
+
+    def test_sweep_is_gated_on_the_loop_count(self):
+        source = inspect.getsource(geroparser.run)
+        self.assertIn("loop_count % 2880 == 0", source)
+        self.assertIn("sweep_processed_mail()", source)

@@ -391,7 +391,6 @@ _SUBJECT_ACTIONS = {
 }
 
 
-# CLASSIFY ACTION BY EMAIL SUBJECT
 def classify_action(email, subject):
     try:
         verb, rest = parse_subject(subject)

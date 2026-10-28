@@ -2,6 +2,7 @@ import email
 import imaplib
 import time
 import re
+import hashlib
 import logging
 import os
 import secrets
@@ -9,7 +10,7 @@ import ssl
 import traceback
 from email.utils import parsedate_tz, mktime_tz, parseaddr
 from email.header import decode_header
-from datetime import datetime
+from datetime import datetime, timedelta
 from unicodedata import normalize
 from django.db import connection, transaction
 from django.utils import timezone
@@ -19,8 +20,10 @@ from . import gerosecure
 from . import gerofilter
 from . import geromailer
 from . import geronotify
-from dashboards.models import (APPEAL_WINDOW_DAYS, BOUNTY_CALC_STATUS, BugHunter, BugReport,
-                               BugReportUpdate, BugReportAppeal, BugReportNDA)
+from dashboards.models import (APPEAL_WINDOW_DAYS, BOUNTY_CALC_STATUS,
+                               PROCESSED_MAIL_RETENTION_DAYS, BugHunter, BugReport,
+                               BugReportUpdate, BugReportAppeal, BugReportNDA,
+                               ProcessedMail)
 from prerequisites.models import MailBox
 from gerobug.settings import MEDIA_ROOT
 
@@ -39,12 +42,6 @@ ERROR_COUNT     = 0
 def _get_ssl_context():
     ctx = ssl.create_default_context()
     return ctx
-
-
-def read_submission(msg):
-    body = rm_html_tags(extract_email_body(msg)).strip()
-    pdf, reason = gerofilter.extract_pdf(msg)
-    return body, pdf, reason
 
 
 def read_submission(msg):
@@ -115,6 +112,49 @@ def generate_id():
         if not BugReport.objects.filter(report_id=id).exists():
             return id
     return _mint_id()
+
+
+def mail_fingerprint(msg):
+    message_id = mail_header_decode(msg.get('Message-ID')).strip()
+    message_id = re.sub(r'\s+', '', message_id)
+    if message_id:
+        if len(message_id) > 128:
+            return hashlib.sha256(message_id.encode('utf-8', 'replace')).hexdigest()
+        return message_id
+
+    try:
+        body = extract_email_body(msg)
+    except Exception:
+        body = ''
+    parts = [
+        str(msg.get('from') or ''),
+        str(msg.get('date') or ''),
+        str(msg.get('subject') or ''),
+        str(body or '')[:4096],
+    ]
+    return hashlib.sha256('|'.join(parts).encode('utf-8', 'replace')).hexdigest()
+
+
+def already_processed(msg):
+    fingerprint = mail_fingerprint(msg)
+    if not fingerprint:
+        return False
+    try:
+        _, created = ProcessedMail.objects.get_or_create(fingerprint=fingerprint)
+    except Exception as e:
+        logging.getLogger("Gerologger").warning(f"Ingest dedupe unavailable: {e}")
+        return False
+    return not created
+
+
+def sweep_processed_mail():
+    cutoff = timezone.now() - timedelta(days=PROCESSED_MAIL_RETENTION_DAYS)
+    deleted, _ = ProcessedMail.objects.filter(received_at__lt=cutoff).delete()
+    if deleted:
+        logging.getLogger("Gerologger").info(
+            f"Pruned {deleted} ProcessedMail rows older than "
+            f"{PROCESSED_MAIL_RETENTION_DAYS} days")
+    return deleted
 
 
 def _sanitize_imap_string(value):
@@ -454,6 +494,12 @@ def read_mail(mail, folder_name='inbox'):
                             _spoof = sender_auth_failure(msg, hunter_email)
                             if _spoof:
                                 logging.getLogger("Gerologger").warning(_spoof)
+                                continue
+
+                            if already_processed(msg):
+                                logging.getLogger("Gerologger").warning(
+                                    f'Already processed, Ignoring Mail! from={hunter_email} '
+                                    f'subject={email_subject}')
                                 continue
 
                             # MONITOR SPAM ACTIVITY
@@ -938,6 +984,13 @@ def run():
                 return
 
             check_auto_agree()
+
+            if loop_count % 2880 == 0:
+                try:
+                    sweep_processed_mail()
+                except Exception as e:
+                    logging.getLogger("Gerologger").warning(
+                        f"ProcessedMail sweep failed: {e}")
 
             try:
                 connection.close()

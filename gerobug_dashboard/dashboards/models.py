@@ -7,6 +7,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.core.validators import RegexValidator, MaxValueValidator, MinValueValidator, MinLengthValidator
+from django.utils import timezone
 from django_quill.fields import QuillField
 from geromail import gerocalculator
 from .rulestemplate import *
@@ -325,3 +326,14 @@ class TroubleshootSettings(models.Model):
 
     def __str__(self):
         return f"TroubleshootSettings (sinkhole={'on' if self.hunter_email_sinkhole else 'off'})"
+
+
+PROCESSED_MAIL_RETENTION_DAYS = 180
+
+
+class ProcessedMail(models.Model):
+    fingerprint = models.CharField(max_length=128, unique=True)
+    received_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    def __str__(self):
+        return self.fingerprint
