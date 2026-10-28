@@ -1,11 +1,10 @@
 import email
 import imaplib
 import time
-import hashlib
-import random
 import re
 import logging
 import os
+import secrets
 import ssl
 import traceback
 from email.utils import parsedate_tz, mktime_tz, parseaddr
@@ -99,15 +98,29 @@ def loop_sender_reason(hunter_email, our_email, auto_submitted=None):
     return ""
 
 
+_NUMERIC_ID_RE = re.compile(r"^[0-9]+([eE][0-9]+)?$")
+
+
+def _mint_id():
+    while True:
+        candidate = secrets.token_hex(6).upper()
+        if not _NUMERIC_ID_RE.match(candidate):
+            return candidate
+
+
 # GENERATE REPORT ID
-def generate_id(email, ts):
-    hashed = hashlib.md5(email.encode())
-    p1 = hashed.hexdigest()[0:4].upper()
-    p2 = str(ts)[-4:]
-    p3 = str(random.randint(1000,9999))
-    id = p1 + p2 + p3
-    
-    return id
+def generate_id():
+    for _ in range(10):
+        id = _mint_id()
+        if not BugReport.objects.filter(report_id=id).exists():
+            return id
+    return _mint_id()
+
+
+def _sanitize_imap_string(value):
+    if not value:
+        return ''
+    return str(value).replace('"', '').replace('\\', '').replace('\r', '').replace('\n', '')
 
 
 # INSERT USER TO BUGHUNTER MODEL
@@ -488,7 +501,7 @@ def read_mail(mail, folder_name='inbox'):
                                     payload[3] = reason
 
                                 else:
-                                    report_id = generate_id(hunter_email, int(msg_ts))
+                                    report_id = generate_id()
                                     payload[0] = report_id
 
                                     saveuser(hunter_email, str(hunter_name), 0)

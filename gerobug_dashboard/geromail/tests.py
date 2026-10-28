@@ -1032,3 +1032,26 @@ class ParseBodyTests(SimpleTestCase):
 
     def test_no_fields_yields_empty_strings(self):
         self.assertEqual(gerofilter.parse_body("just a plain reply, thanks"), ("", "", ""))
+
+
+class ReportIdTests(TestCase):
+
+    def test_generated_ids_are_12_hex_chars(self):
+        for _ in range(20):
+            report_id = geroparser.generate_id()
+            self.assertRegex(report_id, r"^[0-9A-F]{12}$")
+
+    def test_generated_ids_are_never_number_shaped(self):
+        for _ in range(200):
+            self.assertIsNone(geroparser._NUMERIC_ID_RE.match(geroparser._mint_id()))
+
+    def test_generate_id_skips_an_existing_row(self):
+        taken = geroparser._mint_id()
+        make_report(taken)
+        free = geroparser._mint_id()
+        with mock.patch.object(geroparser, "_mint_id", side_effect=[taken, free]):
+            self.assertEqual(geroparser.generate_id(), free)
+
+    def test_generate_id_takes_no_arguments(self):
+        with self.assertRaises(TypeError):
+            geroparser.generate_id("hunter@example.com", 1)
