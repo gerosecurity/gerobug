@@ -1,3 +1,4 @@
+import datetime as dt
 import email
 import email.message
 import io
@@ -647,6 +648,9 @@ class FakeIMAP:
         header = str(num).encode() + b" (RFC822 {" + str(len(raw)).encode() + b"}"
         return ("OK", [(header, raw)])
 
+    def login(self, user, password):
+        return ("OK", [b"LOGIN completed"])
+
     def noop(self):
         return ("OK", [b""])
 
@@ -1055,3 +1059,141 @@ class ReportIdTests(TestCase):
     def test_generate_id_takes_no_arguments(self):
         with self.assertRaises(TypeError):
             geroparser.generate_id("hunter@example.com", 1)
+
+
+class ImapSanitiseTests(SimpleTestCase):
+
+    def test_imap_string_sanitised(self):
+        self.assertEqual(
+            geroparser._sanitize_imap_string('a"b\\c\rd\ne'), "abcde")
+        self.assertEqual(geroparser._sanitize_imap_string(""), "")
+        self.assertEqual(geroparser._sanitize_imap_string(None), "")
+
+
+class RecoveryTargetTests(TestCase):
+
+    def setUp(self):
+        self.media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.media, ignore_errors=True)
+        patcher = mock.patch.object(geroparser, "MEDIA_ROOT", self.media)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.report = make_report()
+        os.makedirs(os.path.join(self.media, self.report.report_id))
+        with open(os.path.join(self.media, self.report.report_id,
+                               self.report.report_id + ".pdf"), "wb") as fp:
+            fp.write(b"report")
+
+    def _rows(self):
+        base = timezone.now()
+        BugReportUpdate.objects.create(
+            update_id=self.report.report_id + "U1", report_id=self.report.report_id,
+            update_datetime=base - timedelta(days=5), update_summary="s", update_file=1)
+        BugReportUpdate.objects.create(
+            update_id=self.report.report_id + "U2", report_id=self.report.report_id,
+            update_datetime=base - timedelta(days=4), update_summary="s", update_file=1)
+        BugReportUpdate.objects.create(
+            update_id=self.report.report_id + "U3", report_id=self.report.report_id,
+            update_datetime=base - timedelta(days=3), update_summary="s", update_file=0)
+        BugReportAppeal.objects.create(
+            appeal_id=self.report.report_id + "A1", report_id=self.report.report_id,
+            appeal_datetime=base - timedelta(days=2), appeal_summary="s", appeal_file=1)
+        BugReportNDA.objects.create(
+            nda_id=self.report.report_id + "N1", report_id=self.report.report_id,
+            nda_datetime=base - timedelta(days=1), nda_summary="s", nda_file=1)
+
+    def test_recovery_targets_include_appeals_and_older_updates(self):
+        self._rows()
+        targets = geroparser.missing_submission_files(self.report)
+        self.assertEqual(
+            [(file_id, kind) for file_id, kind, _ in targets],
+            [(self.report.report_id + "U1", "U"),
+             (self.report.report_id + "U2", "U"),
+             (self.report.report_id + "A1", "A"),
+             (self.report.report_id + "N1", "N")])
+
+    def test_rows_without_a_file_are_not_targets(self):
+        BugReportUpdate.objects.create(
+            update_id=self.report.report_id + "U1", report_id=self.report.report_id,
+            update_datetime=timezone.now(), update_summary="s", update_file=0)
+        self.assertEqual(geroparser.missing_submission_files(self.report), [])
+
+    def test_present_files_are_not_targets(self):
+        self._rows()
+        for file_id in ("U1", "U2", "A1", "N1"):
+            with open(os.path.join(self.media, self.report.report_id,
+                                   self.report.report_id + file_id + ".pdf"), "wb") as fp:
+                fp.write(b"x")
+        self.assertEqual(geroparser.missing_submission_files(self.report), [])
+
+    def test_missing_report_pdf_is_a_target(self):
+        os.remove(os.path.join(self.media, self.report.report_id,
+                               self.report.report_id + ".pdf"))
+        self.assertEqual(geroparser.missing_submission_files(self.report),
+                         [(self.report.report_id, None, None)])
+
+
+class RecoverySearchTests(TestCase):
+
+    def setUp(self):
+        self.media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.media, ignore_errors=True)
+        for module in (geroparser, gerofilter):
+            patcher = mock.patch.object(module, "MEDIA_ROOT", self.media)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.report = make_report(report_title='Quoted "title" with \\ slash')
+        MailBox.objects.create(mailbox_id=1, email="bounty@example.com",
+                               mailbox_type="2")
+
+    def _recover(self, file_id, kind, when, messages):
+        fake = FakeIMAP(messages)
+        with mock.patch.object(geroparser.imaplib, "IMAP4_SSL", return_value=fake):
+            result = geroparser.recover_loss_file(file_id, kind, when)
+        return fake, result
+
+    def test_imap_search_strings_are_sanitised(self):
+        fake, _ = self._recover(self.report.report_id, None, None, [])
+        self.assertTrue(fake.searches)
+        for criteria in fake.searches:
+            self.assertNotIn('"title"', criteria)
+            self.assertNotIn("\\", criteria)
+            self.assertIn("Quoted title with  slash", criteria)
+
+    def test_appeal_recovery_searches_appeal_prefix(self):
+        fake, _ = self._recover(self.report.report_id + "A1", "A", None, [])
+        self.assertIn("APPEAL_" + self.report.report_id, fake.searches[0])
+
+    def test_data_recovery_tries_data_then_nda(self):
+        fake, _ = self._recover(self.report.report_id + "N1", "N", None, [])
+        self.assertIn("DATA_" + self.report.report_id, fake.searches[0])
+        self.assertIn("NDA_" + self.report.report_id, fake.searches[1])
+
+    def test_update_recovery_searches_update_prefix(self):
+        fake, _ = self._recover(self.report.report_id + "U1", "U", None, [])
+        self.assertIn("UPDATE_" + self.report.report_id, fake.searches[0])
+
+    def test_closest_dated_message_is_recovered(self):
+        wanted = raw_mail("UPDATE_" + self.report.report_id, body="first",
+                          pdf=MINIMAL_PDF, date="Mon, 12 May 2025 10:00:00 +0000")
+        other = raw_mail("UPDATE_" + self.report.report_id, body="second",
+                         pdf=make_pdf(pad=16), date="Mon, 19 May 2025 10:00:00 +0000")
+        when = dt.datetime(2025, 5, 12, 11, 0, tzinfo=dt.timezone.utc)
+        _, result = self._recover(self.report.report_id + "U1", "U", when, [wanted, other])
+        self.assertTrue(result)
+        path = os.path.join(self.media, self.report.report_id,
+                            self.report.report_id + "U1.pdf")
+        with open(path, "rb") as fp:
+            self.assertEqual(fp.read(), MINIMAL_PDF)
+
+    def test_without_a_date_the_latest_message_is_used(self):
+        first = raw_mail("UPDATE_" + self.report.report_id, body="first",
+                         pdf=MINIMAL_PDF, date="Mon, 12 May 2025 10:00:00 +0000")
+        latest = raw_mail("UPDATE_" + self.report.report_id, body="second",
+                          pdf=make_pdf(pad=16), date="Mon, 19 May 2025 10:00:00 +0000")
+        _, result = self._recover(self.report.report_id + "U1", "U", None, [first, latest])
+        self.assertTrue(result)
+        path = os.path.join(self.media, self.report.report_id,
+                            self.report.report_id + "U1.pdf")
+        with open(path, "rb") as fp:
+            self.assertEqual(fp.read(), make_pdf(pad=16))

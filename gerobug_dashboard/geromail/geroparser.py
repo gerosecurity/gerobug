@@ -954,6 +954,31 @@ def run():
             except Exception:
                 pass
 
+def missing_submission_files(report):
+    targets = []
+    report_id = report.report_id
+
+    report_name = report_id + ".pdf"
+    if not os.path.isfile(os.path.join(MEDIA_ROOT, report_id, report_name)):
+        targets.append((report_id, None, None))
+
+    rows = (
+        ("U", BugReportUpdate.objects.filter(report_id=report_id, update_file=1),
+         "update_id", "update_datetime"),
+        ("A", BugReportAppeal.objects.filter(report_id=report_id, appeal_file=1),
+         "appeal_id", "appeal_datetime"),
+        ("N", BugReportNDA.objects.filter(report_id=report_id, nda_file=1),
+         "nda_id", "nda_datetime"),
+    )
+    for kind, queryset, id_field, date_field in rows:
+        for row in queryset:
+            file_id = getattr(row, id_field)
+            if not os.path.isfile(os.path.join(MEDIA_ROOT, report_id, file_id + ".pdf")):
+                targets.append((file_id, kind, getattr(row, date_field)))
+
+    return targets
+
+
 # RECOVER LOSS FILES
 def recover_loss_file_handler(BUGREPORTS):
     success = 0
@@ -962,42 +987,13 @@ def recover_loss_file_handler(BUGREPORTS):
 
     for report in BUGREPORTS:
         if report.report_status != 0: #EXCLUDE INVALID REPORTS
-            id = report.report_id
-            report_name = id + ".pdf"
-
-            # CHECK REPORT FILE
-            FILEPATH = os.path.join(MEDIA_ROOT,id,report_name)
-            if not os.path.isfile(FILEPATH):
-                logging.getLogger("Gerologger").info("Recovering = " + str(report_name))
-                if recover_loss_file(id,None):
+            for file_id, kind, when in missing_submission_files(report):
+                logging.getLogger("Gerologger").info("Recovering = " + str(file_id) + ".pdf")
+                if recover_loss_file(file_id, kind, when):
                     success += 1
                 else:
                     failed += 1
 
-            # CHECK UPDATE FILE 
-            if report.report_update > 0:
-                update_id = str(id) + "U" + str(report.report_update)
-                update_file = update_id + ".pdf"
-                FILEPATH = os.path.join(MEDIA_ROOT,id,update_file)
-                if not os.path.isfile(FILEPATH):
-                    logging.getLogger("Gerologger").info("Recovering = " + str(update_file))
-                    if recover_loss_file(update_id,"U"):
-                        success += 1
-                    else:
-                        failed += 1
-
-            # CHECK NDA FILE 
-            if report.report_nda > 0:
-                nda_id = str(id) + "N" + str(report.report_nda)
-                nda_file = nda_id + ".pdf"
-                FILEPATH = os.path.join(MEDIA_ROOT,id,nda_file)
-                if not os.path.isfile(FILEPATH):
-                    logging.getLogger("Gerologger").info("Recovering = " + str(nda_file))
-                    if recover_loss_file(nda_id,"N"):
-                        success += 1
-                    else:
-                        failed += 1
-            
     total = success + failed
     if total == 0 :
         logging.getLogger("Gerologger").info("NO LOSS REPORT FILES")
@@ -1007,7 +1003,32 @@ def recover_loss_file_handler(BUGREPORTS):
         logging.getLogger("Gerologger").info("SUCCESS RATE: " +  str(success_rate) + "%")
 
 
-def recover_loss_file(id, type):
+def _closest_message_id(mail, id_list, when):
+    if when is None or len(id_list) == 1:
+        return int(id_list[-1])
+
+    target = when.timestamp()
+    best = int(id_list[-1])
+    best_distance = None
+    for raw_id in id_list:
+        try:
+            data = mail.fetch(str(int(raw_id)), '(BODY.PEEK[HEADER.FIELDS (DATE)])')
+            for response_part in data[1] if isinstance(data, tuple) else data:
+                part = response_part[1] if isinstance(response_part, tuple) else None
+                if part is None:
+                    continue
+                candidate = parse_raw_message(part)
+                distance = abs(message_timestamp(candidate) - target)
+                if best_distance is None or distance < best_distance:
+                    best_distance = distance
+                    best = int(raw_id)
+        except Exception as e:
+            logging.getLogger("Gerologger").debug(f"Could not read the date of message {raw_id}: {e}")
+
+    return best
+
+
+def recover_loss_file(id, type, when=None):
     report_id = str(id[:12])
     recover = False
 
@@ -1033,32 +1054,33 @@ def recover_loss_file(id, type):
 
         # READ DATA FROM INBOX
         mail.select('inbox')
-        if TYPE == "1": # GMAIL
-            if type == None:
-                SEARCH = "from:" + hunter_email + " subject:SUBMIT_" + report_title
-            elif type == "U":
-                SEARCH = "from:" + hunter_email + " subject:UPDATE_" + str(report_id)
-            elif type == "N":
-                SEARCH = "from:" + hunter_email + " subject:NDA_" + str(report_id)
-                
-            data = mail.search(None, r'X-GM-RAW "'+SEARCH+'"')
+        safe_email = _sanitize_imap_string(hunter_email)
+        safe_title = _sanitize_imap_string(report_title)
+        safe_id = _sanitize_imap_string(report_id)
+        subjects = {
+            None: ["SUBMIT_" + safe_title],
+            "U": ["UPDATE_" + safe_id],
+            "A": ["APPEAL_" + safe_id],
+            "N": ["DATA_" + safe_id, "NDA_" + safe_id],
+        }[type]
 
-        else:
-            if type == None:
-                SEARCH = '(FROM "' + hunter_email + '" SUBJECT "SUBMIT_' + report_title + '")'
-            elif type == "U":
-                SEARCH = '(FROM "' + hunter_email + '" SUBJECT "UPDATE_' + str(report_id) + '")'
-            elif type == "N":
-                SEARCH = '(FROM "' + hunter_email + '" SUBJECT "NDA_' + str(report_id) + '")'
+        id_list = []
+        for subject in subjects:
+            if TYPE == "1": # GMAIL
+                SEARCH = "from:" + safe_email + " subject:" + subject
+                data = mail.search(None, r'X-GM-RAW "'+SEARCH+'"')
+            else:
+                SEARCH = '(FROM "' + safe_email + '" SUBJECT "' + subject + '")'
+                data = mail.search(None, SEARCH)
 
-            data = mail.search(None, SEARCH)
-
-        mail_ids = data[1]
-        id_list = mail_ids[0].split()   
+            mail_ids = data[1]
+            id_list = mail_ids[0].split()
+            if id_list:
+                break
 
         # ITERATE THROUGH LIST OF EMAILS
         if(id_list):
-            latest_email_id = int(id_list[-1])
+            latest_email_id = _closest_message_id(mail, id_list, when)
             data = mail.fetch(str(latest_email_id), '(RFC822)' )
 
             for response_part in data:
