@@ -1,9 +1,14 @@
 import email
 import email.message
+import os
+import re
+import shutil
+import tempfile
+import time
 from datetime import timedelta
 from unittest import mock
 
-from django.test import SimpleTestCase, TestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.utils import timezone
 
 from dashboards.models import APPEAL_WINDOW_DAYS, BugReport, ReportStatus
@@ -503,3 +508,41 @@ class BounceMatchTests(TestCase):
     def test_unknown_report_does_not_match(self):
         self.assertFalse(geroparser.bounce_matches_report(
             {"report_id": "unknown", "failed_to": "hunter@example.org"}))
+
+
+LATIN1_SUBMIT = (
+    "From: Jose <me@example.com>\r\n"
+    "Subject: SUBMIT_Latin1 finding\r\n"
+    "Date: Mon, 12 May 2025 10:00:00 +0200\r\n"
+    "Content-Type: text/plain; charset=iso-8859-1\r\n"
+    "\r\n"
+    "TYPE=Caf\xe9 Injection\r\n"
+    "ENDPOINT=https://example.com/caf\xe9\r\n"
+    "SUMMARY=A caf\xe9 in the query string breaks the parser badly.\r\n"
+).encode("latin-1")
+
+
+class MessageDecodeTests(SimpleTestCase):
+
+    def test_latin1_body_parses(self):
+        msg = geroparser.parse_raw_message(LATIN1_SUBMIT)
+        body = geroparser.rm_html_tags(geroparser.extract_email_body(msg))
+        self.assertIn("Caf\xe9 Injection", body)
+        self.assertIn("SUMMARY=", body)
+
+    def test_missing_date_falls_back_to_now(self):
+        msg = email.message_from_string("Subject: SUBMIT_x\n\nbody")
+        before = int(time.time())
+        ts = geroparser.message_timestamp(msg)
+        self.assertGreaterEqual(ts, before)
+        self.assertLessEqual(ts, int(time.time()) + 1)
+
+    def test_garbage_date_falls_back(self):
+        msg = email.message_from_string("Date: not a date at all\nSubject: x\n\nbody")
+        before = int(time.time())
+        ts = geroparser.message_timestamp(msg)
+        self.assertGreaterEqual(ts, before)
+
+    def test_valid_date_is_used(self):
+        msg = geroparser.parse_raw_message(LATIN1_SUBMIT)
+        self.assertEqual(geroparser.message_timestamp(msg), 1747036800)

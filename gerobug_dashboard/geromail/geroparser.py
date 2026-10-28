@@ -41,6 +41,22 @@ def _get_ssl_context():
     ctx = ssl.create_default_context()
     return ctx
 
+
+def parse_raw_message(raw):
+    if isinstance(raw, bytes):
+        return email.message_from_bytes(raw)
+    return email.message_from_string(str(raw))
+
+
+def message_timestamp(msg):
+    parsed = parsedate_tz(msg.get('date') or '')
+    if parsed is None:
+        return int(time.time())
+    try:
+        return int(mktime_tz(parsed))
+    except (OverflowError, ValueError, TypeError):
+        return int(time.time())
+
 def loop_sender_reason(hunter_email, our_email, auto_submitted=None):
     """Why auto-replying to this sender risks a mail loop, or "" if it is safe.
 
@@ -277,7 +293,11 @@ def extract_email_body(msg):
     else:
         payload = msg.get_payload(decode=True)
         if payload is not None:
-            body = payload.decode('utf-8', errors='ignore')
+            charset = msg.get_content_charset() or 'utf-8'
+            try:
+                body = payload.decode(charset, errors='ignore')
+            except (LookupError, AttributeError):
+                body = payload.decode('utf-8', errors='ignore')
         else:
             body = ""
 
@@ -341,11 +361,10 @@ def read_mail(mail, folder_name='inbox'):
 
                         # EMAIL EXISTS
                         if isinstance(arr, tuple):
-                            msg = email.message_from_string(str(arr[1],'utf-8'))
+                            msg = parse_raw_message(arr[1])
 
                             # DATETIME FORMATTING
-                            msg_dt = parsedate_tz(msg['date'])
-                            msg_ts = mktime_tz(msg_dt) #timestamps
+                            msg_ts = message_timestamp(msg)
                             email_dt = datetime.fromtimestamp(msg_ts)
                             email_date = email_dt.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -1035,7 +1054,7 @@ def recover_loss_file(id, type):
 
                 # EMAIL EXISTS
                 if isinstance(arr, tuple):
-                    msg = email.message_from_string(str(arr[1],'utf-8'))
+                    msg = parse_raw_message(arr[1])
                     recover = gerofilter.validate_attachment(msg, id, MEDIA_ROOT) 
         else:
             logging.getLogger("Gerologger").error('SEARCHED EMAIL NOT FOUND = ' + str(SEARCH))  
