@@ -1472,20 +1472,37 @@ class MailFingerprintTests(SimpleTestCase):
         msg.set_content("body text")
         return msg
 
-    def test_message_id_is_the_fingerprint(self):
-        msg = self._msg(Message_ID="<abc@mail.example>")
-        self.assertEqual(geroparser.mail_fingerprint(msg), "<abc@mail.example>")
+    def test_message_id_drives_the_fingerprint(self):
+        msg = self._msg(From="h@example.com", Message_ID="<abc@mail.example>")
+        fingerprint = geroparser.mail_fingerprint(msg)
+        self.assertRegex(fingerprint, r"^mid:[0-9a-f]{64}$")
+        self.assertEqual(fingerprint, geroparser.mail_fingerprint(msg))
+
+    def test_message_id_case_is_ignored(self):
+        lower = self._msg(From="h@example.com", Message_ID="<abc@mail.example>")
+        upper = self._msg(From="h@example.com", Message_ID="<ABC@MAIL.EXAMPLE>")
+        self.assertEqual(geroparser.mail_fingerprint(lower),
+                         geroparser.mail_fingerprint(upper))
 
     def test_folded_message_id_is_normalised(self):
         folded = geroparser.parse_raw_message(
-            b"Message-ID: <abc\r\n @mail.example>\r\nSubject: x\r\n\r\nbody")
-        self.assertEqual(geroparser.mail_fingerprint(folded), "<abc@mail.example>")
+            b"From: h@example.com\r\nMessage-ID: <abc\r\n @mail.example>"
+            b"\r\nSubject: x\r\n\r\nbody")
+        straight = self._msg(From="h@example.com", Message_ID="<abc@mail.example>")
+        self.assertEqual(geroparser.mail_fingerprint(folded),
+                         geroparser.mail_fingerprint(straight))
+
+    def test_fingerprint_scoped_by_sender(self):
+        mine = self._msg(From="hunter@example.com", Message_ID="<shared@mail.example>")
+        theirs = self._msg(From="other@example.com", Message_ID="<shared@mail.example>")
+        self.assertNotEqual(geroparser.mail_fingerprint(mine),
+                            geroparser.mail_fingerprint(theirs))
 
     def test_missing_message_id_uses_content_hash(self):
         msg = self._msg(From="h@example.com", Date="Mon, 12 May 2025 10:00:00 +0200",
                         Subject="CHECK_AB12CD34EF56")
         fingerprint = geroparser.mail_fingerprint(msg)
-        self.assertRegex(fingerprint, r"^[0-9a-f]{64}$")
+        self.assertRegex(fingerprint, r"^sha256:[0-9a-f]{64}$")
         self.assertEqual(fingerprint, geroparser.mail_fingerprint(msg))
 
     def test_content_hash_differs_per_message(self):
@@ -1494,9 +1511,10 @@ class MailFingerprintTests(SimpleTestCase):
         self.assertNotEqual(geroparser.mail_fingerprint(a),
                             geroparser.mail_fingerprint(b))
 
-    def test_overlong_message_id_is_hashed_to_fit_the_column(self):
-        msg = self._msg(Message_ID="<" + "a" * 400 + "@mail.example>")
-        self.assertRegex(geroparser.mail_fingerprint(msg), r"^[0-9a-f]{64}$")
+    def test_overlong_message_id_fits_the_column(self):
+        msg = self._msg(From="h@example.com",
+                        Message_ID="<" + "a" * 400 + "@mail.example>")
+        self.assertLessEqual(len(geroparser.mail_fingerprint(msg)), 128)
 
 
 class IngestDedupeTests(MailFlowTestCase):
@@ -1530,7 +1548,7 @@ class IngestDedupeTests(MailFlowTestCase):
         self.deliver(raw)
         self.assertEqual(self.sent_codes(), [202])
         row = ProcessedMail.objects.get()
-        self.assertRegex(row.fingerprint, r"^[0-9a-f]{64}$")
+        self.assertRegex(row.fingerprint, r"^sha256:[0-9a-f]{64}$")
 
     def test_a_submit_is_never_saved_twice(self):
         raw = raw_mail("SUBMIT_A good long title", body=SUBMIT_BODY, pdf=MINIMAL_PDF)
@@ -1551,6 +1569,26 @@ class IngestDedupeTests(MailFlowTestCase):
         self.deliver(msg.as_bytes())
         self.assertEqual(self.sent_codes(), [])
         self.assertFalse(ProcessedMail.objects.exists())
+
+    def test_crash_after_claim_releases_fingerprint(self):
+        report = make_report()
+        raw = raw_mail("CHECK_" + report.report_id)
+        self.write_mail.side_effect = RuntimeError("smtp exploded")
+        self.deliver(raw)
+        self.assertFalse(ProcessedMail.objects.exists())
+
+        self.write_mail.side_effect = None
+        self.write_mail.reset_mock()
+        self.deliver(raw)
+        self.assertEqual(self.sent_codes(), [202])
+        self.assertEqual(ProcessedMail.objects.count(), 1)
+
+    def test_a_refused_mail_stays_recorded(self):
+        raw = raw_mail("CHECK_ZZ99YY88XX77")
+        self.deliver(raw)
+        self.deliver(raw)
+        self.assertEqual(self.sent_codes(), [405])
+        self.assertEqual(ProcessedMail.objects.count(), 1)
 
     def test_a_database_failure_does_not_drop_the_mail(self):
         report = make_report()

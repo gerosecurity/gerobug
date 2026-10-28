@@ -114,37 +114,65 @@ def generate_id():
     return _mint_id()
 
 
-def mail_fingerprint(msg):
-    message_id = mail_header_decode(msg.get('Message-ID')).strip()
-    message_id = re.sub(r'\s+', '', message_id)
-    if message_id:
-        if len(message_id) > 128:
-            return hashlib.sha256(message_id.encode('utf-8', 'replace')).hexdigest()
-        return message_id
+_FINGERPRINT_WS = re.compile(r"\s+")
 
-    try:
-        body = extract_email_body(msg)
-    except Exception:
-        body = ''
+
+def mail_fingerprint(msg):
+    _, sender = parse_sender(msg.get('from'))
+    sender = str(sender or '').strip().lower()
+
+    message_id = _FINGERPRINT_WS.sub('', str(msg.get('Message-ID') or ''))
+    if message_id:
+        seed = sender + "\n" + message_id.lower()
+        return "mid:" + hashlib.sha256(seed.encode('utf-8', 'replace')).hexdigest()
+
     parts = [
+        sender,
         str(msg.get('from') or ''),
         str(msg.get('date') or ''),
         str(msg.get('subject') or ''),
-        str(body or '')[:4096],
     ]
-    return hashlib.sha256('|'.join(parts).encode('utf-8', 'replace')).hexdigest()
+    try:
+        body = msg.as_bytes()[:4096]
+    except Exception:
+        body = repr(msg.get_payload())[:4096].encode('utf-8', 'replace')
+    digest = hashlib.sha256('|'.join(parts).encode('utf-8', 'replace') + b'|' + body)
+    return "sha256:" + digest.hexdigest()
 
 
-def already_processed(msg):
-    fingerprint = mail_fingerprint(msg)
+def claim_mail(msg):
+    try:
+        fingerprint = mail_fingerprint(msg)
+    except Exception as e:
+        logging.getLogger("Gerologger").warning(f"Could not fingerprint mail: {e}")
+        return False, ''
     if not fingerprint:
-        return False
+        return False, ''
     try:
         _, created = ProcessedMail.objects.get_or_create(fingerprint=fingerprint)
     except Exception as e:
         logging.getLogger("Gerologger").warning(f"Ingest dedupe unavailable: {e}")
+        return False, ''
+    if not created:
+        return True, ''
+    return False, fingerprint
+
+
+def already_processed(msg):
+    seen, _ = claim_mail(msg)
+    return seen
+
+
+def release_fingerprint(fingerprint):
+    if not fingerprint:
         return False
-    return not created
+    try:
+        deleted, _ = ProcessedMail.objects.filter(fingerprint=fingerprint).delete()
+    except Exception as e:
+        logging.getLogger("Gerologger").warning(
+            f"Could not release ingest fingerprint {fingerprint}: {e}")
+        return False
+    return bool(deleted)
 
 
 def sweep_processed_mail():
@@ -418,6 +446,7 @@ def read_mail(mail, folder_name='inbox'):
         # ITERATE THROUGH LIST OF EMAILS
         if(id_list):
             for i_str in id_list:
+                claimed = ''
                 try:
                     i = int(i_str)
                     data = mail.fetch(str(i), '(RFC822)' )
@@ -496,7 +525,8 @@ def read_mail(mail, folder_name='inbox'):
                                 logging.getLogger("Gerologger").warning(_spoof)
                                 continue
 
-                            if already_processed(msg):
+                            seen, claimed = claim_mail(msg)
+                            if seen:
                                 logging.getLogger("Gerologger").warning(
                                     f'Already processed, Ignoring Mail! from={hunter_email} '
                                     f'subject={email_subject}')
@@ -807,6 +837,7 @@ def read_mail(mail, folder_name='inbox'):
                                                   in_reply_to=msg['Message-ID'])
                 
                 except Exception as e:
+                    release_fingerprint(claimed)
                     logging.getLogger("Gerologger").error(f"Error processing email ID {i}: {str(e)}")
                     continue
                         
