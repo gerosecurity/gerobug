@@ -420,15 +420,23 @@ def InvalidHandler(request, id):
                 if geroparser.check_mailbox_status():
                     reasons = form.cleaned_data.get('invalidreasons')
 
+                    duplicate_of = form.cleaned_data.get('duplicate_of') or ''
+                    if duplicate_of == report.report_id:
+                        messages.error(request, "A report cannot be marked as a duplicate of itself.")
+                        return redirect('dashboard')
+
                     # MARK AS INVALID
                     report.report_status = 0
+                    if duplicate_of:
+                        report.report_duplicate = 1
+                        report.report_duplicate_of = duplicate_of
                     # Record the invalid notification (template 300) and its
                     # reasons so Troubleshooting > Resend can replay it faithfully.
                     report.last_email_code = 300
                     report.last_email_note = reasons or ''
                     report.save()
                         
-                    logging.getLogger("Gerologger").info("REPORT "+str(id)+" MARKED AS INVALID BY "+str(request.user.username))
+                    logging.getLogger("Gerologger").info("REPORT "+str(id)+" MARKED AS INVALID BY "+str(request.user.username)+(" (duplicate of "+duplicate_of+")" if duplicate_of else ""))
                         
                     def trigger_geromailer(report, reasons=reasons):
                         from django.db import connection as db_connection
@@ -1068,7 +1076,9 @@ def ReportOverride(request):
         report.report_endpoint = endpoint
         report.report_attack = attack
         report.report_duplicate = duplicate
-        report.save(update_fields=['report_title', 'report_status', 'report_endpoint', 'report_attack', 'report_duplicate'])
+        if not duplicate:
+            report.report_duplicate_of = ''
+        report.save(update_fields=['report_title', 'report_status', 'report_endpoint', 'report_attack', 'report_duplicate', 'report_duplicate_of'])
 
         # Hunter name lives on BugHunter (per hunter_email); updating it affects
         # all of that hunter's reports and the Hall of Fame.

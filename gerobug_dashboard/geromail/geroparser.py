@@ -8,7 +8,7 @@ import logging
 import os
 import ssl
 import traceback
-from email.utils import parsedate_tz, mktime_tz
+from email.utils import parsedate_tz, mktime_tz, parseaddr
 from email.header import decode_header
 from datetime import datetime
 from unicodedata import normalize
@@ -154,8 +154,43 @@ def save_uan(type, id, report_id, date, summary, file):
 
 
 def mail_header_decode(text):
-    decoded_text = decode_header(text)
-    return u"".join([str(part.decode(encoding or 'utf-8')) if isinstance(part, bytes) else part for part, encoding in decoded_text])
+    if not text:
+        return ""
+    try:
+        return u"".join([
+            part.decode(encoding or 'utf-8', errors='replace') if isinstance(part, bytes) else part
+            for part, encoding in decode_header(text)])
+    except Exception:
+        return str(text)
+
+
+def parse_sender(raw_from):
+    raw_from = str(raw_from or "")
+    display_name, addr = parseaddr(raw_from)
+    match = re.search(r"[\w\.\-+_]+@[\w\.\-+_]+\.[\w]+", addr or raw_from)
+    email_address = match.group() if match else ""
+
+    name = mail_header_decode(display_name)
+    if len(name) < 3:
+        name = email_address[:email_address.find('@')]
+
+    return re.sub(r'[^\w\s\-]', '', name, flags=re.UNICODE).strip(), email_address
+
+
+def sender_auth_failure(msg, hunter_email):
+    auth_results = msg.get('Authentication-Results', '')
+    if auth_results:
+        spf_pass = bool(re.search(r'\bspf=pass\b', auth_results, re.IGNORECASE))
+        dkim_pass = bool(re.search(r'\bdkim=pass\b', auth_results, re.IGNORECASE))
+        if not (spf_pass or dkim_pass):
+            return f'Spoofing blocked (SPF/DKIM failed): spf={spf_pass}, dkim={dkim_pass}, from={hunter_email}'
+
+    return_path = re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", str(msg.get('return-path', '')), re.IGNORECASE)
+    if return_path is None:
+        return 'Possible Spoofing Attempt (no Return-Path), Ignoring Mail!'
+    if hunter_email.lower() != return_path.group().lower():
+        return f'Possible Spoofing Attempt (Return-Path mismatch), Ignoring Mail! from={hunter_email}'
+    return None
 
 
 def parse_bounce(msg):
@@ -311,16 +346,7 @@ def read_mail(mail, folder_name='inbox'):
                             email_date = email_dt.strftime("%Y-%m-%d %H:%M:%S")
 
                             # PARSE HUNTER NAME, EMAIL, AND SUBJECT
-                            raw_from = str(msg['from'])
-                            separator = raw_from.find(' <')
-
-                            hunter_email = re.search(r"[\w\.\-+_]+@[\w\.\-+_]+\.[\w]+", raw_from).group()
-                            hunter_name = raw_from[:separator]
-                            if len(hunter_name) < 3:
-                                at = hunter_email.find('@')
-                                hunter_name = hunter_email[:at]
-
-                            hunter_name = re.sub(r'[^\w\s\-]', '', hunter_name, flags=re.UNICODE)
+                            hunter_name, hunter_email = parse_sender(msg['from'])
                             
                             # email_subject = msg['subject']
                             email_subject = mail_header_decode(msg['subject'])
@@ -369,16 +395,11 @@ def read_mail(mail, folder_name='inbox'):
                                 continue
 
                             # SPOOF PREVENTION
-                            spoof_check = re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", str(msg['return-path']))
-                            if spoof_check != None:
-                                spoof_check = spoof_check.group()
-                                if hunter_email != spoof_check:
-                                    logging.getLogger("Gerologger").warning('Possible Spoofing Attempt, Ignoring Mail!')
-                                    continue
-                            else:
-                                logging.getLogger("Gerologger").warning('Possible Spoofing Attempt, Ignoring Mail!')
+                            _spoof = sender_auth_failure(msg, hunter_email)
+                            if _spoof:
+                                logging.getLogger("Gerologger").warning(_spoof)
                                 continue
-                            
+
                             # MONITOR SPAM ACTIVITY
                             gerosecure.monitor(hunter_email, int(msg_ts))
                             

@@ -37,6 +37,26 @@ Settings > Troubleshooting gains four tools (superuser only):
   on, with a banner on every page until it is turned off.
 - **Server Logs.** Tail gerobug.log from the dashboard.
 
+### Mail security and duplicates
+
+- **Spoofed senders are rejected using the mail server's verdict.** When the
+  receiving mail server stamps an `Authentication-Results` header, a message
+  whose SPF and DKIM both fail is dropped, even if its `Return-Path` matches
+  `From:`. Without that header the old `Return-Path` comparison still applies,
+  now case-insensitive. That fallback is not real authentication: a sender
+  talking raw SMTP controls both headers. Run Gerobug behind a mail server
+  that stamps `Authentication-Results`.
+- **Hunter names are decoded properly.** Names like
+  `=?utf-8?Q?Jos=C3=A9_Sachs?=` reached the certificate as
+  `utf-8QJosC3A9_Sachs`, and a bare `From: me@example.com` lost its last
+  character.
+- **Duplicate detection ignores spelling differences.** Scheme, host case,
+  `www.`, trailing slash, query string and fragment no longer make the same
+  endpoint look different, and attack types compare without case or spacing.
+  The badge goes on the later report and links to the original.
+- **Mark as Invalid can name the original** of a duplicate. The report detail
+  page shows it as a link.
+
 ### Upgrade note
 
 The submission guidelines gained a bullet asking hunters to share videos,

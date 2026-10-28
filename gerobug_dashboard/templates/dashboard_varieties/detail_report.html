@@ -18,6 +18,12 @@
                     return;
                 }
                 $("#invalidreasons-error").hide();
+                var duplicateOf = $("#duplicate_of").val().trim().toUpperCase();
+                if (duplicateOf && !/^[A-Z0-9]{12}$/.test(duplicateOf)) {
+                    $("#duplicate_of-error").show();
+                    return;
+                }
+                $("#duplicate_of-error").hide();
                 var patched = "{% url 'invalid_handler' 0 %}".replace('0', "{{object.pk}}");
                 $.ajax({
                     type: 'POST',
@@ -25,6 +31,7 @@
                     data: {
                         csrfmiddlewaretoken: '{{ csrf_token }}',
                         invalidreasons: invalidreasons,
+                        duplicate_of: duplicateOf,
                     },
                     success: function (data) {
                         window.location.reload();
@@ -183,6 +190,14 @@
                           <td><div id="string_overflow">{{object.report_attack}}</div></td>
                         </tr>
 
+                        {% if object.report_duplicate_of %}
+                        <tr>
+                          <td>Duplicate Of</td>
+                          <td> : </td>
+                          <td><a href="{% url 'report_detail' object.report_duplicate_of %}">#{{ object.report_duplicate_of }}</a></td>
+                        </tr>
+                        {% endif %}
+
                         <tr>
                             <td>Affected Endpoint</td>
                             <td> : </td>
@@ -327,6 +342,12 @@
                                     {% csrf_token %}
                                     {{ invalidform.invalidreasons }}
                                     <div id="invalidreasons-error" class="text-danger mt-2" style="display:none;">Please enter at least 10 characters.</div>
+                                    <div class="mt-3">
+                                        <label for="duplicate_of" class="form-label">{{ invalidform.duplicate_of.label }} <span class="text-muted">(optional)</span></label>
+                                        {{ invalidform.duplicate_of }}
+                                        <div class="form-text">If this duplicates an existing report, enter that report's ID to flag it and link the two.</div>
+                                        <div id="duplicate_of-error" class="text-danger mt-2" style="display:none;">Report ID must be 12 alphanumeric characters.</div>
+                                    </div>
                                 </form>
                             </div>
                             <div class="modal-footer">
