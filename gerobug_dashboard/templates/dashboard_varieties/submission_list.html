@@ -1,0 +1,25 @@
+<ul class="submission-list">
+    {% for row in rows %}
+    <li class="submission-item">
+        <a class="file-link submission-link" href="{{ row.detail_url }}"
+           title="View {{ row.label|lower }} {{ row.tag }}">
+            <span class="submission-tag">{{ row.tag }}</span>
+            <span class="submission-when">{{ row.when|date:"j M Y, H:i" }}</span>
+            {% if row.has_file %}
+            <i class="bi bi-paperclip submission-clip" title="Has a PDF attachment"></i>
+            {% endif %}
+        </a>
+        {% if row.summary %}
+        <div class="submission-summary">{{ row.summary|striptags|truncatechars:90 }}</div>
+        {% endif %}
+        {% if row.has_file %}
+        <a class="submission-file" target="_blank" rel="noopener noreferrer"
+           href="{% url 'report_files' row.ident %}">
+            <i class="bi bi-file-earmark-arrow-down"></i> Download PDF
+        </a>
+        {% endif %}
+    </li>
+    {% empty %}
+    <li class="submission-empty">None received.</li>
+    {% endfor %}
+</ul>

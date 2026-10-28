@@ -289,3 +289,259 @@ class LegacyPaletteMigrationTests(TestCase):
     def test_no_theme_row_is_safe(self):
         Personalization.objects.all().delete()
         self.assertFalse(Personalization.migrate_legacy_palette())
+
+
+class ReportDetailLifecycleTests(PageRenderTests):
+
+    URL = "/dashboard/report-detail/AB12CD34EF56"
+
+    def setUp(self):
+        super().setUp()
+        self.report = BugReport.objects.get(report_id="AB12CD34EF56")
+
+    def test_pages_render(self):
+        pass
+
+
+    def _await_auto_accept(self, days_ago):
+        from datetime import timedelta
+        self.report.report_status = 5
+        self.report.report_permission = 2
+        self.report.report_calc_sent_at = timezone.now() - timedelta(days=days_ago)
+        self.report.save()
+
+    def test_detail_page_shows_the_auto_accept_deadline(self):
+        from django.template.defaultfilters import date as date_filter
+        self._await_auto_accept(days_ago=10)
+        response = self.client.get(self.URL)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Auto-accepts in")
+        self.assertContains(response, date_filter(self.report.auto_accept_at, "j M Y, H:i"))
+
+    def test_detail_page_hides_the_deadline_once_appealed(self):
+        self._await_auto_accept(days_ago=10)
+        self.report.report_permission = 0
+        self.report.save()
+        self.assertNotContains(self.client.get(self.URL), "Auto-accepts in")
+
+    def test_detail_page_has_no_deadline_before_a_calculation(self):
+        self.assertNotContains(self.client.get(self.URL), "Auto-accepts in")
+
+    def test_kanban_card_shows_the_deadline(self):
+        self._await_auto_accept(days_ago=10)
+        self.assertContains(self.client.get("/dashboard/"), "auto-accepts in")
+
+
+    def _submit(self, kind, n, days_ago, summary, has_file=0):
+        from datetime import timedelta
+        from dashboards.models import BugReportAppeal, BugReportNDA, BugReportUpdate
+        model, prefix = {'U': (BugReportUpdate, 'update'),
+                         'A': (BugReportAppeal, 'appeal'),
+                         'N': (BugReportNDA, 'nda')}[kind]
+        ident = self.report.report_id + kind + str(n)
+        return model.objects.create(**{
+            prefix + '_id': ident,
+            'report_id': self.report.report_id,
+            prefix + '_datetime': timezone.now() - timedelta(days=days_ago),
+            prefix + '_summary': summary,
+            prefix + '_file': has_file,
+        })
+
+    def test_every_submission_is_listed_newest_first(self):
+        from dashboards.views import build_hunter_submissions
+        self._submit('U', 1, days_ago=9, summary="first update")
+        self._submit('U', 2, days_ago=5, summary="second update")
+        self._submit('U', 3, days_ago=1, summary="third update")
+        self._submit('A', 1, days_ago=3, summary="appealing the valuation")
+        self._submit('N', 1, days_ago=2, summary="bank details")
+
+        subs = build_hunter_submissions(self.report)
+        self.assertEqual([r['tag'] for r in subs['updates']], ['U3', 'U2', 'U1'])
+        self.assertEqual([r['tag'] for r in subs['appeals']], ['A1'])
+        self.assertEqual([r['tag'] for r in subs['data']], ['N1'])
+
+        response = self.client.get(self.URL)
+        self.assertEqual(response.status_code, 200)
+        for summary in ("first update", "second update", "third update",
+                        "appealing the valuation", "bank details"):
+            self.assertContains(response, summary)
+        for tag in ("U1", "U2", "U3"):
+            self.assertContains(response, f"update-detail/{self.report.report_id}{tag}")
+
+    def test_download_link_only_when_the_pdf_is_really_there(self):
+        import os
+        from dashboards.views import build_hunter_submissions
+        from gerobug.settings import MEDIA_ROOT
+        self._submit('U', 1, days_ago=1, summary="claims a file", has_file=1)
+        self.assertFalse(build_hunter_submissions(self.report)['updates'][0]['has_file'])
+
+        os.makedirs(os.path.join(MEDIA_ROOT, self.report.report_id), exist_ok=True)
+        pdf = os.path.join(MEDIA_ROOT, self.report.report_id, self.report.report_id + 'U1.pdf')
+        try:
+            with open(pdf, 'wb') as fh:
+                fh.write(b'%PDF-1.4')
+            self.assertTrue(build_hunter_submissions(self.report)['updates'][0]['has_file'])
+            self.assertContains(self.client.get(self.URL), "Download PDF")
+        finally:
+            os.remove(pdf)
+
+    def test_cards_are_omitted_when_nothing_was_submitted(self):
+        response = self.client.get(self.URL)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "<h6>Updates")
+        self.assertNotContains(response, "<h6>Appeals")
+
+
+class TroubleshootTests(TestCase):
+
+    def setUp(self):
+        from django.urls import reverse
+        self.reverse = reverse
+        for i, name in enumerate(PageRenderTests.STATUS_NAMES):
+            ReportStatus.objects.get_or_create(status_id=i, defaults={"status_name": name})
+        MailBox.objects.create(mailbox_id=1, email="ops@example.com", password="pw", mailbox_status=1)
+        self.report = BugReport.objects.create(
+            report_id="AB12CD34EF56", report_datetime=timezone.now(),
+            hunter_email="hunter@example.com", report_reviewer="reviewer",
+            report_title="Test finding", report_summary="s", report_severity=7.5,
+            report_severitytype="", report_status=5, report_permission=2,
+        )
+        Personalization.objects.get_or_create(personalize_id=1)
+        BlacklistRule.objects.get_or_create(rule_id=1)
+        CertificateData.objects.get_or_create(pk=1)
+        StaticRules.objects.get_or_create(pk=1)
+        self.admin = User.objects.create_superuser(username="admin1", password="x", email="a@b.c")
+        self.client.force_login(self.admin)
+
+    def resend(self):
+        with mock.patch("dashboards.views.geroparser.check_mailbox_status", return_value=True), \
+                mock.patch("dashboards.views.geromailer.write_mail") as write_mail, \
+                mock.patch("dashboards.views.geromailer.notify") as notify, \
+                mock.patch("django.db.connection.close"), \
+                mock.patch("dashboards.views.threading.Thread",
+                           side_effect=lambda target, args=(), **kw: mock.Mock(
+                               start=lambda: target(*args))):
+            self.client.post(self.reverse("resend_email"), {"report_id": self.report.report_id})
+        notify.assert_not_called()
+        if not write_mail.called:
+            return None, None
+        return write_mail.call_args[0][0], write_mail.call_args[0][1]
+
+
+    def test_company_action_records_what_resend_replays(self):
+        from geromail import geromailer, geroparser
+        with mock.patch.object(geromailer, "write_mail"):
+            geroparser.company_action(self.report.report_id, "7.5 HIGH", 702)
+        code, payload = self.resend()
+        self.assertEqual((code, payload[3]), (702, "7.5 HIGH"))
+
+    def test_nothing_recorded_sends_nothing(self):
+        self.assertEqual(self.resend(), (None, None))
+
+    def test_resent_calculation_restarts_the_appeal_window(self):
+        from datetime import timedelta
+        from dashboards.models import APPEAL_WINDOW_DAYS
+        self.report.report_calc_sent_at = timezone.now() - timedelta(days=25)
+        self.report.last_email_code, self.report.last_email_note = 702, "7.5 HIGH"
+        self.report.save()
+
+        code, payload = self.resend()
+        self.assertEqual((code, payload[3]), (702, "7.5 HIGH"))
+        self.report.refresh_from_db()
+        self.assertGreater(self.report.auto_accept_at,
+                           timezone.now() + timedelta(days=APPEAL_WINDOW_DAYS - 1))
+        self.assertEqual(self.report.report_permission, 2)
+        self.assertEqual(self.report.report_status, 5)
+
+    def test_resend_past_bounty_calculation_leaves_the_clock_alone(self):
+        from datetime import timedelta
+        stamp = timezone.now() - timedelta(days=40)
+        self.report.report_status = 6
+        self.report.report_calc_sent_at = stamp
+        self.report.last_email_code, self.report.last_email_note = 702, "7.5 HIGH"
+        self.report.save()
+        self.assertEqual(self.resend()[0], 702)
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.report_calc_sent_at, stamp)
+
+    def test_resend_of_other_emails_does_not_touch_the_clock(self):
+        self.report.last_email_code, self.report.last_email_note = 701, "need a PoC"
+        self.report.save()
+        self.assertEqual(self.resend()[0], 701)
+        self.report.refresh_from_db()
+        self.assertIsNone(self.report.report_calc_sent_at)
+
+    def test_invalid_handler_records_its_reason(self):
+        with mock.patch("dashboards.views.geroparser.check_mailbox_status", return_value=True), \
+                mock.patch("dashboards.views.threading.Thread"):
+            self.client.post(self.reverse("invalid_handler", args=[self.report.report_id]),
+                             {"invalidreasons": "Out of scope: staging host"})
+        self.report.refresh_from_db()
+        self.assertEqual((self.report.last_email_code, self.report.last_email_note),
+                         (300, "Out of scope: staging host"))
+
+    def test_resend_requires_superuser(self):
+        reviewer = User.objects.create_user(username="rev", password="x")
+        self.client.force_login(reviewer)
+        self.report.last_email_code = 702
+        self.report.save()
+        self.assertEqual(self.resend(), (None, None))
+
+
+    def test_sinkhole_toggle_and_banner(self):
+        from dashboards.models import TroubleshootSettings
+        self.client.post(self.reverse("toggle_hunter_sinkhole"))
+        row = TroubleshootSettings.objects.get(settings_id=1)
+        self.assertTrue(row.hunter_email_sinkhole)
+        self.assertEqual(row.sinkhole_enabled_by, "admin1")
+        self.assertContains(self.client.get("/dashboard/"), "Hunter email sinkhole is ACTIVE")
+
+        self.client.post(self.reverse("toggle_hunter_sinkhole"))
+        row.refresh_from_db()
+        self.assertFalse(row.hunter_email_sinkhole)
+        self.assertNotContains(self.client.get("/dashboard/"), "Hunter email sinkhole is ACTIVE")
+
+    def test_sinkhole_suppresses_smtp_but_reports_success(self):
+        from dashboards.models import TroubleshootSettings
+        from geromail import geromailer
+        TroubleshootSettings.objects.create(settings_id=1, hunter_email_sinkhole=True)
+        payload = [self.report.report_id, "Title", 5, "note", 7.5]
+        with mock.patch.object(geromailer, "connection"), \
+                mock.patch.object(geromailer.smtplib, "SMTP_SSL") as smtp_ssl:
+            self.assertTrue(geromailer.write_mail(702, payload, "hunter@example.com"))
+            smtp_ssl.assert_not_called()
+
+
+    def test_override_loads_and_saves(self):
+        from dashboards.models import BugHunter
+        BugHunter.objects.create(hunter_email="hunter@example.com", hunter_username="old", hunter_scores=0)
+        data = self.client.get(self.reverse("report_override"),
+                               {"report_id": self.report.report_id}).json()
+        self.assertTrue(data["ok"])
+        self.assertEqual((data["title"], data["hunter_name"]), ("Test finding", "old"))
+
+        self.client.post(self.reverse("report_override"), {
+            "report_id": self.report.report_id, "title": "Fixed title", "status": "3",
+            "endpoint": "https://e", "attack": "XSS", "duplicate": "1", "hunter_name": "new"})
+        self.report.refresh_from_db()
+        self.assertEqual((self.report.report_title, self.report.report_status,
+                          self.report.report_duplicate), ("Fixed title", 3, 1))
+        self.assertEqual(BugHunter.objects.get(hunter_email="hunter@example.com").hunter_username, "new")
+
+    def test_override_rejects_unknown_status(self):
+        self.client.post(self.reverse("report_override"), {
+            "report_id": self.report.report_id, "title": "x", "status": "99"})
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.report_title, "Test finding")
+
+
+    def test_view_logs_is_superuser_only(self):
+        self.assertIn(self.client.get(self.reverse("view_logs")).status_code, (200,))
+        self.client.force_login(User.objects.create_user(username="rev", password="x"))
+        self.assertEqual(self.client.get(self.reverse("view_logs")).status_code, 403)
+
+    def test_settings_page_renders_the_troubleshoot_tab(self):
+        response = self.client.get("/dashboard/setting")
+        self.assertEqual(response.status_code, 200)
+        for heading in ("Resend Email", "Override Report Fields", "Hunter Email Sinkhole", "Server Logs"):
+            self.assertContains(response, heading)

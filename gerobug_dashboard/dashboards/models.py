@@ -1,4 +1,5 @@
 import uuid
+from datetime import timedelta
 from email.policy import default
 from random import choices
 from unittest.util import _MAX_LENGTH
@@ -21,6 +22,10 @@ class UserProfile(models.Model):
     def __str__(self):
         return f"{self.user.username} ({self.public_id})"
 
+BOUNTY_CALC_STATUS = 5
+APPEAL_WINDOW_DAYS = 30
+
+
 class BugReport(models.Model):
     report_id = models.CharField(max_length=15,primary_key=True,validators=[alphanumeric])
     report_datetime = models.DateTimeField()
@@ -37,8 +42,12 @@ class BugReport(models.Model):
     report_duplicate = models.IntegerField(default=0)
     report_permission = models.IntegerField(default=0) # 4 (Update) 2 (Appeal) 1 (NDA) --> UAN --> Similar to RWX System
     report_update = models.IntegerField(default=0)
+    report_update_self = models.IntegerField(default=0)
     report_appeal = models.IntegerField(default=0)
     report_nda  = models.IntegerField(default=0)
+    report_calc_sent_at = models.DateTimeField(null=True, blank=True)
+    last_email_code = models.IntegerField(default=0)
+    last_email_note = models.TextField(blank=True, default='')
 
     class Meta:
       ordering = ['-report_datetime']
@@ -72,6 +81,14 @@ class BugReport(models.Model):
     @property
     def severity_label(self):
         return gerocalculator.get_severity_label(self.report_severity)
+
+    @property
+    def auto_accept_at(self):
+        if self.report_status != BOUNTY_CALC_STATUS or not self.report_permission & 2:
+            return None
+        if self.report_calc_sent_at is None:
+            return None
+        return self.report_calc_sent_at + timedelta(days=APPEAL_WINDOW_DAYS)
 
 
 class BugReportUpdate(models.Model):
@@ -297,3 +314,13 @@ class Personalization(models.Model):
 
     def __str__(self):
         return self.personalize_id
+
+
+class TroubleshootSettings(models.Model):
+    settings_id = models.IntegerField(default=1, unique=True)
+    hunter_email_sinkhole = models.BooleanField(default=False)
+    sinkhole_enabled_by = models.CharField(max_length=150, blank=True, default='')
+    sinkhole_enabled_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"TroubleshootSettings (sinkhole={'on' if self.hunter_email_sinkhole else 'off'})"

@@ -123,6 +123,13 @@
                 </div>
             </div>
             <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+        {% if hunter_email_sinkhole_active %}
+        <div class="sinkhole-banner">
+            &#9888; Hunter email sinkhole is ACTIVE &mdash; no outgoing email is reaching bug hunters.
+            Enabled by {{ sinkhole_enabled_by }} at {{ sinkhole_enabled_at }} &middot;
+            <a href="{% url 'setting' %}#troubleshoot">Disable in Settings</a>
+        </div>
+        {% endif %}
         {% endif %}
         {% block content %}
         {% endblock content %}

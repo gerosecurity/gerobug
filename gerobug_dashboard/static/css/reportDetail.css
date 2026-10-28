@@ -587,6 +587,88 @@ textarea {
     opacity: 0.9;
 }
 
+.submission-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.submission-item {
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.18);
+}
+
+.submission-item:last-child {
+    border-bottom: none;
+}
+
+.submission-link {
+    padding: 0;
+}
+
+.submission-tag {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.submission-when {
+    font-weight: 400;
+    font-size: 12px;
+    opacity: 0.75;
+}
+
+.submission-clip {
+    font-size: 12px;
+    opacity: 0.75;
+}
+
+.submission-summary {
+    font-size: 12px;
+    line-height: 1.5;
+    opacity: 0.7;
+    margin-top: 2px;
+    overflow-wrap: anywhere;
+}
+
+.submission-file {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    text-decoration: none;
+    color: inherit;
+    opacity: 0.8;
+}
+
+.submission-file:hover {
+    text-decoration: underline;
+    opacity: 1;
+}
+
+.submission-count {
+    display: inline-block;
+    min-width: 18px;
+    padding: 1px 6px;
+    border-radius: var(--radius-pill, 999px);
+    background: rgba(128, 128, 128, 0.2);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-align: center;
+}
+
+.submission-empty {
+    font-size: 12px;
+    opacity: 0.6;
+}
+
 /* AI Triage panel -- reuses .resource-card/.resource-actions/.nda-btn/
    .resource-btn (design-system.css already re-skins .resource-card for the
    dark gds-panel surface); only what's genuinely new lives here. */

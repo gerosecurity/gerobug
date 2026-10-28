@@ -4,8 +4,10 @@ import html
 import PyPDF2
 import logging
 
-from dashboards.models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, ReportStatus
+from django.db import transaction
 
+from dashboards.models import (BOUNTY_CALC_STATUS, BugHunter, BugReport, BugReportUpdate,
+                               BugReportAppeal, BugReportNDA, ReportStatus)
 
 
 # CHECK IF POSSIBLE DUPLICATE (NEED IMPROVEMENTS)
@@ -23,16 +25,39 @@ def check_duplicate(id):
             logging.getLogger("Gerologger").warning('Possible Duplicate Report')
             break
 
+APPEAL_LIMIT = 3
+
+
 # VALIDATE APPEAL LIMIT
 def validate_appeal(id):
     report = BugReport.objects.get(report_id=id)
-    appeal = report.report_appeal
-    
-    if appeal < 3: # HUNTER LIMIT 3x APPEAL
-        return True
-    else:
-        return False
-    
+    return report.report_appeal < APPEAL_LIMIT
+
+
+SELF_UPDATE_LIMIT = 3
+
+
+def validate_update_stage(id):
+    report = BugReport.objects.get(report_id=id)
+    return report.report_status <= BOUNTY_CALC_STATUS
+
+
+def validate_self_update(id):
+    report = BugReport.objects.get(report_id=id)
+    return report.report_update_self < SELF_UPDATE_LIMIT
+
+
+def consume_update_allowance(id):
+    with transaction.atomic():
+        report = BugReport.objects.select_for_update().get(report_id=id)
+        if report.report_permission >= 4:
+            report.report_permission -= 4
+        else:
+            report.report_update_self += 1
+        report.save()
+        return max(0, SELF_UPDATE_LIMIT - report.report_update_self)
+
+
 # VALIDATE IF CERTAIN OPERATION IS PERMITTED
 def validate_permission(operation, id):
     report = BugReport.objects.get(report_id=id)
@@ -217,10 +242,12 @@ def classify_action(email, subject):
             id = id.replace(' ','')
             if validate_id(id):
                 if validate_user(email, id):
-                    if validate_permission("U", id):
+                    if not validate_update_stage(id):
+                        return 408, id
+                    if validate_permission("U", id) or validate_self_update(id):
                         return 203, id
                     else:
-                        return 403, id
+                        return 407, id
                 else:
                     return 403, id
             else:
@@ -235,7 +262,7 @@ def classify_action(email, subject):
                         if validate_appeal(id):
                             return 204, id
                         else:
-                            return 403, id
+                            return 409, id
                     else:
                         return 403, id
                 else:
@@ -297,7 +324,14 @@ def classify_action(email, subject):
                     for report in BugReport.objects.filter(hunter_email=email):
                         status = ReportStatus.objects.get(status_id=report.report_status)
                         status = status.status_name
-                        x = "<tr><td>&ensp;"+html.escape(report.report_id)+"&ensp;</td><td>&ensp;"+html.escape(report.report_title)+"&ensp;</td><td>&ensp;"+html.escape(status)+"&ensp;</td></tr>"
+                        cell = "padding:10px 12px; border:1px solid #d2d6dc; vertical-align:top;"
+                        x = (
+                            "<tr>"
+                            "<td style=\"" + cell + " font-family:'Courier New', monospace; white-space:nowrap;\">" + html.escape(report.report_id) + "</td>"
+                            "<td style=\"" + cell + "\">" + html.escape(report.report_title) + "</td>"
+                            "<td style=\"" + cell + "\">" + html.escape(status) + "</td>"
+                            "</tr>"
+                        )
                         reports.append(x)
                     
                     return 208, reports

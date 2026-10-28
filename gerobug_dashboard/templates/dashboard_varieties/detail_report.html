@@ -136,6 +136,14 @@
                     {% elif object.report_status == 8 %}
                         <div class="report-status" id="invalid">{{reportstatus}}</div>
                     {% endif %}            
+                    {% if object.auto_accept_at %}
+                    <div class="auto-accept-notice"
+                         title="No appeal received yet. The report moves to Bounty in Process automatically unless the hunter appeals first.">
+                        <i class="bi bi-hourglass-split"></i>
+                        Auto-accepts in {{ object.auto_accept_at|timeuntil }}
+                        <span class="auto-accept-date">({{ object.auto_accept_at|date:"j M Y, H:i" }})</span>
+                    </div>
+                    {% endif %}
                 </div>
 
                 {% if object.report_severity == 0 %} 
@@ -204,53 +212,36 @@
                         {{object.report_summary}}
                     </div>
                     
-                    <div id="files"> 
-                        <div id="poc">
+                    <div class="resources-grid">
+                        <div class="resource-card">
                             <h6>Files</h6>
-                            <div id="download-file">
-                                <div id="file-img"><i class="bi bi-file-earmark"></i></div>
-                                <a href="{% url 'report_files' object.pk %}">Download</a>
-                            </div>
-
-                            {% if object.report_update > 0 %}
-                            {% if update_file_exists %}
-                            <div id="download-file">
-                                <div id="file-img"><i class="bi bi-file-earmark"></i></div>
-                                <a href="{% url 'report_files' object.pk %}U{{ object.report_update }}">Download (Updated)</a>
-                            </div>
-                            {% endif %}
-                            <a href="{% url 'update_detail' object.pk %}U{{ object.report_update }}">
-                                <button type="button" class="nda-btn">View Update</button>
+                            {% if report_file_exists %}
+                            <a class="file-link" target="_blank" rel="noopener noreferrer" href="{% url 'report_files' object.pk %}">
+                                <i class="bi bi-file-earmark-text"></i> Download Report
                             </a>
+                            {% else %}
+                            <div class="submission-empty">No report PDF on disk.</div>
                             {% endif %}
                         </div>
 
-                        {% if object.report_nda > 0 %}
-                        <div id="nda">
-                            <div id="nda-details">
-                                <h6>Hunter Data</h6>
-                                <a href="{% url 'nda_detail' object.pk %}N{{ object.report_nda }}">
-                                    <button type="button" class="nda-btn">View</button>
-                                </a>
-                            </div>
-
-                            {% if nda_file_exists %}
-                            <div id="download-file">
-                                <div id="file-img"><i class="bi bi-file-earmark"></i></div>
-                                <a href="{% url 'report_files' object.pk %}N{{ object.report_nda }}">NDA</a>
-                            </div>
-                            {% endif %}
+                        {% if submissions.updates %}
+                        <div class="resource-card">
+                            <h6>Updates <span class="submission-count">{{ submissions.updates|length }}</span></h6>
+                            {% include "dashboard_varieties/submission_list.html" with rows=submissions.updates %}
                         </div>
                         {% endif %}
 
-                        {% if object.report_appeal > 0 %}
-                        <div id="nda">
-                            <div id="nda-details">
-                                <h6>Appeals</h6>
-                                <a href="{% url 'appeal_detail' object.pk %}A{{ object.report_appeal }}">
-                                    <button type="button" class="nda-btn">View</button>
-                                </a>
-                            </div>
+                        {% if submissions.appeals %}
+                        <div class="resource-card">
+                            <h6>Appeals <span class="submission-count">{{ submissions.appeals|length }}</span></h6>
+                            {% include "dashboard_varieties/submission_list.html" with rows=submissions.appeals %}
+                        </div>
+                        {% endif %}
+
+                        {% if submissions.data %}
+                        <div class="resource-card">
+                            <h6>Hunter Data <span class="submission-count">{{ submissions.data|length }}</span></h6>
+                            {% include "dashboard_varieties/submission_list.html" with rows=submissions.data %}
                         </div>
                         {% endif %}
                     </div>

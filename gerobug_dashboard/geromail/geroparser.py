@@ -12,17 +12,18 @@ from email.utils import parsedate_tz, mktime_tz
 from email.header import decode_header
 from datetime import datetime
 from unicodedata import normalize
-from django.db import connection
+from django.db import connection, transaction
+from django.utils import timezone
 
 import gerocert.gerocert
 from . import gerosecure
 from . import gerofilter
 from . import geromailer
 from . import geronotify
-from dashboards.models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA
+from dashboards.models import (APPEAL_WINDOW_DAYS, BOUNTY_CALC_STATUS, BugHunter, BugReport,
+                               BugReportUpdate, BugReportAppeal, BugReportNDA)
 from prerequisites.models import MailBox
 from gerobug.settings import MEDIA_ROOT
-
 
 
 # IMAP CONFIG
@@ -519,9 +520,12 @@ def read_mail(mail, folder_name='inbox'):
                                 update_file_flag = 1 if have_attachment else 0
 
                                 if have_attachment or len(update_summary.strip()) > 3:
-                                    # REVOKE PERMISSION AND UPDATE COUNTER
-                                    report.report_permission = report.report_permission - 4
-                                    report.save()
+                                    remaining = gerofilter.consume_update_allowance(payload[0])
+                                    payload[3] = (
+                                        f"You have {remaining} of {gerofilter.SELF_UPDATE_LIMIT} "
+                                        "self-initiated updates left for this report. Once they are "
+                                        "used up, further updates require a request from our team."
+                                    )
 
                                     save_uan('U', update_id, str(payload[0]), email_date, update_summary, update_file_flag)
                                     geronotify.notify(str(payload[0]), hunter_email, "NEW_UPDATE")
@@ -583,6 +587,12 @@ def read_mail(mail, folder_name='inbox'):
                                     # REVOKE PERMISSION AND UPDATE COUNTER
                                     report.report_permission = report.report_permission - 2
                                     report.save()
+                                    appeals_left = max(0, gerofilter.APPEAL_LIMIT - report.report_appeal)
+                                    payload[3] = (
+                                        f"You have {appeals_left} of {gerofilter.APPEAL_LIMIT} appeals "
+                                        "left for this report. Once they are used up, our standing "
+                                        "determination becomes final."
+                                    )
 
                                     save_uan('A', appeal_id, str(payload[0]), email_date, appeal_summary, appeal_file)
                                     geronotify.notify(str(payload[0]), hunter_email, "NEW_APPEAL")
@@ -676,6 +686,19 @@ def read_mail(mail, folder_name='inbox'):
                             elif(code == 403):
                                 logging.getLogger("Gerologger").warning('[ERROR 403] User are not authorized!')
 
+                            elif(code in (407, 408, 409)):
+                                report = BugReport.objects.get(report_id=payload[0])
+                                payload[1] = report.report_title
+                                if code == 407:
+                                    reason = "self-initiated update allowance exhausted, an amend request is needed"
+                                elif code == 408:
+                                    payload[2] = report.report_status
+                                    reason = "the report has moved past Bounty Calculation"
+                                else:
+                                    reason = "appeal limit reached, the standing determination is final"
+                                logging.getLogger("Gerologger").warning(
+                                    f'[ERROR {code}] Hunter submission refused for {payload[0]}: {reason}')
+
                             # INVALID REPORT FORMAT
                             else:
                                 logging.getLogger("Gerologger").warning('[ERROR 404] Report not valid')
@@ -714,7 +737,8 @@ def company_action(id, note, code):
         logging.getLogger("Gerologger").info('[CODE 702] Send Bounty Calculations')
         if not gerofilter.validate_permission("A", id):
             report.report_permission = report.report_permission + 2
-            report.save()
+        report.report_calc_sent_at = timezone.now()
+        report.save()
         
     elif code == 703: # REQUEST NDA and OTHERS
         logging.getLogger("Gerologger").info('[CODE 703] Request NDA and Other Requirements to Bug Hunter')
@@ -752,12 +776,50 @@ def company_action(id, note, code):
     payload = [id, report.report_title, report.report_status, note, report.report_severity]
     destination = report.hunter_email
 
+    try:
+        report.last_email_code = code
+        report.last_email_note = note or ''
+        report.save(update_fields=['last_email_code', 'last_email_note'])
+    except Exception as e:
+        logging.getLogger("Gerologger").warning(f"Could not record last email for {id}: {e}")
+
     geromailer.write_mail(code, payload, destination)
 
 def check_mailbox_status():
     global MAILBOX_READY
         
     return MAILBOX_READY
+
+
+def check_auto_agree():
+    now = timezone.now()
+
+    for candidate in BugReport.objects.filter(report_status=BOUNTY_CALC_STATUS):
+        try:
+            due = candidate.auto_accept_at
+            if due is None or due > now:
+                continue
+
+            with transaction.atomic():
+                report = BugReport.objects.select_for_update().get(report_id=candidate.report_id)
+                due = report.auto_accept_at
+                if due is None or due > now:
+                    continue
+                report.report_permission -= 2
+                report.report_status += 1
+                report.save()
+
+            payload = [report.report_id, report.report_title, report.report_status,
+                       "", report.report_severity]
+            geromailer.write_mail(302, payload, report.hunter_email)
+            geronotify.notify(report.report_id, report.hunter_email, "NEW_AGREE")
+            logging.getLogger("Gerologger").info(
+                f"[AUTO-AGREE] {report.report_id} advanced to Bounty in Process "
+                f"({APPEAL_WINDOW_DAYS}d appeal window elapsed)")
+
+        except Exception as e:
+            logging.getLogger("Gerologger").error(
+                f"Auto-agree check failed for {candidate.report_id}: {e}")
 
 # RUN GEROMAIL MODULES
 def run():
@@ -821,6 +883,8 @@ def run():
             except (imaplib.IMAP4.abort, OSError) as e:
                 logging.getLogger("Gerologger").info(f"IMAP connection lost during poll, reconnecting: {e}")
                 return
+
+            check_auto_agree()
 
             try:
                 connection.close()

@@ -15,16 +15,16 @@ from django.views.generic import (
 from django.urls import reverse, reverse_lazy
 from django.db.models import Sum
 from django.http import FileResponse, JsonResponse
+from django.utils import timezone
 from django.middleware.csrf import get_token
 from prerequisites.models import MailBox, Webhook
-from .models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization
+from .models import BOUNTY_CALC_STATUS, BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization, TroubleshootSettings
 from .forms import Requestform, RulesGuidelineForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm, WebhookForm, BlacklistForm, TemplateReportForm, TemplateNDAForm, TemplateCertForm, CertDataForm, PersonalizationForm, CompanyIdentityForm, Invalidform, TroubleshootForm
 from geromail import geromailer, gerofilter, geroparser, gerocalculator
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
 
 import threading, os, shutil, secrets, uuid, html, gerocert.gerocert
 import logging
-
 
 
 def LogoutForm(request):
@@ -60,6 +60,34 @@ class RenderDashboardAdmin(LoginRequiredMixin,ListView):
         return context
 
     
+_SUBMISSION_KINDS = (
+    ('updates', 'update', BugReportUpdate, 'update_detail', 'Update'),
+    ('appeals', 'appeal', BugReportAppeal, 'appeal_detail', 'Appeal'),
+    ('data',    'nda',    BugReportNDA,    'nda_detail',    'Submission'),
+)
+
+
+def build_hunter_submissions(report):
+    out = {}
+    for key, prefix, model, route, label in _SUBMISSION_KINDS:
+        rows = []
+        for row in model.objects.filter(report_id=report.report_id):
+            ident = getattr(row, prefix + '_id')
+            rows.append({
+                'ident': ident,
+                'tag': ident[len(report.report_id):],
+                'label': label,
+                'when': getattr(row, prefix + '_datetime'),
+                'summary': getattr(row, prefix + '_summary'),
+                'detail_url': reverse(route, kwargs={'pk': ident}),
+                'has_file': bool(getattr(row, prefix + '_file')) and os.path.isfile(
+                    os.path.join(MEDIA_ROOT, report.report_id, ident + '.pdf')),
+            })
+        rows.sort(key=lambda r: r['when'], reverse=True)
+        out[key] = rows
+    return out
+
+
 class ReportDetails(LoginRequiredMixin,DetailView):
     login_url = '/login/'
     redirect_field_name = 'login'
@@ -76,21 +104,10 @@ class ReportDetails(LoginRequiredMixin,DetailView):
 
         report = BugReport.objects.get(report_id=self.kwargs.get('pk'))
 
-        context['update_file_exists'] = False
-        if report.report_update > 0:
-            try:
-                latest_update = BugReportUpdate.objects.get(update_id=report.report_id + 'U' + str(report.report_update))
-                context['update_file_exists'] = (latest_update.update_file == 1)
-            except BugReportUpdate.DoesNotExist:
-                pass
+        report_file = os.path.join(MEDIA_ROOT, report.report_id, report.report_id + '.pdf')
+        context['report_file_exists'] = os.path.isfile(report_file)
 
-        context['nda_file_exists'] = False
-        if report.report_nda > 0:
-            try:
-                latest_nda = BugReportNDA.objects.get(nda_id=report.report_id + 'N' + str(report.report_nda))
-                context['nda_file_exists'] = (latest_nda.nda_file == 1)
-            except BugReportNDA.DoesNotExist:
-                pass
+        context['submissions'] = build_hunter_submissions(report)
 
         # COMPANY NAME
         THEME = Personalization.objects.get(personalize_id=1)
@@ -227,7 +244,9 @@ def ReportUpdateStatus(request,id):
 
             if report.report_status < max:
                 report.report_status += 1
-                report.save()
+            report.last_email_code = 300 if report.report_status == 0 else 301
+            report.last_email_note = ''
+            report.save()
 
             logging.getLogger("Gerologger").info("REPORT "+str(id)+" STATUS UPDATED ("+str(report.report_status)+") BY "+str(request.user.username))
             messages.success(request,"Report Status is updated!")
@@ -283,6 +302,8 @@ def KanbanMove(request, id):
         return JsonResponse({'status': 'unchanged'})
 
     report.report_status = new_status
+    report.last_email_code = 301
+    report.last_email_note = ''
     report.save()
     logging.getLogger("Gerologger").info("REPORT "+str(id)+" STATUS MOVED ("+str(new_status)+") BY "+str(request.user.username))
 
@@ -383,6 +404,8 @@ def InvalidHandler(request, id):
 
                     # MARK AS INVALID
                     report.report_status = 0
+                    report.last_email_code = 300
+                    report.last_email_note = reasons or ''
                     report.save()
                         
                     logging.getLogger("Gerologger").info("REPORT "+str(id)+" MARKED AS INVALID BY "+str(request.user.username))
@@ -771,7 +794,254 @@ def AdminSetting(request):
     return render(request,'setting.html',
                   {'form': RulesGuidelineForm(instance=RULES), 'mailbox': MailboxForm(initial=mailbox_initial_data), 'account': AccountForm(),'reviewer': ReviewerForm(),'webhooks': WebhookForm(),'blacklistrule': BlacklistForm(),
                     'templatereport': TemplateReportForm(), 'templatenda': TemplateNDAForm(), 'templatecert': TemplateCertForm(), 'certdata': CertDataForm(), 'companyidentity': CompanyIdentityForm(),
-                    'personalization': PersonalizationForm(instance=THEME), 'theme_presets': Personalization.THEME_PRESETS, 'troubleshoot': TroubleshootForm(), 'users':users, 'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications,'bl':bl, 'company_name':THEME.company_name})
+                    'personalization': PersonalizationForm(instance=THEME), 'theme_presets': Personalization.THEME_PRESETS, 'troubleshoot': TroubleshootForm(), 'report_statuses': ReportStatus.objects.all().order_by('status_id'), 'users':users, 'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications,'bl':bl, 'company_name':THEME.company_name})
+
+
+RESEND_EMAIL_LABELS = {
+    300: "Invalid Report Notification",
+    301: "Status Update Notification",
+    701: "Amend / Update Request",
+    702: "Bounty Calculation",
+    703: "NDA & Prerequisites Request",
+    704: "Completion (Certificate)",
+    705: "Prerequisites Request",
+}
+
+
+@login_required
+def ResendEmail(request):
+    if not request.user.is_superuser:
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect('setting')
+
+    if request.method == "POST":
+        report_id = request.POST.get('report_id', '').strip().upper()
+
+        if len(report_id) != 12 or not report_id.isalnum():
+            messages.error(request, "Invalid Report ID format (expected 12 alphanumeric characters).")
+            return redirect(reverse('setting') + '#troubleshoot')
+
+        if not BugReport.objects.filter(report_id=report_id).exists():
+            messages.error(request, f"Report {report_id} was not found.")
+            return redirect(reverse('setting') + '#troubleshoot')
+
+        if not geroparser.check_mailbox_status():
+            logging.getLogger("Gerologger").error("Resend email aborted: mailbox is not ready.")
+            messages.error(request, "Mailbox is not ready. Cannot resend the email right now.")
+            return redirect(reverse('setting') + '#troubleshoot')
+
+        report = BugReport.objects.get(report_id=report_id)
+        username = request.user.username
+
+        code, note = report.last_email_code, report.last_email_note
+        if code not in RESEND_EMAIL_LABELS:
+            messages.error(request, f"No operator-initiated email is recorded for {report_id}, so there is nothing to resend. Send the email from the report page instead.")
+            return redirect(reverse('setting') + '#troubleshoot')
+
+        if code == 704:
+            hunter = BugHunter.objects.filter(hunter_email=report.hunter_email).first()
+            if not hunter:
+                messages.error(request, f"No hunter record for {report_id}; the certificate cannot be rebuilt.")
+                return redirect(reverse('setting') + '#troubleshoot')
+            try:
+                gerocert.gerocert.generate(report_id, hunter.hunter_username, int(report.report_severity))
+            except Exception as e:
+                logging.getLogger("Gerologger").error(f"Certificate rebuild failed for {report_id}: {e}")
+                messages.error(request, f"Could not rebuild the certificate for {report_id}: {e}")
+                return redirect(reverse('setting') + '#troubleshoot')
+
+        restarts_window = code == 702 and report.report_status == BOUNTY_CALC_STATUS
+        if restarts_window:
+            report.report_calc_sent_at = timezone.now()
+            report.save(update_fields=['report_calc_sent_at'])
+
+        def trigger_resend(report, code, note):
+            from django.db import connection as db_connection
+            try:
+                payload = [report.report_id, report.report_title, report.report_status,
+                           note, report.report_severity]
+                geromailer.write_mail(code, payload, report.hunter_email)
+                logging.getLogger("Gerologger").info(
+                    f"RESEND email (code={code}) for {report.report_id} to {report.hunter_email} triggered by {username}")
+            except Exception as e:
+                logging.getLogger("Gerologger").error(f"Resend failed for {report.report_id}: {e}")
+            finally:
+                db_connection.close()
+
+        threading.Thread(target=trigger_resend, args=(report, code, note)).start()
+
+        what = RESEND_EMAIL_LABELS[code]
+        if restarts_window:
+            logging.getLogger("Gerologger").info(
+                f"RESEND {report_id}: appeal window restarted by {username}")
+            messages.success(request, f"Resending the {what} email for {report_id} to {report.hunter_email}. The hunter's 30-day appeal window restarts from now. Check the logs below to confirm delivery.")
+        else:
+            messages.success(request, f"Resending the {what} email for {report_id} to {report.hunter_email}. Check the logs below to confirm delivery.")
+
+    return redirect(reverse('setting') + '#troubleshoot')
+
+
+@login_required
+def ToggleHunterEmailSinkhole(request):
+    if not request.user.is_superuser:
+        logging.getLogger("Gerologger").warning(
+            "BLOCKED unauthorized hunter-email-sinkhole toggle by " + str(request.user.username))
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect('setting')
+
+    if request.method == "POST":
+        row, _created = TroubleshootSettings.objects.get_or_create(settings_id=1)
+        row.hunter_email_sinkhole = not row.hunter_email_sinkhole
+        if row.hunter_email_sinkhole:
+            row.sinkhole_enabled_by = request.user.username
+            row.sinkhole_enabled_at = timezone.now()
+        row.save()
+
+        state = "ENABLED" if row.hunter_email_sinkhole else "disabled"
+        logging.getLogger("Gerologger").warning(
+            f"Hunter email sinkhole {state} by {request.user.username}")
+
+        if row.hunter_email_sinkhole:
+            messages.success(request, "Hunter email sinkhole ENABLED. No outgoing email will reach bug hunters until you disable it here.")
+        else:
+            messages.success(request, "Hunter email sinkhole disabled. Outgoing hunter email will resume normally.")
+
+    return redirect(reverse('setting') + '#troubleshoot')
+
+
+def _tail_file(path, n):
+    with open(path, 'rb') as f:
+        f.seek(0, os.SEEK_END)
+        pointer = f.tell()
+        data = b''
+        block = 4096
+        while pointer > 0 and data.count(b'\n') <= n:
+            read_size = min(block, pointer)
+            pointer -= read_size
+            f.seek(pointer)
+            data = f.read(read_size) + data
+    text = data.decode('utf-8', errors='replace')
+    return text.splitlines()[-n:]
+
+
+@login_required
+def ViewLogs(request):
+    if not request.user.is_superuser:
+        return JsonResponse({'ok': False, 'error': 'Forbidden'}, status=403)
+
+    log_path = os.path.join(BASE_DIR, 'log', 'gerobug.log')
+
+    try:
+        lines = int(request.GET.get('lines', 200))
+    except (TypeError, ValueError):
+        lines = 200
+    lines = max(10, min(lines, 2000))
+
+    if not os.path.isfile(log_path):
+        return JsonResponse({'ok': False, 'error': 'Log file not found.', 'lines': []})
+
+    try:
+        tail = _tail_file(log_path, lines)
+        return JsonResponse({'ok': True, 'lines': tail, 'count': len(tail)})
+    except Exception as e:
+        logging.getLogger("Gerologger").error(f"ViewLogs failed: {e}")
+        return JsonResponse({'ok': False, 'error': str(e), 'lines': []})
+
+
+@login_required
+def ReportOverride(request):
+    if not request.user.is_superuser:
+        if request.method == "GET":
+            return JsonResponse({'ok': False, 'error': 'Forbidden'}, status=403)
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect('setting')
+
+    if request.method == "GET":
+        report_id = request.GET.get('report_id', '').strip().upper()
+        if len(report_id) != 12 or not report_id.isalnum():
+            return JsonResponse({'ok': False, 'error': 'Invalid Report ID format (expected 12 alphanumeric characters).'})
+        try:
+            report = BugReport.objects.get(report_id=report_id)
+        except BugReport.DoesNotExist:
+            return JsonResponse({'ok': False, 'error': f'Report {report_id} was not found.'})
+        hunter = BugHunter.objects.filter(hunter_email=report.hunter_email).first()
+        return JsonResponse({
+            'ok': True,
+            'title': report.report_title,
+            'status': report.report_status,
+            'endpoint': report.report_endpoint,
+            'attack': report.report_attack,
+            'duplicate': report.report_duplicate,
+            'hunter_name': hunter.hunter_username if hunter else '',
+            'hunter_email': report.hunter_email,
+        })
+
+    if request.method == "POST":
+        report_id = request.POST.get('report_id', '').strip().upper()
+        if len(report_id) != 12 or not report_id.isalnum():
+            messages.error(request, "Invalid Report ID format (expected 12 alphanumeric characters).")
+            return redirect(reverse('setting') + '#troubleshoot')
+        try:
+            report = BugReport.objects.get(report_id=report_id)
+        except BugReport.DoesNotExist:
+            messages.error(request, f"Report {report_id} was not found.")
+            return redirect(reverse('setting') + '#troubleshoot')
+
+        title = request.POST.get('title', '').strip()
+        endpoint = request.POST.get('endpoint', '').strip()
+        attack = request.POST.get('attack', '').strip()
+        status_raw = request.POST.get('status', '').strip()
+        hunter_name = request.POST.get('hunter_name', '').strip()
+        duplicate = 1 if request.POST.get('duplicate') == '1' else 0
+
+        if not title:
+            messages.error(request, "Title cannot be empty.")
+            return redirect(reverse('setting') + '#troubleshoot')
+        if len(title) > 255 or len(endpoint) > 255 or len(attack) > 255:
+            messages.error(request, "Title, endpoint, and attack type must each be 255 characters or fewer.")
+            return redirect(reverse('setting') + '#troubleshoot')
+        if len(hunter_name) > 50:
+            messages.error(request, "Hunter name must be 50 characters or fewer.")
+            return redirect(reverse('setting') + '#troubleshoot')
+        try:
+            status = int(status_raw)
+        except (TypeError, ValueError):
+            messages.error(request, "Invalid status selection.")
+            return redirect(reverse('setting') + '#troubleshoot')
+        if not ReportStatus.objects.filter(status_id=status).exists():
+            messages.error(request, "Selected status does not exist.")
+            return redirect(reverse('setting') + '#troubleshoot')
+
+        hunter = BugHunter.objects.filter(hunter_email=report.hunter_email).first()
+        if hunter and not hunter_name:
+            messages.error(request, "Hunter name cannot be empty.")
+            return redirect(reverse('setting') + '#troubleshoot')
+
+        old = (report.report_title, report.report_status, report.report_endpoint, report.report_attack, report.report_duplicate)
+        report.report_title = title
+        report.report_status = status
+        report.report_endpoint = endpoint
+        report.report_attack = attack
+        report.report_duplicate = duplicate
+        report.save(update_fields=['report_title', 'report_status', 'report_endpoint', 'report_attack', 'report_duplicate'])
+
+        hunter_change = ""
+        if hunter and hunter_name != hunter.hunter_username:
+            old_hunter_name = hunter.hunter_username
+            hunter.hunter_username = hunter_name
+            hunter.save(update_fields=['hunter_username'])
+            hunter_change = f" | hunter_name: '{old_hunter_name}' -> '{hunter_name}' ({report.hunter_email})"
+
+        logging.getLogger("Gerologger").info(
+            f"REPORT OVERRIDE {report_id} by {request.user.username} | "
+            f"title: '{old[0]}' -> '{title}' | status: {old[1]} -> {status} | "
+            f"endpoint: '{old[2]}' -> '{endpoint}' | attack: '{old[3]}' -> '{attack}' | "
+            f"duplicate: {old[4]} -> {duplicate}" + hunter_change)
+        messages.success(request, f"Report {report_id} fields updated successfully.")
+        return redirect(reverse('setting') + '#troubleshoot')
+
+    return redirect(reverse('setting') + '#troubleshoot')
+
 
 @login_required
 def ReviewerDelete(request,public_id):
