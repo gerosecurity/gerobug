@@ -317,7 +317,6 @@ def validate_submit_fields(title, atk_type, endpoint, summary):
     return ""
 
 
-# VALIDATE AND DOWNLOAD ATTACHMENT
 def validate_attachment(msg, id, FILEPATH=None):
     data, reason = extract_pdf(msg)
     if reason:

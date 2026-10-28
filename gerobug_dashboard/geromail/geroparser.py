@@ -721,7 +721,6 @@ def read_mail(mail, folder_name='inbox'):
                                 logging.getLogger("Gerologger").info('Hunter Reports (' + payload[0] + '):\n' + payload[3])
                                 logging.getLogger("Gerologger").info("[CODE 208] Bug Hunter Check All Status Successfully")
 
-                            # SENDER HAS NO REPORTS YET
                             elif(code == 410):
                                 payload[0] = ""
                                 payload[3] = ""
