@@ -1,5 +1,6 @@
 import email
 import email.message
+import io
 import os
 import re
 import shutil
@@ -11,8 +12,15 @@ from unittest import mock
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.utils import timezone
 
-from dashboards.models import APPEAL_WINDOW_DAYS, BugReport, ReportStatus
+from email import encoders
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+from dashboards.models import (APPEAL_WINDOW_DAYS, BlacklistRule, BugReport, BugReportAppeal,
+                               BugReportNDA, BugReportUpdate, ReportStatus)
 from geromail import gerocalculator, gerofilter, geromailer, geronotify, geroparser, mail_templates
+from prerequisites.models import MailBox
 
 
 APPLE_MAIL_SUBMIT = """\
@@ -546,3 +554,164 @@ class MessageDecodeTests(SimpleTestCase):
     def test_valid_date_is_used(self):
         msg = geroparser.parse_raw_message(LATIN1_SUBMIT)
         self.assertEqual(geroparser.message_timestamp(msg), 1747036800)
+
+
+def make_pdf(pad=0):
+    objs = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] >>",
+    ]
+    out = io.BytesIO()
+    out.write(b"%PDF-1.4\n")
+    if pad:
+        out.write(b"%" + b"A" * pad + b"\n")
+    offsets = []
+    for number, body in enumerate(objs, start=1):
+        offsets.append(out.tell())
+        out.write(b"%d 0 obj\n" % number)
+        out.write(body)
+        out.write(b"\nendobj\n")
+    xref = out.tell()
+    out.write(b"xref\n0 %d\n" % (len(objs) + 1))
+    out.write(b"0000000000 65535 f \n")
+    for offset in offsets:
+        out.write(b"%010d 00000 n \n" % offset)
+    out.write(b"trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n"
+              % (len(objs) + 1, xref))
+    return out.getvalue()
+
+
+MINIMAL_PDF = make_pdf()
+
+
+def attach_pdf(msg, data, name="report.pdf", content_type="application/pdf"):
+    maintype, subtype = content_type.split("/", 1)
+    part = MIMEBase(maintype, subtype)
+    part.set_payload(data)
+    encoders.encode_base64(part)
+    part.add_header("Content-Disposition", "attachment", filename=name)
+    msg.attach(part)
+
+
+def raw_mail(subject, body="", sender="hunter@example.com", pdf=None,
+             pdf_name="report.pdf", pdf_type="application/pdf",
+             date="Mon, 12 May 2025 10:00:00 +0200", html=None):
+    msg = MIMEMultipart("mixed")
+    msg["From"] = "Hunter <" + sender + ">"
+    msg["To"] = "bounty@example.com"
+    msg["Subject"] = subject
+    msg["Date"] = date
+    msg["Return-Path"] = "<" + sender + ">"
+    msg["Message-ID"] = "<" + str(abs(hash((subject, body, date)))) + "@example.com>"
+    if html is None:
+        msg.attach(MIMEText(body, "plain"))
+    else:
+        alt = MIMEMultipart("alternative")
+        alt.attach(MIMEText(body, "plain"))
+        alt.attach(MIMEText(html, "html"))
+        msg.attach(alt)
+    if pdf is not None:
+        attach_pdf(msg, pdf, pdf_name, pdf_type)
+    return msg.as_bytes()
+
+
+SUBMIT_BODY = ("TYPE=Account Takeover (ATO)\n"
+               "ENDPOINT=https://api.example.com/v1/batch\n"
+               "SUMMARY=The attacker only needs the public clientId and the org id.")
+
+SUBMIT_HTML = ("<html><body><p>TYPE=Account Takeover (ATO)<br>"
+               "ENDPOINT=https://api.example.com/v1/batch<br>"
+               "SUMMARY=The attacker only needs the public&nbsp;<code>clientId</code>"
+               "&nbsp;and the org id.</p></body></html>")
+
+
+class FakeIMAP:
+
+    def __init__(self, messages):
+        self.messages = list(messages)
+        self.selected = None
+        self.searches = []
+
+    def select(self, folder):
+        self.selected = folder
+        return ("OK", [str(len(self.messages)).encode()])
+
+    def search(self, charset, criteria):
+        self.searches.append(criteria)
+        ids = b" ".join(str(i + 1).encode() for i in range(len(self.messages)))
+        return ("OK", [ids])
+
+    def fetch(self, num, parts):
+        raw = self.messages[int(num) - 1]
+        header = str(num).encode() + b" (RFC822 {" + str(len(raw)).encode() + b"}"
+        return ("OK", [(header, raw)])
+
+    def noop(self):
+        return ("OK", [b""])
+
+    def logout(self):
+        return ("BYE", [b""])
+
+
+class MailFlowTestCase(TestCase):
+
+    def setUp(self):
+        self.media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.media, ignore_errors=True)
+        for module in (geroparser, gerofilter):
+            if hasattr(module, "MEDIA_ROOT"):
+                patcher = mock.patch.object(module, "MEDIA_ROOT", self.media)
+                patcher.start()
+                self.addCleanup(patcher.stop)
+        self.write_mail = mock.patch.object(geromailer, "write_mail").start()
+        self.notify = mock.patch.object(geronotify, "notify").start()
+        self.mailer_notify = mock.patch.object(geromailer, "notify").start()
+        self.addCleanup(mock.patch.stopall)
+        for status_id, name in enumerate(
+                ["Invalid", "Received", "In Review", "Reproduced", "Fixing",
+                 "Bounty Calculation", "Bounty in Process", "Completed"]):
+            ReportStatus.objects.get_or_create(status_id=status_id,
+                                               defaults={"status_name": name})
+        BlacklistRule.objects.get_or_create(rule_id=1)
+        MailBox.objects.get_or_create(mailbox_id=1,
+                                      defaults={"email": "bounty@example.com"})
+
+    def deliver(self, *raws):
+        geroparser.read_mail(FakeIMAP(raws))
+        return self.write_mail.call_args_list
+
+    def sent_codes(self):
+        return [call[0][0] for call in self.write_mail.call_args_list]
+
+    def last_payload(self):
+        return self.write_mail.call_args[0][1]
+
+    def last_note(self):
+        return self.write_mail.call_args[0][1][3]
+
+    def pdf_path(self, report_id, file_id):
+        return os.path.join(self.media, report_id, file_id + ".pdf")
+
+
+class SubmitBodyTests(MailFlowTestCase):
+
+    def test_submit_body_uses_plain_part_over_html(self):
+        self.deliver(raw_mail("SUBMIT_Critical Authorization Failure",
+                              body=SUBMIT_BODY, html=SUBMIT_HTML, pdf=MINIMAL_PDF))
+        self.assertEqual(self.sent_codes(), [201])
+        report = BugReport.objects.get()
+        self.assertEqual(report.report_attack.strip(), "Account Takeover (ATO)")
+        self.assertNotIn("<code>", report.report_summary)
+        self.assertIn("clientId and", report.report_summary)
+
+    def test_appeal_with_only_attachment_does_not_crash(self):
+        report = make_report(report_status=5, report_permission=2)
+        msg = MIMEMultipart("mixed")
+        msg["From"] = "Hunter <hunter@example.com>"
+        msg["Subject"] = "APPEAL_" + report.report_id
+        msg["Date"] = "Mon, 12 May 2025 10:00:00 +0200"
+        msg["Return-Path"] = "<hunter@example.com>"
+        attach_pdf(msg, MINIMAL_PDF)
+        self.deliver(msg.as_bytes())
+        self.assertEqual(len(self.sent_codes()), 1)

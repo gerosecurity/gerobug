@@ -460,30 +460,7 @@ def read_mail(mail, folder_name='inbox'):
                                 # CHECK ATTACHMENT AND PARSE BODY
                                 have_attachment = gerofilter.validate_attachment(msg, report_id, MEDIA_ROOT)
                                 if have_attachment:
-                                    # msg_body = msg.get_payload()[0].get_payload()
-                                    # if type(msg_body) is list:
-                                    #     email_body = str(msg_body[0])
-                                    # else:
-                                    #     email_body = str(msg_body)
-                                        
-                                    # CLEAN ENCODING FROM OUTLOOK
-                                    # email_body = email_body.replace('=\n','')
-                                    # email_body = email_body.replace('=3D','=')
-                                    
-                                    if msg.is_multipart():
-                                        for part in msg.walk():
-                                            content_type = part.get_content_type()
-                                            content_disp = str(part.get("Content-Disposition"))
-
-                                            if "attachment" not in content_disp:
-                                                email_body = part.get_payload(decode=True)
-                                                charset = part.get_content_charset()
-                                                if charset:
-                                                    email_body = email_body.decode(charset)
-                                    else:
-                                        email_body = msg.get_payload(decode=True).decode("utf-8", errors='ignore')
-
-                                    email_body = rm_html_tags(email_body)
+                                    email_body = rm_html_tags(extract_email_body(msg))
                                     logging.getLogger("Gerologger").info('Body : ' + str(email_body) + '\n')
 
                                     atk_type = ''
@@ -605,20 +582,7 @@ def read_mail(mail, folder_name='inbox'):
                                     # appeal_summary = msg.get_payload()[0].get_payload()
                                     appeal_file = 0
 
-                                if msg.is_multipart():
-                                    for part in msg.walk():
-                                        content_type = part.get_content_type()
-                                        content_disp = str(part.get("Content-Disposition"))
-
-                                        if "attachment" not in content_disp:
-                                            email_body = part.get_payload(decode=True)
-                                            charset = part.get_content_charset()
-                                            if charset:
-                                                email_body = email_body.decode(charset)
-                                else:
-                                    email_body = msg.get_payload(decode=True).decode("utf-8", errors='ignore')
-
-                                appeal_summary = rm_html_tags(email_body)
+                                appeal_summary = rm_html_tags(extract_email_body(msg))
                                 # appeal_summary = re.sub(r"Content-T.*\n", "", str(appeal_summary))
                                 logging.getLogger("Gerologger").info('Appeal Summary : ' + str(appeal_summary) + '\n')
 
