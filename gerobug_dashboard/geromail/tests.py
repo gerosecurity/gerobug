@@ -1,5 +1,6 @@
 import datetime as dt
 import email
+import html
 import email.message
 import inspect
 import io
@@ -22,7 +23,8 @@ from email.mime.text import MIMEText
 from dashboards.models import (APPEAL_WINDOW_DAYS, PROCESSED_MAIL_RETENTION_DAYS,
                                BlacklistRule, BugHunter, BugReport, BugReportAppeal,
                                BugReportNDA, BugReportUpdate, ProcessedMail, ReportStatus)
-from geromail import gerocalculator, gerofilter, geromailer, geronotify, geroparser, mail_templates
+from geromail import (gerocalculator, gerocard, gerofilter, geromailer, geronotify,
+                      geroparser, mail_templates)
 from prerequisites.models import MailBox
 
 
@@ -1650,3 +1652,277 @@ class StatusStampTests(TestCase):
         report.save()
         report.refresh_from_db()
         self.assertIsNone(report.report_status_changed_at)
+
+
+LEAK = "LEAKCHECK"
+
+
+class CardTestCase(TestCase):
+
+    def setUp(self):
+        for status_id, name in enumerate(
+                ["Invalid", "Received", "In Review", "Reproduced", "Fixing",
+                 "Bounty Calculation", "Bounty in Process", "Completed"]):
+            ReportStatus.objects.get_or_create(status_id=status_id,
+                                               defaults={"status_name": name})
+        MailBox.objects.get_or_create(mailbox_id=1,
+                                      defaults={"email": "bounty@example.com"})
+
+
+class MailtoTests(CardTestCase):
+
+    def test_mailto_encodes_subject(self):
+        link = gerocard.mailto("UPDATE", "AB12CD34EF56")
+        self.assertEqual(link, "mailto:bounty@example.com?subject=UPDATE_AB12CD34EF56")
+
+    def test_mailto_without_an_id(self):
+        self.assertEqual(gerocard.mailto("HELP"),
+                         "mailto:bounty@example.com?subject=HELP")
+
+    def test_mailto_percent_encodes_a_dirty_id(self):
+        link = gerocard.mailto("CHECK", "A B&C?D")
+        self.assertNotIn(" ", link)
+        self.assertNotIn("&", link)
+        self.assertNotIn("?", link.split("?subject=", 1)[1])
+        self.assertIn("A%20B%26C%3FD", link)
+
+    def test_mailto_is_empty_without_a_mailbox(self):
+        MailBox.objects.all().delete()
+        self.assertEqual(gerocard.mailto("UPDATE", "AB12CD34EF56"), "")
+        self.assertEqual(gerocard.render_actions("AB12CD34EF56", ["UPDATE"]), "")
+
+    def test_render_actions_escapes_and_labels(self):
+        actions = gerocard.render_actions("AB12CD34EF56", ["AGREE", "APPEAL"])
+        self.assertIn("Agree to the decision", actions)
+        self.assertIn("Appeal the decision", actions)
+        self.assertIn("?subject=AGREE_AB12CD34EF56", actions)
+        self.assertNotIn("<script", actions)
+
+
+class ReportCardTests(CardTestCase):
+
+    def card(self, **fields):
+        return gerocard.build_report_card(make_report(**fields))
+
+    def test_header_has_id_title_and_stage(self):
+        card = self.card(report_status=2)
+        self.assertIn("AB12CD34EF56", card)
+        self.assertIn("Test finding", card)
+        self.assertIn("Stage 2 of 7", card)
+        self.assertIn("In Review", card)
+
+    def test_missing_status_time_omits_since(self):
+        self.assertNotIn("since", self.card(report_status=2))
+
+    def test_status_time_shows_since(self):
+        when = timezone.now() - timedelta(days=3)
+        card = self.card(report_status=3, report_status_changed_at=when)
+        self.assertIn("since " + when.strftime("%d %b %Y").lstrip("0"), card)
+
+    def test_action_update_requested(self):
+        report = make_report(report_status=2, report_permission=4,
+                             last_email_code=701, last_email_note="Please add a PoC video link")
+        card = gerocard.build_report_card(report)
+        self.assertEqual(gerocard.action_needed(report)[0], "update")
+        self.assertIn("asked you for more information", card)
+        self.assertIn("Please add a PoC video link", card)
+        self.assertIn("subject=UPDATE_AB12CD34EF56", card)
+
+    def test_action_decision_shows_severity_and_deadline(self):
+        report = make_report(report_status=5, report_permission=2,
+                             report_severity=7.5,
+                             report_calc_sent_at=timezone.now())
+        card = gerocard.build_report_card(report)
+        self.assertEqual(gerocard.action_needed(report)[0], "decision")
+        self.assertIn("High", card)
+        self.assertIn("7.5", card)
+        self.assertIn("subject=AGREE_AB12CD34EF56", card)
+        self.assertIn("subject=APPEAL_AB12CD34EF56", card)
+
+    def test_decision_section_has_no_money(self):
+        report = make_report(report_status=5, report_permission=2,
+                             report_calc_sent_at=timezone.now())
+        card = gerocard.build_report_card(report).lower()
+        for word in ("bounty amount", "usd", "$", "payout amount", "reward amount"):
+            self.assertNotIn(word, card)
+
+    def test_action_data_requested(self):
+        report = make_report(report_status=6, report_permission=1,
+                             last_email_code=703, last_email_note="Signed NDA and bank details")
+        card = gerocard.build_report_card(report)
+        self.assertEqual(gerocard.action_needed(report)[0], "data")
+        self.assertIn("signed NDA is required", card)
+        self.assertIn("Signed NDA and bank details", card)
+        self.assertIn("subject=DATA_AB12CD34EF56", card)
+
+    def test_action_closed(self):
+        report = make_report(report_status=0, report_permission=0,
+                             last_email_code=300, last_email_note="Out of scope endpoint")
+        card = gerocard.build_report_card(report)
+        self.assertEqual(gerocard.action_needed(report)[0], "closed")
+        self.assertIn("closed as not valid", card)
+        self.assertIn("Out of scope endpoint", card)
+
+    def test_action_completed(self):
+        report = make_report(report_status=7, report_permission=0)
+        card = gerocard.build_report_card(report)
+        self.assertEqual(gerocard.action_needed(report)[0], "completed")
+        self.assertIn("certificate was emailed", card)
+
+    def test_action_none(self):
+        report = make_report(report_status=3, report_permission=0)
+        card = gerocard.build_report_card(report)
+        self.assertEqual(gerocard.action_needed(report)[0], "none")
+        self.assertIn("Nothing is needed from you right now", card)
+
+    def test_allowance_numbers(self):
+        report = make_report(report_status=2, report_update_self=1, report_appeal=2)
+        lines = gerocard.allowance_lines(report)
+        self.assertIn("2 of 3", lines[0])
+        self.assertIn("Appeals left: 1 of 3", lines[1])
+        self.assertIn("2 of 3", gerocard.build_report_card(report))
+
+    def test_allowances_closed_after_bounty_calculation(self):
+        report = make_report(report_status=6)
+        self.assertIn("Updates are closed", gerocard.allowance_lines(report)[0])
+
+    def test_stage_explainer_matches_status(self):
+        for status in range(0, 8):
+            card = self.card(report_id="ST%09d" % status, report_status=status)
+            self.assertIn(html.escape(gerocard.STAGE_TEXT[status]), card)
+
+    def test_submissions_listed_oldest_first_with_pdf_flag(self):
+        base = timezone.now() - timedelta(days=5)
+        report = make_report(report_datetime=base)
+        BugReportUpdate.objects.create(update_id="AB12CD34EF56U1",
+                                       report_id=report.report_id,
+                                       update_datetime=base + timedelta(days=1),
+                                       update_summary="first", update_file=1)
+        BugReportUpdate.objects.create(update_id="AB12CD34EF56U2",
+                                       report_id=report.report_id,
+                                       update_datetime=base + timedelta(days=3),
+                                       update_summary="second", update_file=0)
+        BugReportAppeal.objects.create(appeal_id="AB12CD34EF56A1",
+                                       report_id=report.report_id,
+                                       appeal_datetime=base + timedelta(days=2),
+                                       appeal_summary="appeal", appeal_file=0)
+        BugReportNDA.objects.create(nda_id="AB12CD34EF56N1",
+                                    report_id=report.report_id,
+                                    nda_datetime=base + timedelta(days=4),
+                                    nda_summary="nda", nda_file=1)
+        card = gerocard.build_report_card(report)
+        order = [name for name in ("Original report", "AB12CD34EF56U1", "AB12CD34EF56A1",
+                                   "AB12CD34EF56U2", "AB12CD34EF56N1")]
+        positions = [card.index(name) for name in order]
+        self.assertEqual(positions, sorted(positions))
+        self.assertEqual(card.count(">yes<"), 3)
+        self.assertEqual(card.count(">no<"), 2)
+
+    def test_last_message_from_us(self):
+        card = self.card(last_email_code=702, last_email_note="Severity set to High")
+        self.assertIn("We sent you the bounty decision", card)
+        self.assertIn("Severity set to High", card)
+
+    def test_original_submission_block(self):
+        card = self.card(report_attack="XSS", report_endpoint="https://example.com/a")
+        self.assertIn("XSS", card)
+        self.assertIn("https://example.com/a", card)
+
+    def test_dates_are_plain(self):
+        report = make_report(report_datetime=dt.datetime(2026, 10, 21, 9, 0,
+                                                         tzinfo=dt.timezone.utc))
+        card = gerocard.build_report_card(report)
+        self.assertIn("21 Oct 2026", card)
+        self.assertNotIn("\u2014", card)
+
+    def test_title_with_html_is_escaped(self):
+        report = make_report(report_title="<img src=x onerror=1>",
+                             report_attack="<svg onload=alert(1)>",
+                             report_endpoint="https://e.com/?a=<b>",
+                             last_email_code=701,
+                             last_email_note="<script>alert(1)</script>",
+                             report_permission=4)
+        card = gerocard.build_report_card(report)
+        self.assertNotIn("<img", card)
+        self.assertNotIn("<svg", card)
+        self.assertNotIn("<script", card)
+        self.assertIn("&lt;img src=x onerror=1&gt;", card)
+        self.assertIn("&lt;script&gt;", card)
+
+    def test_forbidden_fields_absent(self):
+        report = make_report(
+            report_status=5, report_permission=2,
+            report_calc_sent_at=timezone.now(),
+            report_reviewer=LEAK,
+            report_duplicate=1,
+            report_duplicate_of=LEAK[:15],
+            report_severitystring="",
+            report_severitytype=LEAK,
+            report_summary=LEAK,
+        )
+        BugReport.objects.filter(report_id=report.report_id).update(
+            report_severitystring=LEAK)
+        report.refresh_from_db()
+        card = gerocard.build_report_card(report)
+        self.assertNotIn(LEAK, card)
+        self.assertNotIn("bounty amount", card.lower())
+
+
+class OverviewRowTests(CardTestCase):
+
+    def test_overview_sorts_action_needed_first(self):
+        old = timezone.now() - timedelta(days=10)
+        make_report(report_id="AAAAAAAAAAAA", report_status=3, report_permission=0,
+                    report_datetime=timezone.now())
+        make_report(report_id="BBBBBBBBBBBB", report_status=2, report_permission=4,
+                    report_datetime=old)
+        rows = gerocard.build_overview_rows("hunter@example.com")
+        self.assertEqual(len(rows), 2)
+        self.assertIn("BBBBBBBBBBBB", rows[0])
+        self.assertIn("AAAAAAAAAAAA", rows[1])
+        self.assertIn("Send us more information", rows[0])
+        self.assertIn(">No<", rows[1])
+
+    def test_overview_newest_first_within_a_group(self):
+        make_report(report_id="OLDOLDOLDOLD", report_status=3,
+                    report_datetime=timezone.now() - timedelta(days=4))
+        make_report(report_id="NEWNEWNEWNEW", report_status=3,
+                    report_datetime=timezone.now())
+        rows = gerocard.build_overview_rows("hunter@example.com")
+        self.assertIn("NEWNEWNEWNEW", rows[0])
+        self.assertIn("OLDOLDOLDOLD", rows[1])
+
+    def test_overview_ids_link_to_check(self):
+        make_report()
+        row = gerocard.build_overview_rows("hunter@example.com")[0]
+        self.assertIn("mailto:bounty@example.com?subject=CHECK_AB12CD34EF56", row)
+
+    def test_overview_escapes_title(self):
+        make_report(report_title="<img src=x onerror=1>")
+        row = gerocard.build_overview_rows("hunter@example.com")[0]
+        self.assertNotIn("<img", row)
+        self.assertIn("&lt;img src=x onerror=1&gt;", row)
+
+    def test_overview_without_a_mailbox_shows_plain_ids(self):
+        MailBox.objects.all().delete()
+        make_report()
+        row = gerocard.build_overview_rows("hunter@example.com")[0]
+        self.assertNotIn("mailto:", row)
+        self.assertIn("AB12CD34EF56", row)
+
+    def test_overview_only_the_senders_reports(self):
+        make_report()
+        make_report(report_id="CCCCCCCCCCCC", hunter_email="other@example.com")
+        rows = gerocard.build_overview_rows("hunter@example.com")
+        self.assertEqual(len(rows), 1)
+        self.assertNotIn("CCCCCCCCCCCC", rows[0])
+
+
+class StageTextTests(SimpleTestCase):
+
+    def test_one_sentence_per_status(self):
+        self.assertEqual(sorted(gerocard.STAGE_TEXT), list(range(0, 8)))
+        for status, text in gerocard.STAGE_TEXT.items():
+            self.assertTrue(text.endswith("."), status)
+            self.assertNotIn("\u2014", text)
+            self.assertNotIn("<", text)
