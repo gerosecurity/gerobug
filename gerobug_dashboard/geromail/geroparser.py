@@ -708,6 +708,13 @@ def read_mail(mail, folder_name='inbox'):
                                 logging.getLogger("Gerologger").info('Hunter Reports (' + payload[0] + '):\n' + payload[3])
                                 logging.getLogger("Gerologger").info("[CODE 208] Bug Hunter Check All Status Successfully")
 
+                            # SENDER HAS NO REPORTS YET
+                            elif(code == 410):
+                                payload[0] = ""
+                                payload[3] = ""
+                                logging.getLogger("Gerologger").info(
+                                    f'[CODE 410] No reports on record for {hunter_email}')
+
                             # INVALID REPORT ID
                             elif(code == 405):
                                 logging.getLogger("Gerologger").warning('[ERROR 405] Report ID not valid')
@@ -731,8 +738,10 @@ def read_mail(mail, folder_name='inbox'):
 
                             # INVALID REPORT FORMAT
                             else:
-                                logging.getLogger("Gerologger").warning('[ERROR 404] Report not valid')
-                                payload[3] = "Wrong formatting."
+                                logging.getLogger("Gerologger").warning(
+                                    '[ERROR 404] Command not recognised in subject')
+                                payload[3] = str(payload[0]).strip() or gerofilter.REASON_UNKNOWN_COMMAND
+                                payload[0] = ""
 
                             logging.getLogger("Gerologger").info('============================')
                             geromailer.write_mail(code, payload, hunter_email)

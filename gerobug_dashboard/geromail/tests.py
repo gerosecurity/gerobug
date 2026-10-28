@@ -967,3 +967,23 @@ class AgreeFlowTests(MailFlowTestCase):
 
     def test_agree_mail_names_the_new_stage(self):
         self.assertIn("Bounty in Process", mail_templates.message_205)
+
+
+class NoReportsTests(MailFlowTestCase):
+
+    def test_my_score_without_reports_gets_410(self):
+        self.deliver(raw_mail("MY_SCORE"))
+        self.assertEqual(self.sent_codes(), [410])
+
+    def test_status_overview_without_reports_gets_410(self):
+        self.deliver(raw_mail("STATUS_OVERVIEW"))
+        self.assertEqual(self.sent_codes(), [410])
+
+    def test_unknown_command_names_help(self):
+        self.deliver(raw_mail("Hello team, quick question"))
+        self.assertEqual(self.sent_codes(), [404])
+        self.assertEqual(self.last_note(), gerofilter.REASON_UNKNOWN_COMMAND)
+
+    def test_404_template_no_longer_claims_the_report_is_invalid(self):
+        self.assertNotIn("marked as <b>Invalid</b>", mail_templates.message_404)
+        self.assertIn("could not process", mail_templates.message_404)

@@ -170,12 +170,12 @@ message_403 = _wrap(
     + _SIGNOFF
 )
 
-subject_404 = "Submission Error: Invalid Report Format"
+subject_404 = "We could not process your email"
 message_404 = _wrap(
     _HELLO
-    + _para("We have received your submission. Regrettably, this report has been marked "
-            "as <b>Invalid</b> and cannot be processed in its current state.")
-    + _note("Reason for rejection:", "~NOTE~")
+    + _para("We received your email, but we could not process it. Nothing has been "
+            "changed on your report.")
+    + _note("What went wrong:", "~NOTE~")
     + _para("Please verify your input and ensure it adheres to the required format as "
             'defined <a href="https://gerobug.gitbook.io/documentation/filter-and-validation" '
             'style="' + _LINK + '" target="_blank">in our documentation</a>.')
@@ -189,6 +189,19 @@ message_405 = _wrap(
             "the submitted Report ID (<b>~ID~</b>) was not found in our system.")
     + _para("Please verify the Report ID against your records to ensure it is correct "
             "and try again.")
+    + _SIGNOFF
+)
+
+subject_410 = "No Reports Yet"
+message_410 = _wrap(
+    _HELLO
+    + _para("We looked for reports submitted from this email address and found none, "
+            "so there is nothing to show yet.")
+    + _para("To submit your first report, send an email with the subject "
+            "\"<b>SUBMIT_Your report title</b>\", put TYPE, ENDPOINT and SUMMARY in the "
+            "body, and attach your full report as a PDF file.")
+    + _para("If you have submitted a report before, send your request from the same "
+            "email address you used then.")
     + _SIGNOFF
 )
 
@@ -413,6 +426,7 @@ subjectlist = {
     404: subject_404,   # INVALID FORMAT
     405: subject_405,   # INVALID REPORT ID (ID)
     406: subject_406,   # BLACKLIST (NOTE)
+    410: subject_410,
     407: subject_407,
     408: subject_408,
     409: subject_409,
@@ -445,6 +459,7 @@ messagelist = {
     404: message_404,
     405: message_405,
     406: message_406,
+    410: message_410,
     407: message_407,
     408: message_408,
     409: message_409,
