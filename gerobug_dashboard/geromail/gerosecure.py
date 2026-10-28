@@ -1,6 +1,5 @@
 import time
 import logging
-from logging.handlers import TimedRotatingFileHandler
 from dashboards.models import Blacklist, Watchlist, BlacklistRule
 
 
@@ -85,14 +84,3 @@ def monitor(email, ts):
         watch.email = email
         watch.time = ts
         watch.save()
-
-# CLEAN WATCHLIST (SHOULD BE USED AS CRONJOB)
-def clean():
-    BLACKLISTRULE = BlacklistRule.objects.get(rule_id=1)
-    watchlist = Watchlist.objects.all()
-    ts = int(time.time())
-
-    for watch in watchlist:
-        diff = ts - watch.time
-        if diff >= BLACKLISTRULE.buffer_clean:
-            watch.delete()

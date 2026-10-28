@@ -8,7 +8,6 @@ import logging
 import os
 import ssl
 import traceback
-from logging.handlers import TimedRotatingFileHandler
 from email.utils import parsedate_tz, mktime_tz
 from email.header import decode_header
 from datetime import datetime
@@ -155,6 +154,37 @@ def save_uan(type, id, report_id, date, summary, file):
 def mail_header_decode(text):
     decoded_text = decode_header(text)
     return u"".join([str(part.decode(encoding or 'utf-8')) if isinstance(part, bytes) else part for part, encoding in decoded_text])
+
+
+def parse_bounce(msg):
+    # PULL THE FAILED RECIPIENT, SMTP ERROR AND ORIGINAL IDS OUT OF AN RFC 3464 DSN.
+    # DSN VALUES ARE OFTEN FOLDED ACROSS LINES, SO THEY ARE READ AS HEADER BLOCKS
+    # AND WHITESPACE-COLLAPSED RATHER THAN MATCHED PER LINE.
+    info = {'failed_to': 'unknown', 'error': 'unknown', 'orig_msg_id': 'unknown', 'report_id': 'unknown'}
+    try:
+        for part in msg.walk():
+            ptype = part.get_content_type()
+            if ptype == 'message/delivery-status':
+                for block in part.get_payload():
+                    for key, field in (('failed_to', 'Final-Recipient'), ('error', 'Diagnostic-Code')):
+                        value = block.get(field)
+                        if value and info[key] == 'unknown':
+                            info[key] = ' '.join(str(value).split(';', 1)[-1].split())
+            elif ptype in ('message/rfc822', 'text/rfc822-headers'):
+                orig = part.get_payload()
+                orig = orig[0] if isinstance(orig, list) else email.message_from_string(str(orig))
+                info['orig_msg_id'] = orig.get('Message-ID', 'unknown')
+                m = re.search(r'\b([0-9A-F]{12})\b', mail_header_decode(orig.get('Subject') or ''))
+                if m:
+                    info['report_id'] = m.group(1)
+    except Exception as e:
+        logging.getLogger("Gerologger").debug(f"DSN parse error: {e}")
+    return info
+
+
+def bounce_matches_report(info):
+    report = BugReport.objects.filter(report_id=str(info.get('report_id', ''))).only('hunter_email').first()
+    return bool(report) and report.hunter_email.lower() == str(info.get('failed_to', '')).lower()
 
 
 def rm_html_tags(text):
@@ -304,6 +334,38 @@ def read_mail(mail, folder_name='inbox'):
                             logging.getLogger("Gerologger").info('From : ' + str(hunter_email) + ' (' + str(hunter_name) + ')')
                             logging.getLogger("Gerologger").info('Subject : ' + str(email_subject))
                             
+                            # DETECT BOUNCE / DELIVERY STATUS NOTIFICATIONS (RFC 3464).
+                            # MUST BE HANDLED BEFORE THE SPOOF / RETURN-PATH CHECKS, WHICH
+                            # WOULD OTHERWISE SWALLOW THEM AS SPOOFING ATTEMPTS.
+                            _return_path = str(msg.get('return-path', '')).strip()
+                            _report_type = (msg.get_param('report-type') or '').lower()
+                            _is_bounce = (
+                                _report_type == 'delivery-status'
+                                or bool(re.match(r'mailer-daemon@', hunter_email, re.IGNORECASE))
+                                or re.match(r'^<\s*>$', _return_path) is not None
+                            )
+                            if _is_bounce:
+                                b = parse_bounce(msg)
+                                logging.getLogger("Gerologger").error(
+                                    f"EMAIL DELIVERY FAILED | "
+                                    f"BounceFrom: {hunter_email} | "
+                                    f"FailedTo: {b['failed_to']} | "
+                                    f"ReportID: {b['report_id']} | "
+                                    f"Error: {b['error']} | "
+                                    f"OriginalMsgID: {b['orig_msg_id']} | "
+                                    f"Subject: {email_subject}"
+                                )
+                                blacklisted = bool(hunter_email) and gerosecure.check_blacklist(hunter_email)[0]
+                                if hunter_email:
+                                    gerosecure.monitor(hunter_email, int(msg_ts))
+                                if not blacklisted and bounce_matches_report(b):
+                                    geronotify.notify(b['report_id'], b['failed_to'], "EMAIL_BOUNCED", detail=b['error'])
+                                else:
+                                    logging.getLogger("Gerologger").warning(
+                                        f"Bounce not matched to a report's hunter or sender rate-limited, webhook alert skipped | "
+                                        f"ReportID: {b['report_id']} | FailedTo: {b['failed_to']}")
+                                continue
+
                             # AVOID MAIL LOOPS (see loop_sender_reason)
                             _loop = loop_sender_reason(hunter_email, EMAIL, msg.get('Auto-Submitted'))
                             if _loop:

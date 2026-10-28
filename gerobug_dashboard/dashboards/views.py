@@ -14,18 +14,16 @@ from django.views.generic import (
 )
 from django.urls import reverse, reverse_lazy
 from django.db.models import Sum
-from django.http import FileResponse
+from django.http import FileResponse, JsonResponse
 from django.middleware.csrf import get_token
 from prerequisites.models import MailBox, Webhook
 from .models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization
 from .forms import Requestform, RulesGuidelineForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm, WebhookForm, BlacklistForm, TemplateReportForm, TemplateNDAForm, TemplateCertForm, CertDataForm, PersonalizationForm, CompanyIdentityForm, Invalidform, TroubleshootForm
-from sys import platform
 from geromail import geromailer, gerofilter, geroparser, gerocalculator
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
 
 import threading, os, shutil, secrets, uuid, html, gerocert.gerocert
 import logging
-from logging.handlers import TimedRotatingFileHandler
 
 
 
@@ -41,6 +39,7 @@ class RenderDashboardAdmin(LoginRequiredMixin,ListView):
     model = BugReport
     template_name = "dashboard.html"
     context_object_name = "bugposts"
+    ordering = ['-report_severity', 'report_datetime']
 
     def get_context_data(self, **kwargs):
         context = super(RenderDashboardAdmin, self).get_context_data(**kwargs)
@@ -139,10 +138,9 @@ class ReportDelete(LoginRequiredMixin,DeleteView):
             BugReportNDA.objects.filter(report_id=self.object.report_id).delete() 
 
     def get_success_url(self):
-        if platform == "win32":
-            shutil.rmtree(os.path.join(MEDIA_ROOT)+"\\"+self.object.report_id)
-        else:
-            shutil.rmtree(os.path.join(MEDIA_ROOT)+"/"+self.object.report_id)
+        report_dir = os.path.join(MEDIA_ROOT, self.object.report_id)
+        if os.path.exists(report_dir):
+            shutil.rmtree(report_dir)
         logging.getLogger("Gerologger").info("REPORT " + str(self.object.report_id) + " DELETED BY " + str(self.request.user.username))
         return reverse_lazy('dashboard')
 
@@ -209,10 +207,10 @@ def ReportStatusView(request, id):
     elif int(id) < 0:
         return notfound_404(request, id)
         
-    report = BugReport.objects.filter(report_status=id).values()
+    report = BugReport.objects.filter(report_status=id)
     status = ReportStatus.objects.get(status_id=id)
     status = status.status_name
-    context = {'bugreportlists': report, 'reportstatus': status}
+    context = {'bugreportlists': report, 'reportstatus': status, 'status_id': int(id)}
 
     # COMPANY NAME
     THEME = Personalization.objects.get(personalize_id=1)
@@ -252,6 +250,56 @@ def ReportUpdateStatus(request,id):
             logging.getLogger("Gerologger").error("Mailbox is not ready.")
         
     return redirect('dashboard')
+
+
+@login_required
+def KanbanMove(request, id):
+    # DRAG-AND-DROP COLUMN MOVE. UNLIKE ReportUpdateStatus (SINGLE-STEP FORWARD
+    # BUTTON) THIS ACCEPTS AN ARBITRARY TARGET COLUMN, SO ONLY BOARD-VISIBLE
+    # STATUSES ARE PERMITTED. THE HUNTER GETS THE SAME NOTIFICATION EITHER WAY.
+    ALLOWED_TARGETS = {1, 2, 3, 4, 5}
+    MOVABLE_SOURCES = {1, 2, 3, 4, 5, 6}
+
+    if request.method != "POST":
+        return JsonResponse({'error': 'POST required'}, status=405)
+    if not gerofilter.validate_id(id):
+        return JsonResponse({'error': 'unknown report'}, status=404)
+
+    try:
+        new_status = int(request.POST.get('new_status', ''))
+    except (TypeError, ValueError):
+        return JsonResponse({'error': 'invalid status'}, status=400)
+    if new_status not in ALLOWED_TARGETS:
+        return JsonResponse({'error': 'status not movable on the board'}, status=400)
+
+    if not geroparser.check_mailbox_status():
+        logging.getLogger("Gerologger").error("Mailbox is not ready.")
+        return JsonResponse({'error': 'Mailbox is not ready - status changes are disabled until the mailbox is configured.'}, status=409)
+
+    report = BugReport.objects.get(report_id=id)
+    if report.report_status not in MOVABLE_SOURCES:
+        return JsonResponse({'error': 'report cannot be moved from its current status'}, status=400)
+    if report.report_status == new_status:
+        return JsonResponse({'status': 'unchanged'})
+
+    report.report_status = new_status
+    report.save()
+    logging.getLogger("Gerologger").info("REPORT "+str(id)+" STATUS MOVED ("+str(new_status)+") BY "+str(request.user.username))
+
+    def trigger_geromailer(report):
+        from django.db import connection as db_connection
+        try:
+            payload = [report.report_id, report.report_title, report.report_status, "", report.report_severity]
+            geromailer.notify(report.hunter_email, payload)
+        except Exception as e:
+            logging.getLogger("Gerologger").error(f"Thread failed to send notification for {report.report_id}: {e}")
+        finally:
+            db_connection.close()
+
+    trigger = threading.Thread(target=trigger_geromailer, args=(report,))
+    trigger.start()
+
+    return JsonResponse({'status': 'ok', 'report': id, 'new_status': new_status})
 
 
 @login_required
@@ -678,6 +726,15 @@ def AdminSetting(request):
             messages.success(request,"Company Identity updated successfully!")
             return redirect('setting')
              
+        if request.POST.get('personalize_reset'):
+            theme = Personalization.objects.get(personalize_id=1)
+            for field, value in Personalization.BRAND_DEFAULTS.items():
+                setattr(theme, field, value)
+            theme.save()
+            logging.getLogger("Gerologger").info("Personalization reset to brand defaults")
+            messages.success(request, "Colors reset to the default theme!")
+            return redirect('setting')
+
         personalization = PersonalizationForm(request.POST)
         if personalization.is_valid():
             theme               = Personalization.objects.get(personalize_id=1)
@@ -714,7 +771,7 @@ def AdminSetting(request):
     return render(request,'setting.html',
                   {'form': RulesGuidelineForm(instance=RULES), 'mailbox': MailboxForm(initial=mailbox_initial_data), 'account': AccountForm(),'reviewer': ReviewerForm(),'webhooks': WebhookForm(),'blacklistrule': BlacklistForm(),
                     'templatereport': TemplateReportForm(), 'templatenda': TemplateNDAForm(), 'templatecert': TemplateCertForm(), 'certdata': CertDataForm(), 'companyidentity': CompanyIdentityForm(),
-                    'personalization': PersonalizationForm(instance=THEME), 'troubleshoot': TroubleshootForm(), 'users':users, 'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications,'bl':bl, 'company_name':THEME.company_name})
+                    'personalization': PersonalizationForm(instance=THEME), 'theme_presets': Personalization.THEME_PRESETS, 'troubleshoot': TroubleshootForm(), 'users':users, 'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications,'bl':bl, 'company_name':THEME.company_name})
 
 @login_required
 def ReviewerDelete(request,public_id):

@@ -1,0 +1,1520 @@
+/* ==========================================================================
+   GERO SECURITY DESIGN SYSTEM — Gerobug skin (dashboard + public web)
+   Source of truth: Claude Design project "Gero Security Design System"
+   (tokens/colors|typography|spacing|effects + ui_kits/gerobug mockup).
+
+   Personalization: theme.css (rendered from the Personalization model)
+   loads BEFORE this file and supplies --main-1, --main-2, --secondary-1..3
+   and --button-1. Every surface/accent/CTA role below derives from those
+   variables, so the operator's Settings > Personalization colors drive the
+   skin; the Gero brand palette is only the fallback. Fixed --color-red-* /
+   status colors are semantic (severity, success/warn/info) and deliberately
+   NOT personalized.
+
+   Load order matters: this file must come AFTER theme.css and the
+   per-page stylesheets so its overrides win the cascade.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+/* --------------------------------------------------------------------------
+   1. TOKENS
+   -------------------------------------------------------------------------- */
+:root {
+  /* Brand red (crimson) — semantic scale, not personalized */
+  --color-red-50:  #FFF0F2;
+  --color-red-100: #FFD6DC;
+  --color-red-200: #FFA8B4;
+  --color-red-300: #F06A7E;
+  --color-red-400: #E03252;
+  --color-red-500: #C41230;
+  --color-red-600: #A50D27;
+  --color-red-700: #850A1E;
+
+  /* Dark / near-black scale */
+  --color-dark-950: #0E0000;
+  --color-dark-900: #1A1A1A;
+  --color-dark-800: #252525;
+  --color-dark-700: #2F2F2F;
+  --color-dark-600: #3A3A3A;
+  --color-dark-500: #5A5A5A;
+  --color-dark-400: #737373;
+  --color-dark-300: #8F8F8F;
+  --color-dark-200: #B5B5B5;
+  --color-dark-100: #D4D4D4;
+  --color-dark-50:  #EDEDED;
+
+  /* ---- Personalization-driven roles (theme.css supplies the vars) ---- */
+  --gds-canvas:  var(--main-1, #1A1A1A);      /* main background            */
+  --gds-accent:  var(--main-2, #C41230);      /* highlights, active states  */
+  --gds-surface: var(--secondary-1, #171717); /* cards, sidebar, topnav     */
+  --gds-overlay: var(--secondary-2, #2F2F2F); /* inputs, hovers, submenus   */
+  --gds-border:  var(--secondary-3, #3A3A3A); /* outlines and dividers      */
+  --gds-cta:     var(--button-1, #C41230);    /* primary action buttons     */
+
+  /* Derived shades (modern browsers; used for hover/tint/glow) */
+  --gds-cta-hover:    color-mix(in srgb, var(--gds-cta) 82%, black);
+  --gds-cta-press:    color-mix(in srgb, var(--gds-cta) 65%, black);
+  --gds-cta-shadow:   color-mix(in srgb, var(--gds-cta) 30%, transparent);
+  --gds-accent-soft:  color-mix(in srgb, var(--gds-accent) 55%, white); /* 55% keeps AA (4.5:1) for accent text on all dark surfaces incl. --gds-overlay */
+  --gds-accent-tint:  color-mix(in srgb, var(--gds-accent) 15%, transparent);
+  --gds-accent-glow:  color-mix(in srgb, var(--gds-accent) 40%, transparent);
+  --gds-focus-ring:   color-mix(in srgb, var(--gds-cta) 40%, transparent);
+  --gds-gradient-bg:  linear-gradient(135deg,
+                        color-mix(in srgb, var(--gds-canvas) 35%, black) 0%,
+                        color-mix(in srgb, var(--gds-accent) 14%, black) 60%,
+                        var(--gds-canvas) 100%);
+
+  /* Semantic aliases used throughout the components below */
+  --color-surface-dark-bg:      var(--gds-canvas);
+  --color-surface-dark-raised:  var(--gds-surface);
+  --color-surface-dark-overlay: var(--gds-overlay);
+  --color-surface-dark-border:  var(--gds-border);
+  --color-text-on-dark:         #FFFFFF;
+  --color-text-muted-dark:      #B5B5B5;
+  --color-text-faint-dark:      #9A9A9A; /* faintest AA text — 4.5:1 even on --gds-overlay; never go darker for text */
+  --color-action-primary:       var(--gds-cta);
+  --color-action-primary-hover: var(--gds-cta-hover);
+  --color-action-primary-press: var(--gds-cta-press);
+  --color-focus-ring:           var(--gds-focus-ring);
+  --color-success: #1F8A5B;
+  --color-warning: #D97C10;
+  --color-error:   #C41230;
+  --color-info:    #2C6FDB;
+
+  /* Type */
+  --font-primary: 'Poppins', 'Nunito', sans-serif;
+  --font-mono:    'IBM Plex Sans', 'Courier New', monospace;
+
+  /* Radii */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-pill: 999px;
+
+  /* Shadows */
+  --shadow-dark-sm: 0 2px 8px rgba(0,0,0,0.5);
+  --shadow-dark-md: 0 4px 16px rgba(0,0,0,0.55);
+  --shadow-dark-lg: 0 8px 32px rgba(0,0,0,0.6);
+  --shadow-glow-sm: 0 0 12px var(--gds-accent-glow);
+  --shadow-glow-md: 0 0 24px var(--gds-accent-glow);
+
+  /* Motion */
+  --duration-fast:   120ms;
+  --duration-normal: 200ms;
+  --ease-default: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+
+/* --------------------------------------------------------------------------
+   2. REUSABLE COMPONENT CLASSES (from components/core + data + forms specs)
+   -------------------------------------------------------------------------- */
+.gds-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--font-primary);
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  min-height: 38px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-decoration: none !important;
+  white-space: nowrap;
+  transition: background var(--duration-fast) var(--ease-default),
+              box-shadow var(--duration-fast) var(--ease-default),
+              transform var(--duration-fast) var(--ease-default);
+}
+.gds-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--gds-focus-ring); }
+.gds-btn-primary {
+  background: var(--color-action-primary);
+  color: #fff !important;
+  box-shadow: 0 2px 8px var(--gds-cta-shadow);
+}
+.gds-btn-primary:hover {
+  background: var(--color-action-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px var(--gds-cta-shadow);
+  color: #fff;
+}
+.gds-btn-primary:active { transform: translateY(0); box-shadow: none; }
+.gds-btn-secondary {
+  background: var(--gds-surface);
+  color: #fff !important;
+  border: 1.5px solid var(--gds-border);
+}
+.gds-btn-secondary:hover { background: var(--gds-overlay); color: #fff; }
+.gds-btn-ghost-dark {
+  background: transparent;
+  color: #fff !important;
+  border: 1.5px solid var(--color-dark-500);
+}
+.gds-btn-ghost-dark:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.gds-btn-block { width: 100%; }
+
+.gds-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-primary);
+  font-weight: 700;
+  font-size: 10px;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+
+.gds-card {
+  font-family: var(--font-primary);
+  background: var(--color-surface-dark-raised);
+  border: 1px solid var(--color-surface-dark-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-dark-md);
+}
+
+.gds-eyebrow {
+  font-family: var(--font-primary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gds-accent-soft);
+}
+
+/* --------------------------------------------------------------------------
+   3. DASHBOARD SHELL (base.html — sidebar, topbar, canvas)
+   -------------------------------------------------------------------------- */
+body { font-family: var(--font-primary); }
+
+.sidebar {
+  background: var(--color-surface-dark-raised);
+  border-right: 1px solid var(--color-surface-dark-border);
+}
+.sidebar .logo-details img {
+  width: auto;
+  height: 40px;
+  object-fit: contain;
+}
+.sidebar .nav-links li:hover { background: var(--gds-accent-tint); }
+.sidebar .nav-links li a .link_name,
+.sidebar .nav-links li i {
+  color: var(--color-dark-200);
+  font-size: 14px;
+  font-weight: 400;
+  transition: color var(--duration-fast) var(--ease-default);
+}
+.sidebar .nav-links li i { font-size: 17px; }
+.sidebar .nav-links li:hover > a .link_name,
+.sidebar .nav-links li:hover > a i,
+.sidebar .nav-links li:hover > .icon-link a .link_name,
+.sidebar .nav-links li:hover > .icon-link i {
+  color: var(--gds-accent-soft);
+}
+.sidebar .nav-links li .sub-menu { background: var(--gds-overlay); }
+.sidebar .nav-links li .sub-menu a { color: var(--color-dark-200); font-size: 13px; }
+.sidebar .nav-links li .sub-menu a:hover { color: #fff; opacity: 1; }
+
+/* Logout button → primary CTA */
+.sidebar .btn {
+  background: var(--color-action-primary);
+  color: #fff;
+  border-radius: var(--radius-md);
+  font-family: var(--font-primary);
+  font-weight: 600;
+  font-size: 13px;
+  box-shadow: 0 2px 8px var(--gds-cta-shadow);
+  transition: background var(--duration-fast) var(--ease-default),
+              transform var(--duration-fast) var(--ease-default);
+}
+.sidebar .btn:hover {
+  background: var(--color-action-primary-hover);
+  color: #fff;
+  transform: translateY(-1px);
+}
+#copyright p { color: var(--color-text-faint-dark); font-size: 11px; text-align: center; }
+
+/* Main canvas — set the base ink too so stray text (e.g. the CVSS vector
+   label, calculator hints) never renders Bootstrap's near-black on dark */
+.home-section { background: var(--color-surface-dark-bg); color: var(--color-dark-100); }
+.home-section .form-label { color: var(--color-dark-200); }
+.home-section header {
+  background: var(--color-surface-dark-raised);
+  border-bottom: 1px solid var(--color-surface-dark-border);
+}
+.home-section .home-content .bx-menu,
+.home-section .home-content .text { color: #fff; }
+.home-section .home-content .text { font-size: 17px; font-weight: 600; }
+
+/* Bootstrap's .text-muted is illegible on the dark shell — remap to the
+   design system's muted text (AA on all dark surfaces) */
+.home-section .text-muted { color: var(--color-text-muted-dark) !important; }
+
+/* Bootstrap contextual text colors — retint for AA on the dark surfaces
+   (.text-dark especially is near-invisible on the dark shell) */
+.home-section .text-primary { color: #7FACEC !important; }
+.home-section .text-success { color: #6DB87A !important; }
+.home-section .text-warning { color: #E8A24C !important; }
+.home-section .text-info    { color: #7FD6EC !important; }
+.home-section .text-danger  { color: #F4839B !important; }
+.home-section .text-dark    { color: var(--color-dark-100) !important; }
+
+/* Bootstrap buttons on the dark shell → design-system action roles.
+   (--bs-btn-* custom properties drive all states incl. .btn-check toggles.) */
+.home-section .btn-primary {
+  --bs-btn-bg: var(--color-action-primary);
+  --bs-btn-border-color: var(--color-action-primary);
+  --bs-btn-hover-bg: var(--color-action-primary-hover);
+  --bs-btn-hover-border-color: var(--color-action-primary-hover);
+  --bs-btn-active-bg: var(--color-action-primary-press);
+  --bs-btn-active-border-color: var(--color-action-primary-press);
+  --bs-btn-disabled-bg: var(--color-dark-600);
+  --bs-btn-disabled-border-color: var(--color-dark-600);
+}
+.home-section .btn-outline-primary {
+  --bs-btn-color: var(--gds-accent-soft);
+  --bs-btn-border-color: var(--gds-accent);
+  --bs-btn-hover-color: var(--gds-accent-soft);
+  --bs-btn-hover-bg: var(--gds-accent-tint);
+  --bs-btn-hover-border-color: var(--gds-accent);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--color-action-primary);
+  --bs-btn-active-border-color: var(--color-action-primary);
+}
+.home-section .btn-danger {
+  --bs-btn-bg: var(--color-error);
+  --bs-btn-border-color: var(--color-error);
+  --bs-btn-hover-bg: var(--color-red-600);
+  --bs-btn-hover-border-color: var(--color-red-600);
+  --bs-btn-active-bg: var(--color-red-700);
+  --bs-btn-active-border-color: var(--color-red-700);
+}
+.home-section .btn-outline-secondary {
+  --bs-btn-color: var(--color-dark-200);
+  --bs-btn-border-color: var(--color-dark-500);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: rgba(255,255,255,0.08);
+  --bs-btn-hover-border-color: var(--color-dark-400);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: rgba(255,255,255,0.12);
+  --bs-btn-active-border-color: var(--color-dark-400);
+}
+.home-section .btn-outline-dark {
+  --bs-btn-color: var(--color-dark-100);
+  --bs-btn-border-color: var(--color-dark-500);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: rgba(255,255,255,0.08);
+  --bs-btn-hover-border-color: var(--color-dark-400);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--color-action-primary);
+  --bs-btn-active-border-color: var(--color-action-primary);
+}
+.home-section .btn:focus-visible { box-shadow: 0 0 0 3px var(--color-focus-ring); }
+
+/* Dividers */
+.home-section hr { border-color: var(--color-surface-dark-border); opacity: 1; }
+
+/* Status badge tints (same chip language as the severity pills) */
+.gds-badge-success { background: rgba(31,138,91,0.2);   color: #6DB87A; }
+.gds-badge-danger  { background: rgba(196,18,48,0.2);   color: #F4839B; }
+.gds-badge-muted   { background: rgba(255,255,255,0.08); color: var(--color-dark-200); }
+
+/* Bootstrap alerts on dark */
+.home-section .alert,
+main .alert {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-surface-dark-border);
+  font-family: var(--font-primary);
+  font-size: 13px;
+}
+.alert-success { background: rgba(31,138,91,0.15); color: #6DB87A; border-color: rgba(31,138,91,0.4); }
+.alert-warning { background: rgba(217,124,16,0.15); color: #E8A24C; border-color: rgba(217,124,16,0.4); }
+.alert-danger  { background: rgba(196,18,48,0.15);  color: #F4839B; border-color: rgba(196,18,48,0.4); }
+.home-section .alert-secondary {
+  background: rgba(255,255,255,0.06);
+  color: var(--color-dark-100);
+  border-color: var(--color-surface-dark-border);
+}
+
+/* Dark scrollbars */
+.home-section ::-webkit-scrollbar { width: 8px; height: 8px; background: transparent; }
+.home-section ::-webkit-scrollbar-thumb { background: var(--color-dark-600); border-radius: 4px; }
+.home-section ::-webkit-scrollbar-thumb:hover { background: var(--color-dark-500); }
+
+/* --------------------------------------------------------------------------
+   3b. BOOTSTRAP + LEGACY LIGHT PAGES ON THE DARK SHELL
+   The per-page stylesheets (table.css, reportDetail.css, detailUAN.css,
+   update.css, delete.css, setting.css) still paint white panels and rely on
+   Bootstrap's light defaults. Everything here re-bases those pages onto the
+   dark surfaces so every dashboard page shares one shell. Later sections
+   (kanban, analytics) override where they need to.
+   -------------------------------------------------------------------------- */
+
+/* Legacy white <main> panels — templates opt in with class="gds-panel" */
+.home-section main.gds-panel {
+  background: var(--color-surface-dark-raised);
+  border: 1px solid var(--color-surface-dark-border);
+  box-shadow: none;
+  color: var(--color-dark-100);
+}
+.home-section main.gds-panel h1, .home-section main.gds-panel h2,
+.home-section main.gds-panel h3, .home-section main.gds-panel h4,
+.home-section main.gds-panel h5, .home-section main.gds-panel h6 { color: #fff; }
+.home-section main.gds-panel label { color: var(--color-dark-200); }
+.home-section main.gds-panel a:not(.btn):not(.page-link):not([class*="-btn"]) { color: var(--gds-accent-soft); }
+.home-section main.gds-panel #report-id { color: var(--gds-accent-soft); }
+.home-section main.gds-panel #fname { color: var(--color-dark-200); }
+.home-section main.gds-panel input[type="text"],
+.home-section main.gds-panel input[type="number"],
+.home-section main.gds-panel textarea,
+.home-section main.gds-panel select {
+  background-color: var(--color-surface-dark-overlay);
+  border: 1.5px solid var(--color-surface-dark-border);
+  border-radius: var(--radius-md);
+  color: #fff;
+}
+.home-section main.gds-panel ::placeholder { color: var(--color-text-faint-dark); }
+.home-section main.gds-panel table,
+.home-section main.gds-panel th,
+.home-section main.gds-panel td { border-color: var(--color-surface-dark-border); }
+
+/* Report-detail resources block (reportDetail.css paints it light) */
+.home-section main.gds-panel .resource-card {
+  background-color: var(--color-surface-dark-overlay);
+  border-color: var(--color-surface-dark-border);
+}
+.home-section main.gds-panel .resource-card:hover { border-color: var(--gds-accent); box-shadow: none; }
+.home-section main.gds-panel .resource-card h6 { color: var(--color-dark-200); }
+.home-section main.gds-panel .file-link,
+.home-section main.gds-panel .file-link:hover { color: var(--gds-accent-soft); }
+
+/* Severity chips on the detail pages (ids from reportDetail.css/detailUAN.css) */
+.home-section main.gds-panel #none     { background: rgba(255,255,255,0.08); color: var(--color-text-faint-dark); }
+.home-section main.gds-panel #low      { background: rgba(255,255,255,0.08); color: var(--color-dark-200); }
+.home-section main.gds-panel #medium   { background: rgba(44,111,219,0.18);  color: #7FACEC; }
+.home-section main.gds-panel #high     { background: rgba(217,124,16,0.18);  color: #E8A24C; }
+.home-section main.gds-panel #critical { background: rgba(196,18,48,0.2);    color: #F4839B; }
+
+/* Bootstrap cards (setting.css forces white) */
+.home-section .card {
+  background-color: var(--color-surface-dark-raised);
+  border: 1px solid var(--color-surface-dark-border);
+  color: var(--color-dark-100);
+}
+/* CVSS calculator cards ship with .text-bg-light (!important in Bootstrap) —
+   force them back onto the dark surfaces */
+.home-section .card.text-bg-light {
+  background-color: var(--color-surface-dark-raised) !important;
+  color: var(--color-dark-100) !important;
+}
+.home-section .card.text-bg-light .card-header h4 { color: #fff; font-size: 16px; font-weight: 600; }
+.home-section .card .card-header {
+  background-color: var(--color-surface-dark-overlay) !important; /* .bg-light is !important */
+  border-bottom: 1px solid var(--color-surface-dark-border);
+  color: #fff;
+}
+.home-section .card .card-title { color: #fff; }
+
+/* Bootstrap tables */
+.home-section .table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--color-dark-100);
+  --bs-table-border-color: var(--color-surface-dark-border);
+  --bs-table-striped-bg: rgba(255,255,255,0.03);
+  --bs-table-striped-color: var(--color-dark-100);
+  --bs-table-hover-bg: rgba(255,255,255,0.05);
+  --bs-table-hover-color: #fff;
+  color: var(--color-dark-100);
+  border-color: var(--color-surface-dark-border);
+}
+.home-section .table > thead th { color: #fff; }
+.home-section table a:not(.btn) { color: var(--gds-accent-soft); }
+.home-section table.dataTable,
+.home-section table.display { color: var(--color-dark-100); }
+
+/* Links inside cards (settings tab panes) — default Bootstrap blue is
+   illegible on the dark surfaces */
+.home-section .card a:not(.btn):not(.nav-link):not([class*="gds-"]) { color: var(--gds-accent-soft); }
+
+/* Bare Django as_p widgets inside cards (no form-control class) */
+.home-section .card input[type="text"]:not([class*="form-"]),
+.home-section .card input[type="email"]:not([class*="form-"]),
+.home-section .card input[type="password"]:not([class*="form-"]),
+.home-section .card input[type="number"]:not([class*="form-"]),
+.home-section .card input[type="url"]:not([class*="form-"]),
+.home-section .card select:not([class*="form-"]),
+.home-section .card textarea:not([class*="form-"]) {
+  background-color: var(--color-surface-dark-overlay);
+  border: 1px solid var(--color-surface-dark-border);
+  border-radius: var(--radius-md);
+  color: #fff;
+  padding: 6px 10px;
+  font-family: var(--font-primary);
+  font-size: 13px;
+}
+
+/* Bootstrap form controls */
+.home-section .form-control,
+.home-section .form-select {
+  background-color: var(--color-surface-dark-overlay);
+  border-color: var(--color-surface-dark-border);
+  color: #fff;
+}
+.home-section .form-control:focus,
+.home-section .form-select:focus {
+  background-color: var(--color-surface-dark-overlay);
+  border-color: var(--color-action-primary);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+  color: #fff;
+}
+.home-section .form-control::placeholder { color: var(--color-text-faint-dark); }
+.home-section .form-control:disabled,
+.home-section .form-control[readonly],
+.home-section .form-select:disabled {
+  background-color: var(--color-surface-dark-border);
+  color: var(--color-dark-200);
+}
+.home-section .form-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23dee2e6' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+.home-section .input-group-text {
+  background-color: var(--color-surface-dark-border);
+  border-color: var(--color-surface-dark-border);
+  color: var(--color-dark-100);
+}
+
+/* Settings navigation (pills sidebar + tab strips) */
+.home-section .nav-pills .nav-link,
+.home-section .nav-tabs .nav-link { color: var(--color-dark-200); }
+.home-section .nav-pills .nav-link:hover,
+.home-section .nav-tabs .nav-link:hover { color: #fff; }
+.home-section .nav-pills .nav-link.active {
+  background-color: var(--gds-accent-tint);
+  color: var(--gds-accent-soft);
+}
+
+/* Settings sidebar pills — icon + label rows */
+.home-section .nav-pills .nav-link.has-icon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
+  border-left: 2px solid transparent;
+  transition: background var(--duration-fast) var(--ease-default),
+              color var(--duration-fast) var(--ease-default);
+}
+.home-section .nav-pills .nav-link.has-icon:hover { background: rgba(255,255,255,0.04); }
+.home-section .nav-pills .nav-link.has-icon.active { border-left-color: var(--gds-accent); }
+.home-section .nav-pills .nav-link.has-icon svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+/* Mobile icon strip (nav-tabs variant) */
+.home-section .nav-tabs .nav-link.has-icon svg { width: 18px; height: 18px; }
+
+/* Settings tab-pane section headings — eyebrow treatment */
+.home-section .tab-content > .tab-pane > h6 {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gds-accent-soft);
+  margin-bottom: 10px;
+}
+.home-section .tab-content > .tab-pane > hr { margin-top: 0; }
+
+/* Row-action icons in settings tables (delete / resend) */
+.home-section .table .gds-row-action {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: none;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--color-dark-300);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-default);
+}
+.home-section .table .gds-row-action i { font-size: 20px; line-height: 1; vertical-align: middle; }
+.home-section .table a.gds-row-action:hover,
+.home-section .table .gds-row-action.gds-action-danger:hover { color: #F4839B; }
+.home-section .table button.gds-row-action:hover { color: var(--gds-accent-soft); }
+
+/* BS4 leftovers used by the settings tab (no BS5 equivalent in markup) */
+.home-section .form-group { margin-bottom: 1rem; }
+.home-section .nav-tabs {
+  --bs-nav-tabs-border-color: var(--color-surface-dark-border);
+  --bs-nav-tabs-link-hover-border-color: var(--color-surface-dark-border);
+  --bs-nav-tabs-link-active-bg: var(--color-surface-dark-raised);
+  --bs-nav-tabs-link-active-color: #fff;
+  --bs-nav-tabs-link-active-border-color: var(--color-surface-dark-border);
+}
+
+/* Bootstrap modals */
+.home-section .modal-content {
+  background-color: var(--color-surface-dark-raised);
+  border: 1px solid var(--color-surface-dark-border);
+  color: var(--color-dark-100);
+}
+.home-section .modal-header,
+.home-section .modal-footer { border-color: var(--color-surface-dark-border); }
+.home-section .modal-title { color: #fff; }
+.home-section .modal .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
+
+/* Pagination (DataTables renders Bootstrap pagination) */
+.home-section .pagination {
+  --bs-pagination-bg: var(--color-surface-dark-overlay);
+  --bs-pagination-color: var(--color-dark-100);
+  --bs-pagination-border-color: var(--color-surface-dark-border);
+  --bs-pagination-hover-bg: var(--color-surface-dark-border);
+  --bs-pagination-hover-color: #fff;
+  --bs-pagination-focus-bg: var(--color-surface-dark-border);
+  --bs-pagination-focus-color: #fff;
+  --bs-pagination-focus-box-shadow: 0 0 0 3px var(--color-focus-ring);
+  --bs-pagination-active-bg: var(--color-action-primary);
+  --bs-pagination-active-border-color: var(--color-action-primary);
+  --bs-pagination-disabled-bg: transparent;
+  --bs-pagination-disabled-color: var(--color-text-faint-dark);
+  --bs-pagination-disabled-border-color: var(--color-surface-dark-border);
+}
+
+/* Quill keeps a light "document" editing surface by design */
+.home-section .ql-toolbar { background: var(--color-dark-50); border-color: var(--color-surface-dark-border); }
+.home-section .ql-container { background: #fff; color: var(--color-dark-900); border-color: var(--color-surface-dark-border); }
+
+/* --------------------------------------------------------------------------
+   4. DASHBOARD PAGE (stat cards, notification, kanban)
+   -------------------------------------------------------------------------- */
+.gds-page-head { margin: 24px 64px 0; }
+.gds-page-head .gds-page-title { font-size: 20px; font-weight: 700; color: #fff; margin: 0 0 2px; }
+.gds-page-head .gds-page-sub { font-size: 12px; color: var(--color-text-faint-dark); }
+
+.gds-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 20px 64px 0;
+}
+.gds-stat-card {
+  background: var(--color-surface-dark-raised);
+  border: 1px solid var(--color-surface-dark-border);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gds-stat-card.gds-accent { border-left: 3px solid var(--gds-accent); }
+.gds-stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-faint-dark);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.gds-stat-value { font-size: 26px; font-weight: 700; color: #fff; line-height: 1.1; }
+.gds-stat-sub { font-size: 11px; color: var(--color-text-faint-dark); }
+
+/* Notification banner → dark card with accent bar */
+.notification {
+  background: var(--color-surface-dark-raised);
+  border: 1px solid var(--color-surface-dark-border);
+  border-left: 3px solid var(--gds-accent);
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+  height: 52px;
+}
+.notification svg { color: var(--gds-accent-soft); width: 18px; height: 18px; }
+.notification .notif-details { font-size: 13px; font-weight: 500; color: var(--color-dark-100); padding-left: 14px; }
+
+/* Kanban columns */
+.kanban-container { width: auto; max-width: none; margin: 16px 64px 24px; }
+/* min-width:0 lets long unbroken titles truncate instead of stretching the
+   flex column and wrapping the whole board */
+.kanban .col-sm { min-width: 0; }
+.col-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-dark-200);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 2px;
+}
+.col-header::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gds-col-color, var(--color-dark-400));
+  flex-shrink: 0;
+}
+#col1 { --gds-col-color: var(--color-info); }
+#col2 { --gds-col-color: var(--color-warning); }
+#col3 { --gds-col-color: var(--color-red-500); }
+#col4 { --gds-col-color: var(--color-red-300); }
+#col5 { --gds-col-color: var(--color-success); }
+
+.scroll-div { border-radius: var(--radius-lg); }
+.scroll-div-active { background: rgba(255,255,255,0.02); }
+
+/* Kanban cards (mockup: dark surface, 10px radius, subtle border, hover lift) */
+.kanban .card {
+  background: var(--color-surface-dark-overlay);
+  border: 1px solid var(--color-surface-dark-border);
+  border-radius: 10px;
+  margin: 8px 6px 10px;
+  padding: 12px;
+  transition: border-color 150ms var(--ease-default),
+              transform 150ms var(--ease-default);
+}
+.kanban .card:hover {
+  border-color: var(--gds-accent);
+  transform: translateY(-2px);
+}
+.kanban .card .card-title { font-size: 12px; font-weight: 700; color: #fff; }
+.kanban .card .card-type { font-size: 12px; font-weight: 600; color: #fff; line-height: 1.4; }
+.kanban .card .card-hunter { color: var(--color-text-faint-dark); font-size: 10px; }
+.kanban .card .card-time { color: var(--color-text-faint-dark); font-size: 10px; }
+.kanban .card .card-severity { padding-top: 6px; }
+/* One-line truncation for long titles/URLs in cards and table cells.
+   #string_overflow is the legacy id still used on the detail pages. */
+.gds-truncate,
+#string_overflow {
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.home-section main.gds-panel td .gds-truncate { max-width: 480px; }
+
+/* Status pills (mockup SevBadge pattern: tinted bg + colored text) */
+.report-status {
+  width: auto;
+  max-width: fit-content;
+  height: auto;
+  padding: 2px 8px;
+  margin-top: 6px;
+  border-radius: var(--radius-pill);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.6;
+}
+#needreview { background: rgba(44,111,219,0.18); color: #7FACEC; }
+#inreview   { background: rgba(217,124,16,0.18); color: #E8A24C; }
+#fixing     { background: rgba(196,18,48,0.2);  color: #F4839B; }
+#retest     { background: rgba(240,106,126,0.16); color: var(--color-red-200); }
+#prepare    { background: rgba(31,138,91,0.2);  color: #6DB87A; }
+/* Same pill language for the report-table titles and detail-page chips,
+   whose legacy ids live in table.css / reportDetail.css / detailUAN.css */
+#calculate  { background: rgba(44,111,219,0.18); color: #7FACEC; }
+#complete   { background: rgba(31,138,91,0.2);  color: #6DB87A; }
+#invalid    { background: rgba(255,255,255,0.08); color: var(--color-dark-200); }
+
+/* Kanban toolbar (search + severity filter) */
+.gds-kanban-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 16px 64px 0;
+}
+.gds-kanban-search,
+.gds-kanban-select {
+  background: var(--color-surface-dark-overlay);
+  border: 1.5px solid var(--color-surface-dark-border);
+  border-radius: var(--radius-md);
+  color: #fff;
+  font-family: var(--font-primary);
+  font-size: 13px;
+  padding: 8px 12px;
+  outline: none;
+  transition: border-color var(--duration-fast) var(--ease-default),
+              box-shadow var(--duration-fast) var(--ease-default);
+}
+.gds-kanban-search { flex: 1; min-width: 220px; max-width: 420px; }
+.gds-kanban-search:focus,
+.gds-kanban-select:focus {
+  border-color: var(--color-action-primary);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+.gds-kanban-select option { background: var(--color-surface-dark-overlay); color: #fff; }
+.gds-kanban-hint { font-size: 11px; color: var(--color-text-faint-dark); margin-left: auto; }
+
+/* Aging badge (days since last update) */
+.gds-aging {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: rgba(217,124,16,0.18);
+  color: #E8A24C;
+}
+.gds-aging-dead { background: rgba(196,18,48,0.2); color: var(--color-red-300); }
+
+/* Drag affordances */
+.gds-kanban-card { cursor: grab; display: block; }
+.gds-kanban-card:active { cursor: grabbing; }
+.gu-mirror .card {
+  background: var(--color-surface-dark-overlay);
+  border: 1px solid var(--gds-accent);
+  box-shadow: var(--shadow-glow-sm);
+}
+.gds-kanban-col.gu-over { outline: 2px dashed var(--gds-accent); outline-offset: -2px; }
+.gds-kanban-col { min-height: 60px; }
+
+/* Severity text colors tuned for dark surfaces (mockup palette, AA >= 4.5:1 on card
+   overlay). .severity-tag chips (report tables) are pills and get their own skin below. */
+.severity-critical:not(.severity-tag) { color: var(--color-red-300) !important; }
+.severity-high:not(.severity-tag)     { color: #E39533 !important; }
+.severity-medium:not(.severity-tag)   { color: #6B9FE8 !important; }
+.severity-low:not(.severity-tag)      { color: var(--color-dark-200) !important; }
+.severity-none:not(.severity-tag),
+.severity-unknown:not(.severity-tag)  { color: var(--color-text-faint-dark) !important; }
+
+/* Severity chips on the report tables (table.css paints light pastels; retint) */
+.severity-tag.severity-critical { background: rgba(196,18,48,0.2);   color: #F4839B; }
+.severity-tag.severity-high     { background: rgba(217,124,16,0.18); color: #E8A24C; }
+.severity-tag.severity-medium   { background: rgba(44,111,219,0.18); color: #7FACEC; }
+.severity-tag.severity-low      { background: rgba(255,255,255,0.08); color: var(--color-dark-200); }
+.severity-tag.severity-none,
+.severity-tag.severity-unknown  { background: rgba(255,255,255,0.08); color: var(--color-text-faint-dark); }
+
+#duplicate-symbol svg { color: var(--color-warning); }
+
+/* Analytics page */
+.gds-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 20px 64px 32px;
+}
+.gds-chart-card {
+  background: var(--color-surface-dark-raised);
+  border: 1px solid var(--color-surface-dark-border);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  min-width: 0;
+}
+.gds-chart-card h6 {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-dark-200);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0 0 12px;
+}
+.gds-chart-wide { grid-column: 1 / -1; }
+.gds-chart-box { position: relative; height: 240px; }
+.gds-chart-table { margin-top: 10px; }
+.gds-chart-table summary {
+  font-size: 11px;
+  color: var(--color-text-faint-dark);
+  cursor: pointer;
+  user-select: none;
+}
+.gds-chart-table table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.gds-chart-table th, .gds-chart-table td {
+  border: 1px solid var(--color-surface-dark-border);
+  padding: 5px 10px;
+  font-size: 12px;
+  color: var(--color-dark-100);
+  text-align: left;
+}
+.gds-chart-table th { background: var(--color-surface-dark-overlay); color: #fff; }
+.gds-hof-compact { margin: 0; padding: 0; max-width: none; }
+@media (max-width: 900px) {
+  .gds-chart-grid { grid-template-columns: 1fr; margin-left: 16px; margin-right: 16px; }
+}
+
+/* Report detail: summary, attachment preview, activity timeline */
+.gds-summary {
+  background: var(--color-surface-dark-overlay);
+  border: 1px solid var(--color-surface-dark-border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--color-dark-100);
+  max-height: 320px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.gds-attachment-preview { margin-top: 12px; }
+.gds-attachment-preview summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gds-accent-soft);
+  user-select: none;
+}
+.gds-attachment-preview iframe {
+  width: 100%;
+  height: 480px;
+  margin-top: 10px;
+  border: 1px solid var(--color-surface-dark-border);
+  border-radius: var(--radius-md);
+  background: #fff;
+}
+
+.gds-timeline-wrap { margin-top: 20px; }
+.gds-timeline {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0 0 0 14px;
+  border-left: 2px solid var(--color-surface-dark-border);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.gds-timeline-item { position: relative; }
+.gds-timeline-dot {
+  position: absolute;
+  left: -20px;
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-dark-500);
+  border: 2px solid var(--gds-canvas);
+}
+.gds-tl-submitted .gds-timeline-dot { background: var(--color-info); }
+.gds-tl-update .gds-timeline-dot,
+.gds-tl-appeal .gds-timeline-dot,
+.gds-tl-nda .gds-timeline-dot { background: var(--color-warning); }
+.gds-tl-linear .gds-timeline-dot { background: #6B9FE8; }
+.gds-tl-comment .gds-timeline-dot { background: var(--gds-accent); }
+.gds-tl-email .gds-timeline-dot { background: var(--color-success); }
+
+.gds-timeline-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.gds-timeline-title { font-size: 12.5px; font-weight: 600; color: #fff; }
+.gds-timeline-when { font-size: 11px; color: var(--color-text-faint-dark); }
+.gds-timeline-text {
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-dark-200);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+/* --------------------------------------------------------------------------
+   4b. RISK CALCULATORS (OWASP + CVSS)
+   owasp-calc.css paints the class* chips as light pastels with black text —
+   unreadable on the dark panel. Retint: same hue language, tinted bg +
+   bright text (chip pattern used everywhere else in the skin).
+   -------------------------------------------------------------------------- */
+.home-section .classCritical { color: #FF9EFF; background-color: rgba(255,102,255,0.16); border: 1.5px solid rgba(255,102,255,0.55); }
+.home-section .classHigh     { color: #FF8D8D; background-color: rgba(255,0,0,0.16);     border: 1.5px solid rgba(255,80,80,0.55); }
+.home-section .classMedium   { color: #FFC46B; background-color: rgba(255,169,0,0.16);   border: 1.5px solid rgba(255,169,0,0.5); }
+.home-section .classLow      { color: #F5F58A; background-color: rgba(255,255,0,0.12);   border: 1.5px solid rgba(255,255,0,0.35); }
+.home-section .classNote     { color: #A8E8A8; background-color: rgba(144,238,144,0.14); border: 1.5px solid rgba(144,238,144,0.45); }
+.home-section .classCritical, .home-section .classHigh, .home-section .classMedium,
+.home-section .classLow, .home-section .classNote { border-radius: 5px; font-weight: 700; }
+
+/* Overall risk banner + likelihood/impact scores read as chips */
+.home-section .risk { width: auto; max-width: 420px; margin: 0 auto 4px; text-align: center; }
+.home-section .risk h4 { padding: 8px 18px; margin: 0; min-height: 42px; }
+.home-section .LS, .home-section .IS {
+  display: inline-block;
+  padding: 6px 14px;
+  font-size: 14px;
+}
+
+/* OWASP vector string box (was .bg-info pastel) */
+.gds-vector-box {
+  background: var(--color-surface-dark-overlay);
+  border: 1px solid var(--color-surface-dark-border);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin: 6px 0 16px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  word-break: break-all;
+}
+.gds-vector-box a { color: var(--gds-accent-soft); text-decoration: none; }
+.gds-vector-box a:hover { text-decoration: underline; }
+
+/* Calculator section headers */
+.home-section main.gds-panel section > h5 {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding-bottom: 6px;
+  border-bottom-color: var(--color-surface-dark-border) !important;
+}
+
+/* --------------------------------------------------------------------------
+   4c. THEME PRESETS (Settings > Personalization)
+   -------------------------------------------------------------------------- */
+.gds-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 12px 0 16px;
+}
+.gds-preset-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  border: 1.5px solid var(--color-surface-dark-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--duration-fast) var(--ease-default),
+              transform var(--duration-fast) var(--ease-default),
+              box-shadow var(--duration-fast) var(--ease-default);
+}
+.gds-preset-card:hover { border-color: var(--gds-accent); transform: translateY(-1px); }
+.gds-preset-card:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--gds-focus-ring); }
+.gds-preset-card.gds-preset-active {
+  border-color: var(--gds-accent);
+  box-shadow: 0 0 0 3px var(--gds-accent-tint);
+}
+.gds-preset-name { font-size: 12px; font-weight: 600; color: #fff; }
+.gds-preset-dots { display: flex; gap: 4px; }
+.gds-preset-dots span {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.25);
+}
+
+.gds-theme-preview {
+  display: flex;
+  border: 1px solid var(--color-surface-dark-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  min-height: 120px;
+  margin-bottom: 16px;
+}
+.gds-preview-sidebar { width: 52px; flex-shrink: 0; }
+.gds-preview-body { flex: 1; padding: 14px; }
+.gds-preview-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  border: 1px solid;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.gds-preview-title { font-size: 13px; font-weight: 700; color: #fff; }
+.gds-preview-muted { font-size: 11px; color: #B5B5B5; }
+.gds-preview-accent { font-size: 12px; font-weight: 600; cursor: default; }
+.gds-preview-btn { font-size: 12px; font-weight: 600; color: #fff; padding: 6px 14px; border-radius: 8px; }
+
+/* --------------------------------------------------------------------------
+   5. LOGIN PAGE (mockup: gradient bg, wave motif, dark card, red CTA)
+   -------------------------------------------------------------------------- */
+.gds-login-body {
+  min-height: 100vh;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gds-gradient-bg);
+  font-family: var(--font-primary);
+  position: relative;
+  overflow: hidden;
+}
+.gds-login-wave {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  opacity: 0.35;
+  pointer-events: none;
+}
+.gds-login-card {
+  background: var(--color-surface-dark-raised);
+  border: 1px solid var(--color-surface-dark-border);
+  border-radius: var(--radius-xl);
+  padding: 40px 44px;
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+}
+.gds-login-logo { width: 56px; height: 56px; margin-bottom: 20px; }
+.gds-login-title { font-size: 22px; font-weight: 700; color: #fff; margin: 0 0 4px; }
+.gds-login-sub { font-size: 13px; color: var(--color-text-faint-dark); margin: 0 0 24px; }
+.gds-login-footer { text-align: center; margin-top: 18px; font-size: 11px; color: var(--color-text-faint-dark); }
+.gds-login-footer strong { color: var(--gds-accent-soft); font-weight: 600; }
+.gds-login-links { margin-top: 14px; text-align: center; }
+.gds-login-links a { color: var(--color-dark-300); font-size: 12px; text-decoration: none; }
+.gds-login-links a:hover { color: var(--gds-accent-soft); }
+
+/* Crispy/Django form fields inside the login card */
+.gds-login-card label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-dark-200);
+  letter-spacing: 0.04em;
+  margin-bottom: 5px;
+}
+.gds-login-card input[type="text"],
+.gds-login-card input[type="password"],
+.gds-login-card input[type="email"] {
+  width: 100%;
+  background: var(--color-surface-dark-overlay);
+  border: 1.5px solid var(--color-surface-dark-border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  color: #fff;
+  font-family: var(--font-primary);
+  font-size: 13px;
+  outline: none;
+  box-shadow: none;
+  transition: border-color var(--duration-fast) var(--ease-default),
+              box-shadow var(--duration-fast) var(--ease-default);
+}
+.gds-login-card input:focus {
+  background: var(--color-surface-dark-overlay);
+  border-color: var(--color-action-primary);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+  color: #fff;
+}
+.gds-login-card .form-group, .gds-login-card .mb-3 { margin-bottom: 14px; }
+.gds-login-card .alert { font-size: 12px; border-radius: var(--radius-md); }
+
+/* --------------------------------------------------------------------------
+   6. PUBLIC SHELL (rules, submit, hall of fame — both containers)
+   -------------------------------------------------------------------------- */
+body.gds-public {
+  background: var(--gds-canvas);
+  font-family: var(--font-primary);
+  color: #fff;
+  min-height: 100vh;
+  margin: 0;
+}
+body.gds-public.gds-gradient { background: var(--gds-gradient-bg); }
+
+body.gds-public .gds-wave {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  opacity: 0.12;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body.gds-public header { position: sticky; top: 0; z-index: 999; }
+
+/* Mobile top nav: keep the sticky header and turn the hamburger into a
+   full-width dropdown panel on the design-system surface (overrides the
+   W3Schools stacked defaults in header.css). Collapsed = logo + hamburger;
+   open = comfortable, left-aligned tap targets pinned under the sticky bar. */
+@media screen and (max-width: 600px) {
+  body.gds-public header { min-height: 56px; }
+  body.gds-public ul.topnav { min-height: 56px; }
+  body.gds-public ul.topnav li:first-child a.logo,
+  body.gds-public ul.topnav li.icon a { height: 56px; display: flex; align-items: center; }
+  body.gds-public ul.topnav li:first-child img { max-height: 40px; width: auto; }
+  body.gds-public ul.topnav li.icon a { padding: 0 18px; }
+  body.gds-public ul.topnav li.icon i {
+    font-size: 22px;
+    transition: color var(--duration-fast) var(--ease-default);
+  }
+  body.gds-public ul.topnav.responsive {
+    background: var(--color-surface-dark-raised);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.4);
+  }
+  body.gds-public ul.topnav.responsive li.icon { position: absolute; right: 0; top: 0; }
+  body.gds-public ul.topnav.responsive li:not(:first-child):not(.icon) {
+    float: none;
+    display: block;
+    border-top: 1px solid var(--color-surface-dark-border);
+  }
+  body.gds-public ul.topnav.responsive li:not(:first-child):not(.icon) a {
+    height: auto;
+    padding: 15px 20px;
+  }
+  body.gds-public ul.topnav.responsive li a .nav-content {
+    height: auto;
+    justify-content: flex-start;
+    font-size: 15px;
+  }
+}
+body.gds-public .topnav {
+  background: var(--color-surface-dark-raised);
+  border-bottom: 1px solid var(--color-surface-dark-border);
+}
+body.gds-public .topnav li a .nav-content {
+  color: var(--color-dark-200);
+  font-family: var(--font-primary);
+  font-size: 13px;
+  font-weight: 500;
+}
+body.gds-public .topnav li a:hover .nav-content { color: #fff; }
+body.gds-public .topnav li a.active .nav-content { color: var(--gds-accent-soft); font-weight: 600; }
+/* header.css paints active/hover routes with a solid accent block, which the
+   accent-soft text above cannot contrast against (accent-on-accent). Replace
+   it with the design-system tint so text stays on a dark surface. */
+body.gds-public .topnav li a:hover:not(.active):not(.logo),
+body.gds-public .topnav li a.active {
+  background-color: var(--gds-accent-tint);
+}
+
+/* header.css positions the footer as the original fixed 5vh bottom bar; only skin it */
+body.gds-public footer {
+  background: var(--color-surface-dark-raised);
+  border-top: 1px solid var(--color-surface-dark-border);
+  z-index: 2;
+}
+body.gds-public footer #copyright { padding-top: 0; }
+body.gds-public footer #copyright p {
+  color: var(--color-text-faint-dark);
+  font-size: 12px;
+  font-weight: 400;
+  text-align: center;
+  margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   7. RULES PAGE (sticky section nav + prose sections)
+   -------------------------------------------------------------------------- */
+/* Original UI geometry: full-width under the nav, col-4/col-8 proportions */
+.gds-rules-layout {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(0, 2fr);
+  gap: 32px;
+  margin: 0;
+  padding: 5vh 4vw calc(5vh + 48px);
+  align-items: start;
+}
+.gds-rules-nav {
+  position: sticky;
+  top: calc(10vh + 24px); /* clear the 10vh sticky header (header.css) */
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.gds-rules-content {
+  overflow-y: auto;
+  height: 75vh;
+  padding-right: 10px;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.gds-rules-content::-webkit-scrollbar {
+  display: none;
+}
+.gds-rules-nav a {
+  color: var(--color-dark-300);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border-left: 2px solid transparent;
+  transition: color var(--duration-fast) var(--ease-default),
+              background var(--duration-fast) var(--ease-default);
+}
+.gds-rules-nav a:hover { color: #fff; background: rgba(255,255,255,0.04); }
+.gds-rules-nav a.active {
+  color: var(--gds-accent-soft);
+  background: var(--gds-accent-tint);
+  border-left-color: var(--gds-accent);
+  font-weight: 600;
+}
+
+.gds-rules-section {
+  background: var(--color-surface-dark-raised);
+  border: 1px solid var(--color-surface-dark-border);
+  border-radius: var(--radius-xl);
+  padding: 28px 32px;
+  margin-bottom: 20px;
+  /* anchor jumps must land below the 10vh sticky header; keep in sync with
+     the reading-line offset in rules.html's section-highlight script */
+  scroll-margin-top: calc(10vh + 16px);
+}
+.gds-rules-section > h2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 17px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 16px;
+}
+.gds-rules-section > h2::before {
+  content: "";
+  width: 3px;
+  height: 18px;
+  border-radius: 2px;
+  background: var(--gds-accent);
+  flex-shrink: 0;
+}
+
+/* Operator-authored (Quill) content typography */
+.gds-prose { font-size: 14px; line-height: 1.75; color: var(--color-dark-100); }
+.gds-prose p { margin: 0 0 12px; }
+.gds-prose a { color: var(--gds-accent-soft); text-decoration: none; }
+.gds-prose a:hover { text-decoration: underline; }
+.gds-prose strong, .gds-prose b { color: #fff; }
+.gds-prose h1, .gds-prose h2, .gds-prose h3, .gds-prose h4 {
+  color: #fff; font-weight: 600; margin: 18px 0 8px; font-size: 15px;
+}
+.gds-prose ul, .gds-prose ol { padding-left: 22px; margin: 0 0 12px; }
+.gds-prose li { margin-bottom: 4px; }
+.gds-prose code, .gds-prose pre {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: var(--color-surface-dark-overlay);
+  border: 1px solid var(--color-surface-dark-border);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  color: var(--color-dark-50);
+}
+.gds-prose pre { padding: 12px 14px; overflow-x: auto; }
+.gds-prose blockquote {
+  border-left: 3px solid var(--gds-accent);
+  margin: 0 0 12px;
+  padding: 4px 0 4px 16px;
+  color: var(--color-dark-200);
+}
+.gds-prose table { border-collapse: collapse; width: 100%; margin: 0 0 12px; }
+.gds-prose th, .gds-prose td {
+  border: 1px solid var(--color-surface-dark-border);
+  padding: 8px 12px;
+  font-size: 13px;
+  text-align: left;
+}
+.gds-prose th { background: var(--color-surface-dark-overlay); color: #fff; }
+
+/* --------------------------------------------------------------------------
+   8. SUBMIT PAGE (email protocol cards)
+   -------------------------------------------------------------------------- */
+/* Original UI geometry: full-width flowing page, 40px padding, left-aligned intro */
+.gds-submit-main {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 40px 40px calc(5vh + 48px);
+}
+.gds-submit-intro {
+  text-align: left;
+  font-size: 14px;
+  color: var(--color-dark-200);
+  line-height: 1.7;
+  margin: 0 0 6px;
+}
+.gds-submit-intro strong { color: var(--gds-accent-soft); font-family: var(--font-mono); }
+.gds-submit-intro a { color: var(--gds-accent-soft); }
+
+/* Bootstrap 5 accordion, dark protocol-card treatment */
+.gds-submit-main .accordion { margin-top: 28px; }
+.gds-submit-main .accordion-item {
+  background: var(--color-surface-dark-raised);
+  border: 1px solid var(--color-surface-dark-border);
+  border-radius: var(--radius-lg) !important;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.gds-submit-main .accordion-button {
+  background: var(--color-surface-dark-raised);
+  color: #fff;
+  font-family: var(--font-primary);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 16px 20px;
+  box-shadow: none;
+}
+.gds-submit-main .accordion-button:not(.collapsed) {
+  background: var(--color-surface-dark-overlay);
+  color: var(--gds-accent-soft);
+  box-shadow: inset 0 -1px 0 var(--color-surface-dark-border);
+}
+.gds-submit-main .accordion-button:focus {
+  box-shadow: 0 0 0 3px var(--gds-focus-ring);
+  border-color: transparent;
+}
+.gds-submit-main .accordion-button::after {
+  filter: invert(1) grayscale(1) brightness(1.8);
+}
+.gds-submit-main .accordion-body {
+  background: var(--color-surface-dark-raised);
+  padding: 20px;
+  font-size: 13px;
+  color: var(--color-dark-200);
+}
+.gds-submit-main .accordion-body b { color: #fff; font-weight: 600; }
+.gds-submit-main .accordion-body a { color: var(--gds-accent-soft); }
+
+/* Protocol field: mono block + copy button */
+.gds-submit-main .text-wrap {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin: 6px 0 14px;
+}
+.gds-submit-main .text-wrap textarea {
+  flex: 1;
+  resize: none;
+  background: var(--gds-canvas);
+  border: 1px solid var(--color-surface-dark-border);
+  border-radius: var(--radius-md);
+  color: var(--color-dark-50);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  padding: 10px 12px;
+  outline: none;
+}
+.gds-submit-main .clipboard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-surface-dark-border);
+  background: var(--color-surface-dark-overlay);
+  color: var(--color-dark-200);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-default),
+              border-color var(--duration-fast) var(--ease-default);
+}
+.gds-submit-main .clipboard:hover { color: #fff; border-color: var(--gds-accent); }
+.gds-submit-main .clipboard.gds-copied { color: #6DB87A; border-color: #1F8A5B; }
+.gds-submit-main .accordion-body img {
+  max-width: min(420px, 100%);
+  width: auto;
+  border: 1px solid var(--color-surface-dark-border);
+  border-radius: var(--radius-md);
+  margin-top: 6px;
+}
+
+/* --------------------------------------------------------------------------
+   9. HALL OF FAME (public ranked list)
+   -------------------------------------------------------------------------- */
+body.gds-hof #content { position: relative; z-index: 1; background: transparent; box-shadow: none; }
+body.gds-hof #title h1 { color: #fff; font-weight: 700; }
+body.gds-hof #content > p { color: var(--color-dark-300); }
+
+.gds-hof-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 720px;
+  margin: 20px auto 60px;
+  padding: 0 16px;
+}
+.gds-hof-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--color-surface-dark-overlay);
+  border: 1px solid var(--color-surface-dark-border);
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+.gds-hof-rank {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--color-dark-600);
+  color: var(--color-dark-100);
+  flex-shrink: 0;
+}
+/* Tint + soft-text chip pattern: stays legible for any accent, including
+   very pale ones (white text on a pale accent bg fails) */
+.gds-hof-row.gds-rank-1 .gds-hof-rank { background: var(--gds-accent-tint); color: var(--gds-accent-soft); box-shadow: var(--shadow-glow-sm); }
+.gds-hof-row.gds-rank-2 .gds-hof-rank { background: var(--color-dark-300); color: var(--color-dark-900); }
+.gds-hof-row.gds-rank-3 .gds-hof-rank { background: #8A5A2B; color: #fff; }
+.gds-hof-name { flex: 1; font-size: 13px; font-weight: 600; color: #fff; }
+.gds-hof-points { font-size: 14px; font-weight: 700; color: var(--gds-accent-soft); }
+
+/* Empty state — shown when no hunters have scored yet */
+.gds-hof-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  background: var(--color-surface-dark-overlay);
+  border: 1px dashed var(--color-surface-dark-border);
+  border-radius: 10px;
+  padding: 40px 24px;
+}
+.gds-hof-empty .fa-trophy {
+  font-size: 34px;
+  color: var(--gds-accent-soft);
+  margin-bottom: 6px;
+}
+.gds-hof-empty-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+.gds-hof-empty-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted-dark);
+}
+.gds-hof-empty-cta { margin-top: 14px; }
+
+/* --------------------------------------------------------------------------
+   10. RESPONSIVE
+   -------------------------------------------------------------------------- */
+@media (max-width: 1100px) {
+  .gds-stat-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 900px) {
+  .gds-rules-layout { grid-template-columns: 1fr; }
+  .gds-rules-nav {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .gds-rules-nav a { border-left: none; border: 1px solid var(--color-surface-dark-border); }
+  .gds-rules-nav a.active { border-color: var(--gds-accent); }
+}
+@media (max-width: 768px) {
+  .gds-page-head, .gds-stat-grid, .kanban-container { margin-left: 16px; margin-right: 16px; }
+  .notification { margin-left: 16px; margin-right: 16px; }
+  .gds-stat-grid { grid-template-columns: 1fr; }
+  .gds-login-card { padding: 28px 22px; }
+  .gds-rules-section { padding: 20px 18px; }
+}

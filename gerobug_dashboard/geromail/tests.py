@@ -1,8 +1,11 @@
 import email
 
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, TestCase
+from django.utils import timezone
 
-from geromail import gerofilter, geroparser
+from dashboards.models import BugReport
+
+from geromail import gerocalculator, gerofilter, geromailer, geroparser
 
 
 APPLE_MAIL_SUBMIT = """\
@@ -98,3 +101,112 @@ class ExtractEmailBodyTests(SimpleTestCase):
         self.assertIn("clientId and", body)
         self.assertNotIn("clientIdand", body)
         self.assertNotIn("<code>", body)
+
+
+POSTFIX_DSN = """\
+From: MAILER-DAEMON@mail.example.com (Mail Delivery System)
+Subject: Undelivered Mail Returned to Sender
+Return-Path: <>
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=delivery-status;
+\tboundary="DSN=_BOUNDARY"
+
+--DSN=_BOUNDARY
+Content-Type: text/plain; charset=us-ascii
+
+This is the mail system at host mail.example.com.
+
+--DSN=_BOUNDARY
+Content-Type: message/delivery-status
+
+Reporting-MTA: dns; mail.example.com
+
+Final-Recipient: rfc822; hunter@example.org
+Action: failed
+Status: 5.1.1
+Diagnostic-Code: smtp; 550 5.1.1 <hunter@example.org>: Recipient address
+\trejected: User unknown in virtual mailbox table
+
+--DSN=_BOUNDARY
+Content-Type: text/rfc822-headers
+
+Message-ID: <gerobug.1234@mail.example.com>
+Subject: [A3F120261234] Your Report Status Has Been Updated
+To: hunter@example.org
+
+--DSN=_BOUNDARY--
+"""
+
+
+class ParseBounceTests(SimpleTestCase):
+    """A Diagnostic-Code is normally folded across lines; reading the DSN as
+    header blocks keeps the whole SMTP error instead of cutting it at the
+    first newline."""
+
+    def test_extracts_recipient_error_and_report_id(self):
+        info = geroparser.parse_bounce(email.message_from_string(POSTFIX_DSN))
+
+        self.assertEqual(info["failed_to"], "hunter@example.org")
+        self.assertEqual(info["report_id"], "A3F120261234")
+        self.assertEqual(info["orig_msg_id"], "<gerobug.1234@mail.example.com>")
+        self.assertIn("550 5.1.1", info["error"])
+        self.assertIn("User unknown in virtual mailbox table", info["error"])
+
+    def test_non_dsn_message_yields_unknowns(self):
+        info = geroparser.parse_bounce(email.message_from_string(APPLE_MAIL_SUBMIT))
+
+        self.assertEqual(info["failed_to"], "unknown")
+        self.assertEqual(info["report_id"], "unknown")
+
+
+class SafeHtmlFormatTests(SimpleTestCase):
+    """Hunter-controlled text reaches the HTML mail body, so everything is
+    escaped and only a short list of formatting tags is allowed back."""
+
+    def test_escapes_markup(self):
+        out = geromailer.safe_html_format("<script>alert(1)</script>")
+
+        self.assertNotIn("<script>", out)
+        self.assertIn("&lt;script&gt;", out)
+
+    def test_keeps_allowed_tags_and_converts_newlines(self):
+        out = geromailer.safe_html_format("one\ntwo <b>bold</b>")
+
+        self.assertIn("<br>", out)
+        self.assertIn("<b>bold</b>", out)
+
+    def test_none_becomes_dash(self):
+        self.assertEqual(geromailer.safe_html_format(None), "-")
+
+
+class SeverityLabelTests(SimpleTestCase):
+    def test_boundaries(self):
+        cases = [
+            (0, "None"), (0.1, "Low"), (3.9, "Low"),
+            (4.0, "Medium"), (6.9, "Medium"),
+            (7.0, "High"), (8.9, "High"),
+            (9.0, "Critical"), (10.0, "Critical"),
+        ]
+        for score, expected in cases:
+            self.assertEqual(gerocalculator.get_severity_label(score), expected, score)
+
+
+class BounceMatchTests(TestCase):
+    def setUp(self):
+        BugReport.objects.create(
+            report_id="A3F120261234", report_datetime=timezone.now(),
+            hunter_email="Hunter@Example.org", report_reviewer="r",
+            report_summary="s", report_severitytype="",
+        )
+
+    def test_real_bounce_for_the_reports_hunter_matches(self):
+        info = geroparser.parse_bounce(email.message_from_string(POSTFIX_DSN))
+        self.assertTrue(geroparser.bounce_matches_report(info))
+
+    def test_forged_recipient_does_not_match(self):
+        self.assertFalse(geroparser.bounce_matches_report(
+            {"report_id": "A3F120261234", "failed_to": "victim@example.com"}))
+
+    def test_unknown_report_does_not_match(self):
+        self.assertFalse(geroparser.bounce_matches_report(
+            {"report_id": "unknown", "failed_to": "hunter@example.org"}))

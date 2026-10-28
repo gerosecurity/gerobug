@@ -1,9 +1,9 @@
 import smtplib
 import os
+import html
 import logging
 import time
 
-from logging.handlers import TimedRotatingFileHandler
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.utils import formatdate, make_msgid
@@ -22,6 +22,17 @@ RETRY_DELAYS = [0, 2, 4]  # seconds between retries
 
 # FREEMAIL PROVIDERS (FOR MESSAGE-ID)
 FREEMAIL = {"gmail.com", "yahoo.com", "outlook.com", "hotmail.com"}
+
+# ALLOW A SMALL SET OF FORMATTING TAGS, ESCAPE EVERYTHING ELSE
+ALLOWED_TAGS = ["br", "br/", "br /", "b", "/b", "strong", "/strong", "i", "/i"]
+
+def safe_html_format(text):
+    if text is None:
+        return "-"
+    escaped = "<br>".join(html.escape(str(text)).splitlines())
+    for tag in ALLOWED_TAGS:
+        escaped = escaped.replace("&lt;" + tag + "&gt;", "<" + tag + ">")
+    return escaped
 
 
 
@@ -76,13 +87,17 @@ def write_mail(code, payload, Destination):
             if payload[3] == None:
                 payload[3] = "-"
 
-            # REPLACE WILD CARDS
-            subject = subject.replace("~ID~", payload[0])       #REPORT ID
-            body = body.replace("~ID~", payload[0])             #REPORT ID
-            body = body.replace("~TITLE~", payload[1])          #REPORT TITLE
-            body = body.replace("~STATUS~", status)             #REPORT STATUS
-            body = body.replace("~NOTE~", payload[3])           #REASON / NOTE
-            body = body.replace("~SEVERITY~", str(payload[4]))  #SEVERITY
+            # REPLACE WILD CARDS (ESCAPED TO PREVENT HTML INJECTION)
+            subject = subject.replace("~ID~", payload[0])                       #REPORT ID
+            body = body.replace("~ID~", html.escape(payload[0]))                #REPORT ID
+            body = body.replace("~TITLE~", html.escape(payload[1]))             #REPORT TITLE
+            body = body.replace("~STATUS~", html.escape(str(status)))           #REPORT STATUS
+            # CODE 208 SUPPLIES HTML TABLE ROWS ALREADY ESCAPED IN GEROFILTER
+            if code == 208:
+                body = body.replace("~NOTE~", str(payload[3]))                  #PRE-ESCAPED HTML ROWS
+            else:
+                body = body.replace("~NOTE~", safe_html_format(payload[3]))     #REASON / NOTE
+            body = body.replace("~SEVERITY~", html.escape(str(payload[4])))     #SEVERITY
 
             # BUILD EMAIL MESSAGE (identity fixed above so retries are the same message)
             message = MIMEMultipart("alternative")

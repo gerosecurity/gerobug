@@ -1,0 +1,33 @@
+{% comment %}
+One Kanban card. Context: report, status_pill_id, status_pill_label.
+The data-* attributes feed drag-and-drop (report-id), the filter bar
+(search/severity) and the aging badge (updated) on dashboard.html.
+{% endcomment %}
+<a href="{% url 'report_detail' report.pk %}" style="text-decoration:none"
+   class="gds-kanban-card"
+   data-report-id="{{ report.pk }}"
+   data-severity="{{ report.severity_label|lower }}"
+   data-search="{{ report.pk|lower }} {{ report.report_title|lower }} {{ report.hunter_email|lower }}"
+   data-updated="{{ report.report_datetime|date:'c' }}">
+    <div class="card">
+        <div class="duplicate" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <div class="card-title" style="margin: 0; line-height: 1;">#{{ report.pk }}</div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+            {% if report.report_duplicate == 1 %}
+            <div id="duplicate-symbol" style="display: flex; align-items: center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                    class="bi bi-exclamation-triangle-fill" viewBox="0 0 16 16">
+                    <path
+                        d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
+                </svg>
+            </div>
+            {% endif %}
+            </div>
+        </div>
+        <div class="report-status" id="{{ status_pill_id }}" style="margin: 0 0 8px 0;" title="{{ status_pill_label }}">{{ status_pill_label }}</div>
+        <div class="card-type gds-truncate">{{ report.report_title }}</div>
+        <div class="card-severity severity-{{ report.severity_label|lower }}" style="font-size: 10px; font-weight: bold; padding-top: 4px;">Severity: {{ report.severity_label }}</div>
+        <div class="card-hunter">by: {{ report.hunter_email }}</div>
+        <span class="card-time"><i class="bi bi-clock"></i> {{ report.report_datetime }}</span>
+    </div>
+</a>

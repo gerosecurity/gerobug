@@ -20,49 +20,61 @@ main {
     align-content: stretch;
 }
 
-.container{
+.container {
     height: 90vh;
     overflow-y: auto;
     overflow-x: auto;
 }
 
-#left-div{
+#left-div {
     width: 800px;
     /* direction:ltr; */
 }
 
-h4{
+h4 {
     max-width: 800px;
 }
 
-#right-div{
-    min-width: 250px;
+#right-div {
+    min-width: 350px;
     background-color: var(--secondary-3);
     border-radius: 20px;
-    height: 320px;
-    padding: 20px;
+    margin: 0 10px 0 10px;
+    height: auto;
+    padding: 18px 20px;
     display: flex;
     flex-direction: column;
     flex-wrap: nowrap;
-    justify-content: center;
-    align-items: center;
-    align-content: center;
+    justify-content: flex-start;
+    align-items: stretch;
+    align-content: stretch;
     /* direction:ltr; */
 }
 
+/* Report id is a reference, not the headline — set it as a compact mono
+   kicker so the human-readable title (below) can carry the hierarchy. */
 #report-id {
-    color: var(--secondary-1);
+    margin: 0 0 6px 0;
+    line-height: 1.2;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
 }
 
-#report-reviewer{
+#report-reviewer {
     margin-top: 20px;
 }
 
+/* Visual treatment comes from .gds-summary (design-system.css) — the ID
+   selector would beat the class, so only layout lives here. */
 #report-summary {
-    height: 180px;
-    width: 800px;
-    border: 1px solid #ccc;
-    overflow: auto;
+    width: 100%;
+    max-width: 800px;
+    resize: none !important;
     margin-bottom: 20px;
 }
 
@@ -71,63 +83,107 @@ h4{
     flex-direction: row;
     flex-wrap: nowrap;
     justify-content: space-between;
-    align-items: stretch;
+    align-items: flex-start;
     align-content: stretch;
-        /* height: 100vh;
+    /* height: 100vh;
         overflow-y: auto;    */
 }
 
-#left-div th,td{
+#left-div th,
+td {
     padding: 4px;
 }
 
+/* Spec values (endpoint, severity string, etc.) wrap in place — truncating
+   critical triage data behind a hover was hostile. */
 #string_overflow {
-    width: 600px;
-    white-space: nowrap;
-    overflow: hidden;         
-    text-overflow: ellipsis;
-}
-
-#string_overflow:hover {
-    overflow: visible;         
+    max-width: 560px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 #title_overflow {
-    width: 1000px;
+    max-width: 100%;
+    margin: 0 0 4px 0;
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.25;
     overflow-wrap: anywhere;
 }
 
-#left-div table{
+#right-div table {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+#right-div table td {
+    padding: 4px 6px;
+    vertical-align: middle;
+}
+
+#right-div table h6 {
+    margin: 0;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* Group divider (e.g. between Received Time and Reviewer) — Bootstrap's
+   default 1rem hr margins open a large gap inside the compact table */
+#right-div table hr {
+    margin: 2px 0;
+    border: 0;
+    border-top: 1px solid var(--gds-border, #3A3A3A);
+    opacity: 1;
+}
+
+#right-div label {
+    font-weight: 600;
+    font-size: 14px;
+    margin-top: 8px;
+    margin-bottom: 6px;
+    display: block;
+}
+
+#fname {
+    font-size: 13px;
+    color: #333;
+}
+
+
+#left-div table {
     max-width: 800px;
 }
 
 /* width */
 ::-webkit-scrollbar {
     width: 4px;
-  }
-  
-  /* Track */
-  ::-webkit-scrollbar-track {
-    background: #f1f1f1; 
-  }
-   
-  /* Handle */
-  ::-webkit-scrollbar-thumb {
-    background: #888; 
-  }
-  
-  /* Handle on hover */
-  ::-webkit-scrollbar-thumb:hover {
-    background: #555; 
-  }
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+    background: #888;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
 
 #report-download {
     display: flex;
     flex-direction: row;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     justify-content: flex-end;
-    align-items: stretch;
-    align-content: stretch;
+    align-items: center;
+    gap: 12px;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--gds-border);
 }
 
 input[type=text] {
@@ -137,7 +193,7 @@ input[type=text] {
     width: 90%;
 }
 
-input::placeholder{
+input::placeholder {
     font-size: 0.75vw;
 }
 
@@ -149,139 +205,118 @@ input[type=number] {
     margin-bottom: 10px;
 }
 
-#severity-div{
-	display: flex;
-	flex-direction: row;
-	flex-wrap: nowrap;
-	justify-content:center;
-	align-items: center;
-	align-content: stretch;
+#severity-div {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
+    align-content: stretch;
     gap: 4px;
 }
 
-#report-title{
+#report-title {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
 }
 
-#title-left{
-    display: flex;
-    flex-direction: row;
-}
-
 .report-status {
-    /* Auto layout */
-
-    margin-left: 20px;
-    display: flex;
-    flex-direction: row;
+    display: inline-flex;
     justify-content: center;
     align-items: center;
-    padding: 2px 8px;
-    gap: 8px;
+    vertical-align: middle;
+    padding: 4px 12px;
 
-    width: 150px;
-    height: 28px;
+    min-width: 100px;
+    height: auto;
 
     background: var(--secondary-2);
     border-radius: 20px;
 
-    /* Inside auto layout */
-
-    flex: none;
-    order: 1;
-    flex-grow: 0;
-
-    /* Subtitle 2 */
-
-    /* font-family: 'Roboto';
-    font-style: normal; */
-    font-weight: 500;
+    font-weight: 600;
     font-size: 12px;
-    line-height: 24px;
-    /* identical to box height, or 171% */
-
-    display: flex;
-    align-items: center;
+    line-height: 1.5;
     letter-spacing: 0.1px;
 
     color: black;
+    margin-top: 0;
+    margin-bottom: 0;
 }
 
-#needreview{
+/* Only add left spacing when the badge sits inside the report-detail heading */
+#report-id .report-status {
+    margin-left: 12px;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+#needreview {
     background: #FFA9B3;
-  }
+}
 
-  #inreview{
+#inreview {
     background: #f5d28c;
-  }
+}
 
-  #fixing{
+#fixing {
     background: #ffbf58;
-  }
+}
 
-  #calculate{
+#calculate {
     background: #92caff;
-  }
+}
 
-  #complete{
+#complete {
     background: #b5ffaa;
-  }
-  #invalid{
+}
+
+#invalid {
     background: #f43737;
-  }
+}
 
 
 .severity-type {
-
-    margin-bottom: 20px;
-    /* Auto layout */
-
-    display: flex;
+    display: inline-flex;
     flex-direction: row;
     justify-content: center;
     align-items: center;
-    padding: 2px 8px;
+    padding: 4px 12px;
     gap: 8px;
 
-    width: 100px;
-    height: 28px;
+    width: auto;
+    min-width: 80px;
+    height: auto;
 
     /* background: #FFA9B3; */
     border-radius: 20px;
     font-weight: 500;
     font-size: 12px;
-    line-height: 24px;
-	display: flex;
-	flex-direction: column;
-	flex-wrap: nowrap;
-	justify-content: center;
-	align-items: center;
-	align-content: stretch;
+    line-height: 16px;
     letter-spacing: 0.1px;
+    vertical-align: middle;
 
     color: black;
 }
 
-#none{
+#none {
     background: #a0a1a0;
-   }
-
-#low{
- background: #65f377;
 }
 
-#medium{
-    background: #dff79c;
+#low {
+    background: #65f377;
 }
 
-#high{
-    background: #ffb938;
+#medium {
+    background: #ffd65b;
 }
 
-#critical{
-    background: #b75661;
+#high {
+    background: #FFA9B3;
+}
+
+#critical {
+    background: #da0037;
 }
 
 #download-file {
@@ -301,116 +336,144 @@ label {
     font-weight: 500;
 }
 
-#report-download {
-    gap: 0px;
-}
-
-.amend-btn{
-    background-color: var(--button-1);
-    border-width: 0;
-    color: #f9f3f3;
-    border-radius: 20px;
-    margin: 28px;
+/* --------------------------------------------------------------------------
+   Action buttons — one 3-tier system driven by design-system tokens:
+     primary (teal CTA) = forward workflow actions
+     neutral (surface + border) = non-mutating utilities (Export, Pull)
+     danger (red) = destructive (Invalid, Delete)
+   Replaces the old per-button color drift and the hardcoded #008cff blue.
+   -------------------------------------------------------------------------- */
+.amend-btn, .update-btn, .update-review-btn, .export-btn, .delete-btn {
+    border: 1.5px solid transparent;
+    color: #fff;
+    border-radius: var(--radius-md, 10px);
     height: 42px;
     min-width: 150px;
-    padding-left: 10px;
-    padding-right: 10px;
+    padding: 0 20px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background var(--duration-fast, .15s) ease,
+                transform var(--duration-fast, .15s) ease;
+}
+.amend-btn:hover, .update-btn:hover, .update-review-btn:hover,
+.export-btn:hover, .delete-btn:hover { transform: translateY(-1px); }
+
+/* Primary — forward workflow actions */
+.amend-btn, .update-btn, .update-review-btn {
+    background: var(--color-action-primary);
+    box-shadow: 0 2px 8px var(--gds-cta-shadow);
+}
+.amend-btn:hover, .update-btn:hover, .update-review-btn:hover {
+    background: var(--color-action-primary-hover);
 }
 
-.delete-btn{
-    background-color: red;
-    border-width: 0;
-    color: #f9f3f3;
-    border-radius: 20px;
-    margin: 28px;
-    height: 42px;
-    min-width: 150px;
-    padding-left: 10px;
-    padding-right: 10px;
+/* Neutral utility — non-mutating / export */
+.export-btn {
+    background: var(--gds-surface);
+    border-color: var(--gds-border);
+}
+.export-btn:hover { background: var(--gds-overlay); }
+
+/* Destructive */
+.delete-btn { background: var(--color-error); }
+.delete-btn:hover { background: var(--color-red-600); }
+
+/* Sidebar full-width primary ("Update Report Details") */
+.update-review-btn {
+    width: 100%;
+    height: 38px;
+    min-width: 0;
+    margin-top: 4px;
 }
 
-.update-btn{
-    background-color: var(--button-1);
-    border-width: 0;
-    color: #f9f3f3;
-    border-radius: 20px;
-    margin: 28px;
-    height: 42px;
-    min-width: 150px;
-    padding-left: 10px;
-    padding-right: 10px;
-}
-
-.update-review-btn{
-    background-color: var(--button-1);
-    border-width: 0;
-    color: #f9f3f3;
-    border-radius: 20px;
-    /* margin-top: 20px; */
-    height: 42px;
-    width: 80%;
-    /* min-width: 150px; */
-    padding-left: 10px;
-    padding-right: 10px;
-}
-
-#files{
+/* Sidebar ticket actions (Pull / Push) */
+.linear-actions {
     display: flex;
-	flex-direction: row;
+    flex-direction: row;
+    gap: 8px;
+    width: 100%;
+    margin-top: 8px;
+}
+
+.linear-btn {
+    border: 1.5px solid transparent;
+    color: #fff;
+    border-radius: var(--radius-md, 10px);
+    height: 38px;
+    flex: 1;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0 10px;
+    cursor: pointer;
+}
+
+.linear-btn.pull-btn {
+    background: var(--gds-surface);
+    border-color: var(--gds-border);
+}
+.linear-btn.pull-btn:hover { background: var(--gds-overlay); }
+
+.linear-btn.push-btn { background: var(--color-action-primary); }
+.linear-btn.push-btn:hover { background: var(--color-action-primary-hover); }
+
+#files {
+    display: flex;
+    flex-direction: row;
     gap: 20px;
 }
 
-.modal-footer{
+.modal-footer {
     display: flex;
-	flex-direction: column;
-	flex-wrap: nowrap;
-	justify-content: flex-start;
-	align-items: stretch;
-	align-content: stretch;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    align-items: stretch;
+    align-content: stretch;
 }
 
-.modal-footer button{
+.modal-footer button {
     width: 100%;
 }
 
-.ok-btn{
+.ok-btn {
     background-color: var(--button-1);
     color: white;
     border-radius: 20px;
     border-width: 0px;
 }
 
-.cancel-btn{
+.cancel-btn {
     background-color: gray;
     color: white;
     border-radius: 20px;
     border-width: 0px;
 }
 
-.modal-footer a{
+.modal-footer a {
     width: 100%;
 }
 
-.modal-body{
+.modal-body {
     display: flex;
-	flex-direction: column;
-	flex-wrap: nowrap;
-	justify-content: center;
-	align-items: center;
-	align-content: stretch;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
+    align-content: stretch;
 }
 
-#nda-details{
+#nda-details {
     display: flex;
-	flex-direction: row;
-	flex-wrap: nowrap;
-	justify-content: flex-start;
-	align-items: baseline;
-	align-content: stretch;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    align-items: baseline;
+    align-content: stretch;
     gap: 4px;
 }
 
-#nda-details button{
+#nda-details button {
     width: 48px;
     height: 16px;
     color: white;
@@ -420,10 +483,11 @@ label {
     font-size: 10px;
 }
 
-h6{
+h6 {
     align-items: center;
 }
-.nda-btn{
+
+.nda-btn {
     width: 84px;
     height: 16px;
     color: white;
@@ -435,8 +499,311 @@ h6{
 
 textarea {
     width: 100%;
-    padding: 12px 20px;
-    border: 2px solid #ccc;
-    border-radius: 4px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
     resize: none !important;
+    font-size: 13px;
+    line-height: 1.4;
+    margin-bottom: 8px;
+    background-color: #fff;
+}
+
+/* Resources Section */
+.resources-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.resource-card {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.resource-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    border-color: #dee2e6;
+}
+
+.resource-card h6 {
+    margin: 0 0 4px 0;
+    color: #495057;
+    font-weight: 600;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.file-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--button-1);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 6px 0;
+}
+
+.file-link:hover {
+    text-decoration: underline;
+    color: var(--button-1);
+}
+
+.resource-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: auto;
+}
+
+/* Updated Button Styles */
+.nda-btn, .resource-btn {
+    background-color: var(--button-1);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    height: auto;
+    width: auto; 
+    min-width: auto;
+    margin: 0;
+}
+
+.nda-btn:hover, .resource-btn:hover {
+    opacity: 0.9;
+}
+
+/* AI Triage panel -- reuses .resource-card/.resource-actions/.nda-btn/
+   .resource-btn (design-system.css already re-skins .resource-card for the
+   dark gds-panel surface); only what's genuinely new lives here. */
+.ai-triage-wrap {
+    margin-top: 20px;
+}
+
+.ai-triage-card {
+    max-width: 640px;
+}
+
+.ai-triage-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.ai-triage-model {
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.ai-triage-analysis {
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Was reusing .gds-timeline-when (white-space: nowrap; sized for short
+   timestamps), which let long AI-generated rationale text overflow past
+   the card edge instead of wrapping. */
+.ai-severity-rationale {
+    font-size: 11px;
+    opacity: 0.6;
+    line-height: 1.4;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.ai-badge-requires-human {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: rgba(109, 74, 224, 0.18);
+    color: #A78BFA;
+}
+
+.ai-confidence-chip {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* Already-acknowledged / additional-unhighlighted reviews: a muted,
+   collapsed line rather than a full card. */
+.ai-triage-history-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 6px 4px;
+    font-size: 12px;
+    opacity: 0.7;
+    border-bottom: 1px solid var(--gds-border, #e9ecef);
+}
+
+.ai-history-model {
+    font-weight: 600;
+}
+
+.ai-history-time,
+.ai-history-action {
+    font-size: 11px;
+}
+
+.ai-dedup-list {
+    margin-top: 16px;
+}
+
+.ai-dedup-list ul {
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ai-dedup-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+}
+
+/* Bootstrap's default .form-text gray is a light-background color; this
+   page's modals sit on the dark gds-panel surface (design-system.css
+   .home-section .modal-content), so it reads as low-contrast there.
+   Reuse the token already documented as AA-safe on dark surfaces. */
+.form-text {
+    color: var(--color-text-faint-dark, #9A9A9A);
+}
+/* Analyst vuln-type classifications (report detail). Each classification is a
+   separate chip, not a comma-joined string, so several CWE mappings read
+   clearly and remove individually. */
+#vuln-types-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.vuln-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 4px 2px 10px;
+    border-radius: 12px;
+    background: var(--color-surface-2, #2A2A2A);
+    font-size: 12px;
+    line-height: 1.6;
+    word-break: break-word;
+}
+
+.vuln-chip-x {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    opacity: 0.6;
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.vuln-chip-x:hover {
+    opacity: 1;
+}
+
+.vuln-empty {
+    font-size: 12px;
+    opacity: 0.6;
+}
+
+.vuln-add-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.vuln-add-row input {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 12px;
+    padding: 4px 8px;
+}
+
+/* --------------------------------------------------------------------------
+   Spec sheet — de-dates the "label : value" tables (left metadata + right
+   meta sidebar). The literal colon column (2nd cell) collapses; labels become
+   quiet uppercase micro-caps; values read as the content. Pure restyle of the
+   existing table markup, so no template/JS changes and every field keeps its
+   place. 2nd-child is always the colon cell in both tables.
+   -------------------------------------------------------------------------- */
+#left-div table td:nth-child(2),
+#right-div table td:nth-child(2) {
+    width: 0;
+    padding: 0;
+    font-size: 0;
+    overflow: hidden;
+}
+
+#left-div table td:first-child {
+    color: var(--color-text-muted-dark, #B5B5B5);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    vertical-align: top;
+    width: 180px;
+    padding: 12px 16px 12px 0;
+}
+
+#left-div table td:last-child {
+    font-size: 14px;
+    color: var(--color-dark-50, #EDEDED);
+    padding: 10px 0;
+    vertical-align: top;
+}
+
+#right-div table td:first-child h6 {
+    margin: 0;
+    color: var(--color-text-muted-dark, #B5B5B5);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+}
+
+#right-div table td:last-child #fname {
+    font-size: 13px;
+    color: var(--color-dark-100, #D4D4D4);
+}
+
+/* Reviewer comment gets breathing room instead of a cramped 5-row box. */
+#comment-display {
+    min-height: 120px;
+    font-family: var(--font-mono, ui-monospace, monospace);
 }

@@ -1,123 +1,42 @@
 import requests
 import json
 import logging
+from urllib.parse import quote
 from prerequisites.models import Webhook
 
 
+# ACTION -> (HEADER, FIRST-LINE LABEL, TRAILING NOTE)
+_MESSAGES = {
+    "NEW_REPORT": ("NEW REPORT RECEIVED", "Title", ""),
+    "NEW_UPDATE": ("NEW UPDATE/AMEND RECEIVED", "Report ID", ""),
+    "NEW_APPEAL": ("NEW APPEAL RECEIVED", "Report ID", ""),
+    "NEW_AGREE": ("HUNTER AGREEMENT RECEIVED", "Report ID",
+                  "\nReport will be automatically moved to the next phase."),
+    "NEW_NDA": ("NEW NDA SUBMISSION RECEIVED", "Report ID", ""),
+    "EMAIL_BOUNCED": ("EMAIL DELIVERY FAILED", "Report ID",
+                      "\nCheck the mail log and resend once the cause is fixed."),
+}
 
-def notify_slack(title, hunter, action):
+
+def _message_parts(title, hunter, action, detail=""):
+    header, label, suffix = _MESSAGES[action]
+    body = label + " = *" + title + "*\nReporter = *" + hunter + "*"
+    if detail:
+        body += "\nError = " + detail
+    return header, body + suffix
+
+
+def notify_slack(title, hunter, action, detail=""):
     try:
         webhook = Webhook.objects.get(webhook_service="SLACK").webhook_handle # SLACK WEBHOOK
-        if action == "NEW_REPORT":
-            payload = {
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "\n*:warning: NEW REPORT RECEIVED :warning:*"
-                        }
-                    },
-                    {
-                        "type": "divider"
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "Title = *"+title+"*\nReporter = *"+hunter+"*"
-                        }
-                    }
-                ]
-            }
-        elif action == "NEW_UPDATE":
-            payload = {
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "\n*:warning: NEW UPDATE/AMEND RECEIVED :warning:*"
-                        }
-                    },
-                    {
-                        "type": "divider"
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "Report ID = *"+title+"*\nReporter = *"+hunter+"*"
-                        }
-                    }
-                ]
-            }
-        elif action == "NEW_APPEAL":
-            payload = {
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "\n*:warning: NEW APPEAL RECEIVED :warning:*"
-                        }
-                    },
-                    {
-                        "type": "divider"
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "Report ID = *"+title+"*\nReporter = *"+hunter+"*"
-                        }
-                    }
-                ]
-            }
-        elif action == "NEW_AGREE":
-            payload = {
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "\n*:warning: HUNTER AGREEMENT RECEIVED :warning:*"
-                        }
-                    },
-                    {
-                        "type": "divider"
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "Report ID = *"+title+"*\nReporter = *"+hunter+"*\nReport will be automatically moved to the next phase."
-                        }
-                    }
-                ]
-            }
-        elif action == "NEW_NDA":
-            payload = {
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "\n*:warning: NEW NDA SUBMISSION RECEIVED :warning:*"
-                        }
-                    },
-                    {
-                        "type": "divider"
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "Report ID = *"+title+"*\nReporter = *"+hunter+"*"
-                        }
-                    }
-                ]
-            }
+        header, body = _message_parts(title, hunter, action, detail)
+        payload = {
+            "blocks": [
+                {"type": "section", "text": {"type": "mrkdwn", "text": "\n*:warning: " + header + " :warning:*"}},
+                {"type": "divider"},
+                {"type": "section", "text": {"type": "mrkdwn", "text": body}},
+            ]
+        }
 
         logging.getLogger("Gerologger").debug(f"Sending Slack notification: {action} - {title}")
         response = requests.post(webhook, json.dumps(payload), timeout=10)
@@ -135,50 +54,19 @@ def notify_slack(title, hunter, action):
         logging.getLogger("Gerologger").error(f"Slack notification error: {type(e).__name__}: {e}")
         return False
 
-def notify_telegram(title, hunter, action):
+
+def notify_telegram(title, hunter, action, detail=""):
     try:
         # webhook = "https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={CHAT_ID}"
         webhook = Webhook.objects.get(webhook_service="TELEGRAM").webhook_handle # TELEGRAM WEBHOOK
-        if action == "NEW_REPORT":
-            message = \
-"*🚨 NEW REPORT RECEIVED 🚨*\n\
-=========================\n\
-Title        = *"+title+"*\n\
-Reporter = *"+hunter+"*"\
+        header, body = _message_parts(title, hunter, action, detail)
+        message = "*\U0001F6A8 " + header + " \U0001F6A8*\n=========================\n" + body
 
-        elif action == "NEW_UPDATE":
-            message = "\n\
-*🚨 NEW UPDATE/AMEND RECEIVED 🚨*\n\
-=========================\n\
-Report ID = *"+title+"*\n\
-Reporter  = *"+hunter+"*"\
-        
-        elif action == "NEW_APPEAL":
-            message = "\n\
-*🚨 NEW APPEAL RECEIVED 🚨*\n\
-=========================\n\
-Report ID = *"+title+"*\n\
-Reporter  = *"+hunter+"*"\
-        
-        elif action == "NEW_AGREE":
-            message = "\n\
-*🚨 HUNTER AGREEMENT RECEIVED 🚨*\n\
-=========================\n\
-Report ID = *"+title+"*\n\
-Reporter  = *"+hunter+"*\n\
-Report will be automatically moved to the next phase."
-        
-        elif action == "NEW_NDA":
-            message = "\n\
-*🚨 NEW NDA SUBMISSION RECEIVED 🚨*\n\
-=========================\n\
-Report ID = *"+title+"*\n\
-Reporter  = *"+hunter+"*"\
-
-        webhook = webhook+"&parse_mode=Markdown&text="+message
-        
         logging.getLogger("Gerologger").debug(f"Sending Telegram notification: {action} - {title}")
-        response = requests.get(webhook, timeout=10)
+        response = requests.get(webhook+"&parse_mode=Markdown&text="+quote(message, safe=''), timeout=10)
+        if response.status_code == 400:
+            # MARKDOWN PARSE ERROR (STRAY _ OR * IN A TITLE OR SMTP ERROR) -- RESEND AS PLAIN TEXT
+            response = requests.get(webhook+"&text="+quote(message, safe=''), timeout=10)
         response.raise_for_status()
         logging.getLogger("Gerologger").debug("Telegram notification sent successfully")
         return True
@@ -193,15 +81,14 @@ Reporter  = *"+hunter+"*"\
         logging.getLogger("Gerologger").error(f"Telegram notification error: {type(e).__name__}: {e}")
         return False
 
-def notify(title, hunter, action):
+
+def notify(title, hunter, action, detail=""):
     results = []
-    
+
     if Webhook.objects.filter(webhook_service="SLACK").exists():
-        success = notify_slack(title, hunter, action)
-        results.append(success)
+        results.append(notify_slack(title, hunter, action, detail))
 
     if Webhook.objects.filter(webhook_service="TELEGRAM").exists():
-        success = notify_telegram(title, hunter, action)
-        results.append(success)
-    
+        results.append(notify_telegram(title, hunter, action, detail))
+
     return any(results) if results else True

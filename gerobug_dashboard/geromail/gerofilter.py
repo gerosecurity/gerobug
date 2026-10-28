@@ -1,8 +1,8 @@
 import re
 import os
+import html
 import PyPDF2
 import logging
-from logging.handlers import TimedRotatingFileHandler
 
 from dashboards.models import BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, ReportStatus
 
@@ -297,7 +297,7 @@ def classify_action(email, subject):
                     for report in BugReport.objects.filter(hunter_email=email):
                         status = ReportStatus.objects.get(status_id=report.report_status)
                         status = status.status_name
-                        x = "<tr><td>&ensp;"+report.report_id+"&ensp;</td><td>&ensp;"+report.report_title+"&ensp;</td><td>&ensp;"+status+"&ensp;</td></tr>"
+                        x = "<tr><td>&ensp;"+html.escape(report.report_id)+"&ensp;</td><td>&ensp;"+html.escape(report.report_title)+"&ensp;</td><td>&ensp;"+html.escape(status)+"&ensp;</td></tr>"
                         reports.append(x)
                     
                     return 208, reports
