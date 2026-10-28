@@ -1300,3 +1300,47 @@ class SubjectRegressionTests(TestCase):
             "someone.else@example.com", "Re: CHECK_" + self.report.report_id)
         self.assertEqual((code, payload), (403, self.report.report_id))
 
+    def test_reply_to_701_subject_classifies_as_update(self):
+        make_report("CC11DD22EE33", report_status=2, report_permission=4)
+        subject = mail_templates.subjectlist[701].replace("~ID~", "CC11DD22EE33")
+        code, payload = gerofilter.classify_action("hunter@example.com", "Re: " + subject)
+        self.assertEqual((code, payload), (203, "CC11DD22EE33"))
+
+    def test_reply_to_703_and_705_subjects_classify_as_data(self):
+        make_report("CC11DD22EE33", report_status=6, report_permission=1)
+        for code_id in (703, 705):
+            with self.subTest(code=code_id):
+                subject = mail_templates.subjectlist[code_id].replace("~ID~", "CC11DD22EE33")
+                code, payload = gerofilter.classify_action(
+                    "hunter@example.com", "Re: " + subject)
+                self.assertEqual((code, payload), (206, "CC11DD22EE33"))
+
+    def test_reply_to_202_subject_classifies_as_check(self):
+        subject = mail_templates.subjectlist[202].replace("~ID~", self.report.report_id)
+        code, payload = gerofilter.classify_action("hunter@example.com", "Re: " + subject)
+        self.assertEqual((code, payload), (202, self.report.report_id))
+
+
+class OperatorSubjectTests(SimpleTestCase):
+
+    def test_operator_subjects_lead_with_the_reply_command(self):
+        self.assertEqual(mail_templates.subjectlist[701],
+                         "UPDATE_~ID~ | Action Required: Additional Info")
+        self.assertEqual(mail_templates.subjectlist[703],
+                         "DATA_~ID~ | Action Required: Bounty Prerequisites (NDA)")
+        self.assertEqual(mail_templates.subjectlist[705],
+                         "DATA_~ID~ | Action Required: Bounty Prerequisites")
+        self.assertEqual(mail_templates.subjectlist[202],
+                         "CHECK_~ID~ | Status of Report ~ID~")
+
+    def test_bodies_offer_a_plain_reply(self):
+        for code in (701, 703, 705):
+            with self.subTest(code=code):
+                self.assertIn("Reply to this email, or send a new email with the subject",
+                              mail_templates.messagelist[code])
+
+    def test_208_points_at_check_and_comment(self):
+        body = mail_templates.messagelist[208]
+        self.assertNotIn("simply reply to this", body)
+        self.assertIn("<b>CHECK_</b>", body)
+        self.assertIn("<b>COMMENT_</b>", body)

@@ -59,7 +59,7 @@ message_201 = _wrap(
     + _SIGNOFF
 )
 
-subject_202 = "Status of Report ID ~ID~"
+subject_202 = "CHECK_~ID~ | Status of Report ~ID~"
 message_202 = _wrap(
     _HELLO
     + _para("This email provides an update on your bug report.")
@@ -149,8 +149,10 @@ message_208 = _wrap(
         "</tr></thead>"
         "<tbody>~NOTE~</tbody>"
       "</table>"
-    + _para("If you have any questions about a specific report, simply reply to this "
-            "email and our team will follow up.")
+    + _para("For the details of one report, send an email with the subject "
+            "<b>CHECK_</b> followed by its Report ID. To ask our team a question "
+            "about a report, use the subject <b>COMMENT_</b> followed by its "
+            "Report ID.")
     + _SIGNOFF
 )
 
@@ -294,18 +296,17 @@ message_407 = _wrap(
     + _SIGNOFF
 )
 
-subject_701 = "Action Required: Additional Info for Report ~ID~"
+subject_701 = "UPDATE_~ID~ | Action Required: Additional Info"
 message_701 = _wrap(
     _HELLO
     + _para("Our team requires additional details regarding Report ID <b>~ID~</b> "
             "(~TITLE~) to proceed with the validation process.")
     + _note("Request Details:", "~NOTE~")
-    + _para("Please submit the requested information by replying to this email. "
-            "You must strictly follow this format:")
+    + _para("Reply to this email, or send a new email with the subject "
+            "<b>UPDATE_~ID~</b>. Either way, please include:")
     + _list([
-        'Set the email subject to: "<b>UPDATE_~ID~</b>"',
-        "Include a text-only <b>Summary</b> of the update in the email body.",
-        "Ensure the full detailed report is attached as a <b>PDF file</b>.",
+        "A text-only <b>Summary</b> of the update in the email body.",
+        "The full detailed report attached as a <b>PDF file</b>.",
     ])
     + _para("An update sent in reply to this request does <b>not</b> count against "
             "the 3 updates you may send on your own initiative.")
@@ -337,19 +338,18 @@ message_702 = _wrap(
     + _SIGNOFF
 )
 
-subject_703 = "Action Required: Bounty Prerequisites for Report ~ID~"
+subject_703 = "DATA_~ID~ | Action Required: Bounty Prerequisites (NDA)"
 message_703 = _wrap(
     _HELLO
     + _para('We are preparing to process the reward payout for Report ID <b>~ID~</b> '
             '("~TITLE~"). Before we can proceed, we require specific documentation '
             "and details.")
     + _note("Requirements / Instructions:", "~NOTE~")
-    + _para("To complete this step, please reply to this email following these "
-            "strict guidelines:")
+    + _para("Reply to this email, or send a new email with the subject "
+            "<b>DATA_~ID~</b>. Either way, please include:")
     + _list([
-        'Set the email subject to: "<b>DATA_~ID~</b>"',
-        "Provide the requested information in the email body (text only).",
-        "You must attach the <b>signed NDA</b> document.",
+        "The requested information in the email body (text only).",
+        "The <b>signed NDA</b> document as an attachment.",
     ])
     + _para("For detailed formatting rules, please refer to our guideline page.")
     + _para("We look forward to receiving your documents.")
@@ -370,18 +370,17 @@ message_704 = _wrap(
     + _SIGNOFF
 )
 
-subject_705 = "Action Required: Bounty Prerequisites for Report ID ~ID~"
+subject_705 = "DATA_~ID~ | Action Required: Bounty Prerequisites"
 message_705 = _wrap(
     _HELLO
     + _para('We are preparing to process the reward payout for Report ID <b>~ID~</b> '
             '("~TITLE~"). Before we can proceed, we require specific documentation '
             "and details.")
     + _note("Requirements / Instructions:", "~NOTE~")
-    + _para("To complete this step, please reply to this email following these "
-            "strict guidelines:")
+    + _para("Reply to this email, or send a new email with the subject "
+            "<b>DATA_~ID~</b>. Either way, please include:")
     + _list([
-        'Set the email subject to: "<b>DATA_~ID~</b>"',
-        "Provide the requested information in the email body (text only).",
+        "The requested information in the email body (text only).",
     ])
     + _para("For detailed formatting rules, please refer to our guideline page.")
     + _para("We look forward to receiving your documents.")
