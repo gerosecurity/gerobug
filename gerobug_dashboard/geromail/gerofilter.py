@@ -150,6 +150,15 @@ def validate_user(email, id):
         return False
 
 
+_REPORT_ID_RE = re.compile(r'^[0-9A-Za-z]{12}$')
+
+
+def valid_report_id(id):
+    if not _REPORT_ID_RE.match(str(id or '')):
+        return False
+    return BugReport.objects.filter(report_id=id).exists()
+
+
 # VALIDATE REPORT ID
 def validate_id(id):
     if(len(id) == 12) & (id.isalnum()):
@@ -277,7 +286,7 @@ def classify_action(email, subject):
         elif(re.search(r'^CHECK_', subject)):
             id = subject[6 : ]
             id = id.replace(' ','')
-            if validate_id(id):
+            if valid_report_id(id):
                 if validate_user(email, id):
                     return 202, id
                 else:
@@ -288,7 +297,7 @@ def classify_action(email, subject):
         elif(re.search(r'^UPDATE_', subject)):
             id = subject[7 : ]
             id = id.replace(' ','')
-            if validate_id(id):
+            if valid_report_id(id):
                 if validate_user(email, id):
                     if not validate_update_stage(id):
                         return 408, id
@@ -304,7 +313,7 @@ def classify_action(email, subject):
         elif(re.search(r'^APPEAL_', subject)):
             id = subject[7 : ]
             id = id.replace(' ','')
-            if validate_id(id):
+            if valid_report_id(id):
                 if validate_user(email, id):
                     if validate_permission("A", id):
                         if validate_appeal(id):
@@ -321,7 +330,7 @@ def classify_action(email, subject):
         elif(re.search(r'^AGREE_', subject)):
             id = subject[6 : ]
             id = id.replace(" ","")
-            if validate_id(id):
+            if valid_report_id(id):
                 if validate_user(email, id):
                     if validate_permission("A", id):
                         return 205, id
@@ -334,7 +343,7 @@ def classify_action(email, subject):
 
         elif(re.search(r'^NDA_', subject)):
             id = subject[4 : ]
-            if validate_id(id):
+            if valid_report_id(id):
                 if validate_user(email, id):
                     if validate_permission("N", id):
                         return 206, id
@@ -347,7 +356,7 @@ def classify_action(email, subject):
 
         elif(re.search(r'^DATA_', subject)):
             id = subject[5 : ]
-            if validate_id(id):
+            if valid_report_id(id):
                 if validate_user(email, id):
                     if validate_permission("N", id):
                         return 206, id
@@ -393,3 +402,4 @@ def classify_action(email, subject):
 
     except Exception as e:
         logging.getLogger("Gerologger").error(str(e))
+        return 404, " "

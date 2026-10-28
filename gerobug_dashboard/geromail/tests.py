@@ -715,3 +715,50 @@ class SubmitBodyTests(MailFlowTestCase):
         attach_pdf(msg, MINIMAL_PDF)
         self.deliver(msg.as_bytes())
         self.assertEqual(len(self.sent_codes()), 1)
+
+
+class ClassifyActionRobustnessTests(TestCase):
+
+    def setUp(self):
+        self.report = make_report(report_status=5, report_permission=4 | 2)
+        BugReportUpdate.objects.create(
+            update_id=self.report.report_id + "U1", report_id=self.report.report_id,
+            update_datetime=timezone.now(), update_summary="s", update_file=0)
+        BugReportAppeal.objects.create(
+            appeal_id=self.report.report_id + "A1", report_id=self.report.report_id,
+            appeal_datetime=timezone.now(), appeal_summary="s", appeal_file=0)
+        BugReportNDA.objects.create(
+            nda_id=self.report.report_id + "N1", report_id=self.report.report_id,
+            nda_datetime=timezone.now(), nda_summary="s", nda_file=0)
+
+    def test_uan_id_is_rejected_as_invalid_id(self):
+        for verb, suffix in (("CHECK", "U1"), ("UPDATE", "U1"), ("APPEAL", "A1"),
+                             ("AGREE", "A1"), ("DATA", "N1"), ("NDA", "N1")):
+            with self.subTest(verb=verb):
+                code, _ = gerofilter.classify_action(
+                    "hunter@example.com", verb + "_" + self.report.report_id + suffix)
+                self.assertEqual(code, 405)
+
+    def test_valid_report_id_shape_and_existence(self):
+        self.assertTrue(gerofilter.valid_report_id(self.report.report_id))
+        self.assertFalse(gerofilter.valid_report_id(self.report.report_id + "U1"))
+        self.assertFalse(gerofilter.valid_report_id("SHORT"))
+        self.assertFalse(gerofilter.valid_report_id("NOTAREPORT12"))
+        self.assertFalse(gerofilter.valid_report_id(""))
+        self.assertFalse(gerofilter.valid_report_id(None))
+
+    def test_dashboard_validate_id_still_accepts_uan_ids(self):
+        self.assertTrue(gerofilter.validate_id(self.report.report_id + "U1"))
+        self.assertTrue(gerofilter.validate_id(self.report.report_id + "A1"))
+
+    def test_exception_returns_404(self):
+        with mock.patch.object(gerofilter, "valid_report_id", side_effect=RuntimeError("boom")):
+            code, payload = gerofilter.classify_action(
+                "hunter@example.com", "CHECK_" + self.report.report_id)
+        self.assertEqual(code, 404)
+        self.assertEqual(payload, " ")
+
+    def test_classify_never_returns_none(self):
+        for subject in ("", "Hello team", "CHECK_", "SUBMIT_", "RANDOM NOISE"):
+            with self.subTest(subject=subject):
+                self.assertIsNotNone(gerofilter.classify_action("hunter@example.com", subject))
