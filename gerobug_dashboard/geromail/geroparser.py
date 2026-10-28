@@ -26,7 +26,6 @@ from prerequisites.models import MailBox
 from gerobug.settings import MEDIA_ROOT
 
 
-
 # IMAP CONFIG
 EMAIL           = ""
 PWD             = ""
@@ -219,6 +218,11 @@ def parse_bounce(msg):
     return info
 
 
+def bounce_matches_report(info):
+    report = BugReport.objects.filter(report_id=str(info.get('report_id', ''))).only('hunter_email').first()
+    return bool(report) and report.hunter_email.lower() == str(info.get('failed_to', '')).lower()
+
+
 def rm_html_tags(text):
     text = text.replace('&nbsp;', '')
     text = re.sub(r'<br.*?>', '\n', text)
@@ -378,7 +382,15 @@ def read_mail(mail, folder_name='inbox'):
                                     f"OriginalMsgID: {b['orig_msg_id']} | "
                                     f"Subject: {email_subject}"
                                 )
-                                geronotify.notify(b['report_id'], b['failed_to'], "EMAIL_BOUNCED", detail=b['error'])
+                                blacklisted = bool(hunter_email) and gerosecure.check_blacklist(hunter_email)[0]
+                                if hunter_email:
+                                    gerosecure.monitor(hunter_email, int(msg_ts))
+                                if not blacklisted and bounce_matches_report(b):
+                                    geronotify.notify(b['report_id'], b['failed_to'], "EMAIL_BOUNCED", detail=b['error'])
+                                else:
+                                    logging.getLogger("Gerologger").warning(
+                                        f"Bounce not matched to a report's hunter or sender rate-limited, webhook alert skipped | "
+                                        f"ReportID: {b['report_id']} | FailedTo: {b['failed_to']}")
                                 continue
 
                             # AVOID MAIL LOOPS (see loop_sender_reason)
@@ -529,7 +541,6 @@ def read_mail(mail, folder_name='inbox'):
                                 update_file_flag = 1 if have_attachment else 0
 
                                 if have_attachment or len(update_summary.strip()) > 3:
-                                    # CHARGE THE AMEND REQUEST IF ONE IS OPEN, ELSE THE HUNTER'S ALLOWANCE
                                     remaining = gerofilter.consume_update_allowance(payload[0])
                                     payload[3] = (
                                         f"You have {remaining} of {gerofilter.SELF_UPDATE_LIMIT} "
@@ -696,14 +707,12 @@ def read_mail(mail, folder_name='inbox'):
                             elif(code == 403):
                                 logging.getLogger("Gerologger").warning('[ERROR 403] User are not authorized!')
 
-                            # HUNTER SUBMISSION REFUSED BY AN ALLOWANCE OR THE STAGE
                             elif(code in (407, 408, 409)):
                                 report = BugReport.objects.get(report_id=payload[0])
                                 payload[1] = report.report_title
                                 if code == 407:
                                     reason = "self-initiated update allowance exhausted, an amend request is needed"
                                 elif code == 408:
-                                    # The 408 template names the stage it was refused at.
                                     payload[2] = report.report_status
                                     reason = "the report has moved past Bounty Calculation"
                                 else:
@@ -749,7 +758,6 @@ def company_action(id, note, code):
         logging.getLogger("Gerologger").info('[CODE 702] Send Bounty Calculations')
         if not gerofilter.validate_permission("A", id):
             report.report_permission = report.report_permission + 2
-        # START (OR RESTART, AFTER AN APPEAL) THE AUTO-ACCEPT CLOCK
         report.report_calc_sent_at = timezone.now()
         report.save()
         
@@ -789,7 +797,6 @@ def company_action(id, note, code):
     payload = [id, report.report_title, report.report_status, note, report.report_severity]
     destination = report.hunter_email
 
-    # REMEMBER WHAT WAS SENT SO IT CAN BE RE-SENT IF DELIVERY BOUNCES
     try:
         report.last_email_code = code
         report.last_email_note = note or ''
@@ -805,24 +812,7 @@ def check_mailbox_status():
     return MAILBOX_READY
 
 
-# AUTO-ACCEPT AN UNAPPEALED BOUNTY CALCULATION
-# Silence is agreement: once a calculation has sat for APPEAL_WINDOW_DAYS with
-# no appeal, do exactly what the hunter's own AGREE_ reply does (mail code 205)
-# -- drop the appeal permission bit and advance "Bounty Calculation" to
-# "Bounty in Process".
-#
-# The clock is BugReport.report_calc_sent_at, stamped by company_action(702),
-# so re-sending a calculation after an appeal restarts the window. The appeal
-# bit (2) is granted only by that email and consumed by an appeal, so a report
-# that still holds it has not been appealed since. Both live in
-# BugReport.auto_accept_at, which the dashboard also renders, so the deadline
-# shown to the triager is the one this sweep acts on.
 def check_auto_agree():
-    """Advance every unappealed bounty calculation past its appeal window.
-
-    Called once per poll loop. Never raises: a failure here must not take the
-    mail poller down with it.
-    """
     now = timezone.now()
 
     for candidate in BugReport.objects.filter(report_status=BOUNTY_CALC_STATUS):
@@ -833,8 +823,6 @@ def check_auto_agree():
 
             with transaction.atomic():
                 report = BugReport.objects.select_for_update().get(report_id=candidate.report_id)
-                # Re-read under the lock: an appeal, an operator status move or
-                # a re-sent calculation may have landed between the scan and here.
                 due = report.auto_accept_at
                 if due is None or due > now:
                     continue
@@ -917,7 +905,6 @@ def run():
                 logging.getLogger("Gerologger").info(f"IMAP connection lost during poll, reconnecting: {e}")
                 return
 
-            # AUTO-ACCEPT CALCULATIONS WHOSE APPEAL WINDOW HAS ELAPSED
             check_auto_agree()
 
             try:

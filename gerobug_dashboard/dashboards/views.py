@@ -27,7 +27,6 @@ import threading, os, shutil, secrets, uuid, html, gerocert.gerocert
 import logging
 
 
-
 def LogoutForm(request):
     if request.user.is_authenticated:
         logout(request)
@@ -61,9 +60,6 @@ class RenderDashboardAdmin(LoginRequiredMixin,ListView):
         return context
 
     
-# The three hunter-submission tables differ only by field prefix
-# (update_id/update_datetime/..., appeal_id/..., nda_id/...), so one loop
-# covers all three. Key, prefix, model, detail route, singular label.
 _SUBMISSION_KINDS = (
     ('updates', 'update', BugReportUpdate, 'update_detail', 'Update'),
     ('appeals', 'appeal', BugReportAppeal, 'appeal_detail', 'Appeal'),
@@ -72,13 +68,6 @@ _SUBMISSION_KINDS = (
 
 
 def build_hunter_submissions(report):
-    """Every update / appeal / data submission a hunter sent, newest first.
-
-    The detail page used to link only the newest of each kind, so earlier ones
-    were effectively lost: their PDFs were unreachable from any URL the page
-    offered. Returns one list per kind, keyed for the template, which renders
-    a card per kind off a shared row partial.
-    """
     out = {}
     for key, prefix, model, route, label in _SUBMISSION_KINDS:
         rows = []
@@ -86,15 +75,11 @@ def build_hunter_submissions(report):
             ident = getattr(row, prefix + '_id')
             rows.append({
                 'ident': ident,
-                # The sequence tag the hunter's own ids carry: AB12CD34EF56U2 -> "U2".
                 'tag': ident[len(report.report_id):],
                 'label': label,
                 'when': getattr(row, prefix + '_datetime'),
                 'summary': getattr(row, prefix + '_summary'),
                 'detail_url': reverse(route, kwargs={'pk': ident}),
-                # The per-row flag says an attachment was accepted; the file
-                # can still be gone (restored database, pruned media), and a
-                # dead download link is worse than none.
                 'has_file': bool(getattr(row, prefix + '_file')) and os.path.isfile(
                     os.path.join(MEDIA_ROOT, report.report_id, ident + '.pdf')),
             })
@@ -122,7 +107,6 @@ class ReportDetails(LoginRequiredMixin,DetailView):
         report_file = os.path.join(MEDIA_ROOT, report.report_id, report.report_id + '.pdf')
         context['report_file_exists'] = os.path.isfile(report_file)
 
-        # EVERY HUNTER SUBMISSION, NOT JUST THE NEWEST OF EACH KIND
         context['submissions'] = build_hunter_submissions(report)
 
         # COMPANY NAME
@@ -260,7 +244,6 @@ def ReportUpdateStatus(request,id):
 
             if report.report_status < max:
                 report.report_status += 1
-            # The status notification below is the operator's latest email.
             report.last_email_code = 300 if report.report_status == 0 else 301
             report.last_email_note = ''
             report.save()
@@ -319,7 +302,6 @@ def KanbanMove(request, id):
         return JsonResponse({'status': 'unchanged'})
 
     report.report_status = new_status
-    # The status notification below is the operator's latest email.
     report.last_email_code = 301
     report.last_email_note = ''
     report.save()
@@ -430,8 +412,6 @@ def InvalidHandler(request, id):
                     if duplicate_of:
                         report.report_duplicate = 1
                         report.report_duplicate_of = duplicate_of
-                    # Record the invalid notification (template 300) and its
-                    # reasons so Troubleshooting > Resend can replay it faithfully.
                     report.last_email_code = 300
                     report.last_email_note = reasons or ''
                     report.save()
@@ -825,7 +805,6 @@ def AdminSetting(request):
                     'personalization': PersonalizationForm(instance=THEME), 'theme_presets': Personalization.THEME_PRESETS, 'troubleshoot': TroubleshootForm(), 'report_statuses': ReportStatus.objects.all().order_by('status_id'), 'users':users, 'mailbox_status': mailbox_status,'mailbox_name': mailbox_name,'notifications':notifications,'bl':bl, 'company_name':THEME.company_name})
 
 
-# HUMAN-READABLE LABELS FOR THE OPERATOR-INITIATED EMAIL CODES
 RESEND_EMAIL_LABELS = {
     300: "Invalid Report Notification",
     301: "Status Update Notification",
@@ -837,7 +816,6 @@ RESEND_EMAIL_LABELS = {
 }
 
 
-# RESEND THE LAST EMAIL SENT TO THE HUNTER (FOR BOUNCED / FAILED DELIVERIES)
 @login_required
 def ResendEmail(request):
     if not request.user.is_superuser:
@@ -863,20 +841,11 @@ def ResendEmail(request):
         report = BugReport.objects.get(report_id=report_id)
         username = request.user.username
 
-        # WHAT GETS RESENT: the last email an operator initiated. Parser
-        # auto-replies to the hunter (2xx acknowledgements, 4xx refusals) are
-        # never recorded, so a malformed hunter email in between cannot
-        # become what gets replayed.
         code, note = report.last_email_code, report.last_email_note
         if code not in RESEND_EMAIL_LABELS:
-            # Never fabricate a message: a synthesised status notification is
-            # not "the last email" and reaches the hunter as a bare notice.
             messages.error(request, f"No operator-initiated email is recorded for {report_id}, so there is nothing to resend. Send the email from the report page instead.")
             return redirect(reverse('setting') + '#troubleshoot')
 
-        # COMPLETION EMAIL: rebuild the certificate rather than re-attaching
-        # the one baked at completion time, so a hunter rename (Report
-        # Override) or new officer details in Settings are not resent stale.
         if code == 704:
             hunter = BugHunter.objects.filter(hunter_email=report.hunter_email).first()
             if not hunter:
@@ -889,11 +858,6 @@ def ResendEmail(request):
                 messages.error(request, f"Could not rebuild the certificate for {report_id}: {e}")
                 return redirect(reverse('setting') + '#troubleshoot')
 
-        # A bounty calculation is resent because the hunter never got it
-        # (bounce, spam folder), and the email promises 30 days "of this
-        # email". Restart the appeal window from the resend, which is when the
-        # hunter can actually read it. Only while the report still sits at
-        # Bounty Calculation; later, no clock runs and nothing is restarted.
         restarts_window = code == 702 and report.report_status == BOUNTY_CALC_STATUS
         if restarts_window:
             report.report_calc_sent_at = timezone.now()
@@ -902,8 +866,6 @@ def ResendEmail(request):
         def trigger_resend(report, code, note):
             from django.db import connection as db_connection
             try:
-                # Replay the exact transactional email via write_mail directly,
-                # WITHOUT re-running company_action's permission/score/status side effects.
                 payload = [report.report_id, report.report_title, report.report_status,
                            note, report.report_severity]
                 geromailer.write_mail(code, payload, report.hunter_email)
@@ -927,7 +889,6 @@ def ResendEmail(request):
     return redirect(reverse('setting') + '#troubleshoot')
 
 
-# TOGGLE THE HUNTER EMAIL SINKHOLE (SETTINGS > TROUBLESHOOTING)
 @login_required
 def ToggleHunterEmailSinkhole(request):
     if not request.user.is_superuser:
@@ -971,7 +932,6 @@ def _tail_file(path, n):
     return text.splitlines()[-n:]
 
 
-# VIEW gerobug.log FROM THE DASHBOARD (NO SSH NEEDED). RETURNS JSON
 @login_required
 def ViewLogs(request):
     if not request.user.is_superuser:
@@ -996,10 +956,6 @@ def ViewLogs(request):
         return JsonResponse({'ok': False, 'error': str(e), 'lines': []})
 
 
-# ADMIN OVERRIDE OF REPORT FIELDS (TITLE / STATUS / ENDPOINT / ATTACK TYPE /
-# DUPLICATE TAG / HUNTER NAME)
-# GET  ?report_id=...  -> current values as JSON (to populate the editor)
-# POST                 -> apply the override (no emails / side effects)
 @login_required
 def ReportOverride(request):
     if not request.user.is_superuser:
@@ -1044,7 +1000,6 @@ def ReportOverride(request):
         attack = request.POST.get('attack', '').strip()
         status_raw = request.POST.get('status', '').strip()
         hunter_name = request.POST.get('hunter_name', '').strip()
-        # Duplicate is a 0/1 badge; the checkbox only POSTs when ticked.
         duplicate = 1 if request.POST.get('duplicate') == '1' else 0
 
         if not title:
@@ -1080,8 +1035,6 @@ def ReportOverride(request):
             report.report_duplicate_of = ''
         report.save(update_fields=['report_title', 'report_status', 'report_endpoint', 'report_attack', 'report_duplicate', 'report_duplicate_of'])
 
-        # Hunter name lives on BugHunter (per hunter_email); updating it affects
-        # all of that hunter's reports and the Hall of Fame.
         hunter_change = ""
         if hunter and hunter_name != hunter.hunter_username:
             old_hunter_name = hunter.hunter_username

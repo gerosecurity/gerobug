@@ -144,11 +144,6 @@
                         <div class="report-status" id="invalid">{{reportstatus}}</div>
                     {% endif %}            
                     {% if object.auto_accept_at %}
-                    {% comment %}
-                    No appeal since the calculation went out, so geroparser's
-                    sweep will accept it on the hunter's behalf at this time.
-                    An appeal or a re-sent calculation clears or moves it.
-                    {% endcomment %}
                     <div class="auto-accept-notice"
                          title="No appeal received yet. The report moves to Bounty in Process automatically unless the hunter appeals first.">
                         <i class="bi bi-hourglass-split"></i>
@@ -232,15 +227,7 @@
                         {{object.report_summary}}
                     </div>
                     
-                    {% comment %}
-                    One card per kind, each listing EVERY submission of that
-                    kind newest-first (see views.build_hunter_submissions).
-                    These cards used to link only the latest of each, which
-                    hid the rest. A kind with nothing received is left out
-                    rather than shown empty.
-                    {% endcomment %}
                     <div class="resources-grid">
-                        <!-- Report Files Card -->
                         <div class="resource-card">
                             <h6>Files</h6>
                             {% if report_file_exists %}
@@ -252,7 +239,6 @@
                             {% endif %}
                         </div>
 
-                        <!-- Updates Card -->
                         {% if submissions.updates %}
                         <div class="resource-card">
                             <h6>Updates <span class="submission-count">{{ submissions.updates|length }}</span></h6>
@@ -260,7 +246,6 @@
                         </div>
                         {% endif %}
 
-                        <!-- Appeals Card -->
                         {% if submissions.appeals %}
                         <div class="resource-card">
                             <h6>Appeals <span class="submission-count">{{ submissions.appeals|length }}</span></h6>
@@ -268,7 +253,6 @@
                         </div>
                         {% endif %}
 
-                        <!-- Hunter Data Card (NDA + bounty prerequisites) -->
                         {% if submissions.data %}
                         <div class="resource-card">
                             <h6>Hunter Data <span class="submission-count">{{ submissions.data|length }}</span></h6>

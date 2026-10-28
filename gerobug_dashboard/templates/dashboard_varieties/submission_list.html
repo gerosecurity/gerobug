@@ -1,11 +1,3 @@
-{% comment %}
-One kind of hunter submission (updates, appeals or data), newest first.
-Context: rows -- see dashboards.views.build_hunter_submissions.
-
-Each row links to its own detail page; the PDF link appears only when the
-file is actually on disk, so there are no dead downloads. Reuses .file-link
-so both the light report page and the dark gds-panel skin it correctly.
-{% endcomment %}
 <ul class="submission-list">
     {% for row in rows %}
     <li class="submission-item">

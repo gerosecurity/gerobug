@@ -587,11 +587,6 @@ textarea {
     opacity: 0.9;
 }
 
-/* Hunter submission lists (updates / appeals / data). One row per submission
-   inside a .resource-card, newest first. .submission-link reuses .file-link
-   so both this page and the dark gds-panel skin get the right colors; only
-   layout and muted secondary text live here. The list scrolls rather than
-   stretching the card, because data submissions (DATA_) are uncapped. */
 .submission-list {
     list-style: none;
     margin: 0;

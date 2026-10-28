@@ -22,12 +22,8 @@ class UserProfile(models.Model):
     def __str__(self):
         return f"{self.user.username} ({self.public_id})"
 
-# Report lifecycle constants shared by the dashboard and the mail pipeline.
-# They live here, the bottom layer both import, so the sweep in
-# geromail.geroparser.check_auto_agree and the deadline the dashboard shows
-# can never drift apart.
-BOUNTY_CALC_STATUS = 5      # "Bounty Calculation" (see apps.py init_status_db)
-APPEAL_WINDOW_DAYS = 30     # days an unappealed calculation stands before it is accepted
+BOUNTY_CALC_STATUS = 5
+APPEAL_WINDOW_DAYS = 30
 
 
 class BugReport(models.Model):
@@ -47,22 +43,10 @@ class BugReport(models.Model):
     report_duplicate_of = models.CharField(max_length=15, blank=True, default='', verbose_name="Duplicate Of")
     report_permission = models.IntegerField(default=0) # 4 (Update) 2 (Appeal) 1 (NDA) --> UAN --> Similar to RWX System
     report_update = models.IntegerField(default=0)
-    # Updates the hunter sent on their own initiative, i.e. without a triager
-    # amend request (mail code 701) granting the Update permission bit. Capped
-    # at SELF_UPDATE_LIMIT and never reset: report_update cannot serve as the
-    # counter because it also numbers the update ids (<report>U1, U2, ...) and
-    # counts triager-requested updates, which are deliberately free.
     report_update_self = models.IntegerField(default=0)
     report_appeal = models.IntegerField(default=0)
     report_nda  = models.IntegerField(default=0)
-    # When the newest bounty calculation (mail code 702) went to the hunter.
-    # Starts the auto-accept clock; re-sending a calculation after an appeal
-    # restarts it. Null on reports calculated before this field existed, so
-    # those never auto-accept: their hunters were never told about the window.
     report_calc_sent_at = models.DateTimeField(null=True, blank=True)
-    # The last email an operator initiated (template code + its ~NOTE~ text),
-    # so Settings > Troubleshooting > Resend can replay it after a bounce.
-    # Parser auto-replies to the hunter (2xx/4xx) are never recorded here.
     last_email_code = models.IntegerField(default=0)
     last_email_note = models.TextField(blank=True, default='')
 
@@ -76,20 +60,31 @@ class BugReport(models.Model):
     def get_absolute_url(self):
         return reverse('report_detail', kwargs={'pk':self.report_id})
 
+    STATUS_PERMISSIONS = {0: 4, 1: 4, 2: 4, 3: 4, 4: 4, 5: 4 | 2, 6: 1, 7: 0}
+
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        instance = super().from_db(db, field_names, values)
+        instance._loaded_status = instance.report_status if 'report_status' in field_names else None
+        return instance
+
+    def save(self, *args, **kwargs):
+        loaded = getattr(self, '_loaded_status', None)
+        if loaded is not None and self.report_status != loaded:
+            allowed = self.STATUS_PERMISSIONS.get(self.report_status, 0)
+            self.report_permission = max(self.report_permission, 0) & allowed
+            update_fields = kwargs.get('update_fields')
+            if update_fields is not None and 'report_permission' not in update_fields:
+                kwargs['update_fields'] = list(update_fields) + ['report_permission']
+        super().save(*args, **kwargs)
+        self._loaded_status = self.report_status
+
     @property
     def severity_label(self):
         return gerocalculator.get_severity_label(self.report_severity)
 
     @property
     def auto_accept_at(self):
-        """When silence will be taken as agreement, or None if no clock runs.
-
-        This is the single definition of the deadline: geroparser's sweep acts
-        on it and the dashboard displays it, so the board can never promise a
-        move the sweep will not make.
-        """
-        # Bit 2 = appeal still open. Granted only by the calculation email and
-        # consumed by an appeal, so holding it means the hunter stayed silent.
         if self.report_status != BOUNTY_CALC_STATUS or not self.report_permission & 2:
             return None
         if self.report_calc_sent_at is None:
@@ -323,9 +318,6 @@ class Personalization(models.Model):
 
 
 class TroubleshootSettings(models.Model):
-    """Singleton (settings_id=1) troubleshooting toggles, editable from
-    Settings > Troubleshooting (superuser only).
-    """
     settings_id = models.IntegerField(default=1, unique=True)
     hunter_email_sinkhole = models.BooleanField(default=False)
     sinkhole_enabled_by = models.CharField(max_length=150, blank=True, default='')
