@@ -1,98 +1,59 @@
 # Filter & Validation
 
-Now of course you will ask, is Gerobug secure?\
-Well of course the obvious answer is that **nothing is 100% secure**, lol.\
-But we are confident that Gerobug is 99% secure.
-
-We have implemented filter and validation by default to prevent security issues within Gerobug.
+Is Gerobug secure? Nothing is 100% secure, but Gerobug filters and validates everything it receives by default.
 
 ## Accepted Email Format
 
-Gerobug will only accept specific email format, other than this format the report will be ignored. The bug hunter will also receive notification if the email they sent are invalid.
+Gerobug only processes emails whose subject matches a known command (`SUBMIT_`, `CHECK_`, `STATUS_OVERVIEW`, `UPDATE_`, `APPEAL_`, `AGREE_`, `DATA_`/`NDA_`, `MY_SCORE`). Anything else gets an "Invalid Report Format" reply. See the [Bug Hunter Guide](bug-hunter-guide.md) for the full format and limits.
 
-You can see the accepted email format at `http://[Your gerobug domain]/submit`\
-which are:
+## Sender Authentication
 
-*   Submit Report&#x20;
+Gerobug never replies to or processes a message it cannot trust:
 
-    ```
-    Subject: SUBMIT_Report Title
-    Body:
-    TYPE= Bug Type
-    ENDPOINT= Affected Endpoint
-    SUMMARY= Summary
+* **Spoofed senders.** If the receiving mail server adds an `Authentication-Results` header, a message whose **SPF and DKIM both fail** is dropped. Without that header, Gerobug falls back to comparing `Return-Path` with `From:` (case-insensitive).
 
-    Attachment: *PDF Report File* (Report Template)
-    ```
+{% hint style="warning" %}
+The `Return-Path` fallback is not real authentication: a sender talking raw SMTP controls both headers. Run Gerobug behind a mail provider that stamps `Authentication-Results` (Gmail and Outlook do).
+{% endhint %}
 
-    _<mark style="color:red;">Title -> Max 150 Characters</mark>_\
-    _<mark style="color:red;">Bug Type -> Max 100 Characters</mark>_\
-    _<mark style="color:red;">Endpoint -> Max 150 Characters</mark>_
-*   Check Report Status&#x20;
+* **No-reply senders** are ignored.
+* **Mail loops.** Gerobug ignores mail from its own address, from senders marked `Auto-Submitted` (auto-responders), and from other addresses on its own domain (unless the mailbox is on a free provider such as Gmail). Outgoing mail is marked `Auto-Submitted: auto-generated` and carries a proper `Message-ID`, so two Gerobug instances cannot ping-pong replies.
+* **Bounces** (delivery status notifications) are detected, logged and sent to Slack/Telegram with the failed recipient, Report ID and SMTP error, instead of being processed as reports.
 
-    ```
-    Subject: CHECK_Report ID
-    ```
-*   Check Report Status Overview
+## File Validation
 
-    ```
-    Subject: STATUS_OVERVIEW
-    ```
-*   Update Report (Request Amend)
+* Attachments must be valid PDFs. The file is checked in memory and is never written to disk if it is invalid.
+* Attachments of 25 MB or more are rejected.
+* Files are saved under a server-generated name (`<Report ID>.pdf`, `<Report ID>U1.pdf`, ...). Path traversal is blocked.
+* Dashboard uploads (templates, logo, signature) are checked by magic bytes, extension and size.
 
-    ```
-    Subject: UPDATE_Report ID
-    Body:
-    Summary
-
-    Attachment: *PDF Report File*
-    ```
-*   Submit an Appeal
-
-    ```
-    Subject: APPEAL_Report ID
-    Body:
-    Reasons
-    ```
-*   Submit an Agree
-
-    ```
-    Subject: AGREE_Report ID
-    ```
-*   Submit NDA
-
-    ```
-    Subject: NDA_Report ID
-    Body:
-    Requested Information
-
-    Attachment: *PDF Signed NDA File*
-    ```
-*   Check Score
-
-    ```
-    Subject: MY_SCORE
-    ```
-
-## Validation
-
-Gerobug will validate files received from bug hunters, if the file is invalid (not pdf) then the report will be ignored (not saved).
-
-<div align="left"><figure><img src=".gitbook/assets/image (9).png" alt="" width="375"><figcaption></figcaption></figure></div>
-
-What if someone submitted a malicious PDF?\
-Well since the submission is through GMAIL / OUTLOOK, malicious files are usually filtered first (Risk transfer).
+What about malicious PDFs? Since submissions arrive through the mail provider, malicious attachments are usually filtered there first (risk transfer). Open hunter PDFs with care.
 
 ## User Authorization
 
-Bug hunter may only check, update, or do anything to their own bug reports according to the email address. For example, user1@email.com can't do anything to report ID owned by user2@email.com (vice versa).&#x20;
+A hunter can only check or act on reports sent from their own email address. `user1@email.com` cannot do anything to a report owned by `user2@email.com`.
 
-<div align="left"><figure><img src=".gitbook/assets/image (1).png" alt="" width="375"><figcaption></figcaption></figure></div>
+Each report also carries per-report permissions:
 
-Bug hunter also can't submit any update, appeal, agree, NDA without prior request from the company / organization.
+| Action | Allowed when |
+| --- | --- |
+| Update | Report is at or before Bounty Calculation, and the hunter has self-initiated updates left or an amend was requested |
+| Appeal / Agree | A bounty calculation was sent and no answer has been received yet |
+| Data / NDA | Prerequisites were requested |
+
+Permissions are reset automatically on every status change, so an old request cannot be used at a later stage.
+
+## Output Escaping
+
+Every hunter-controlled value (title, notes, severity strings, statuses) is HTML-escaped in outgoing emails. Reviewer notes allow only `<br>`, `<b>`, `<i>` and `<strong>`. Telegram notifications are URL-encoded.
 
 ## Email Blacklisting
 
-As mentioned [before](settings.md#blacklist-rule), Gerobug able to block and release emails with spam activity.
+As described in [Blacklist Rule](settings.md#blacklist-rule), Gerobug blocks and automatically releases addresses with spam-like activity.
 
-<div align="left"><figure><img src=".gitbook/assets/image (2).png" alt="" width="375"><figcaption></figcaption></figure></div>
+## Dashboard Security
+
+* Admin-only pages and actions (Settings, user and notification management, troubleshooting) are enforced server-side.
+* Reviewer accounts are addressed by a random public ID, not a sequential database ID.
+* Mailbox passwords and webhook URLs are encrypted at rest.
+* With the VPN option, the dashboard only accepts connections from private IP ranges.
