@@ -931,3 +931,39 @@ class SubmissionOrderingTests(MailFlowTestCase):
         report.refresh_from_db()
         self.assertEqual((report.report_nda, report.report_permission), (1, 0))
         self.assertEqual(BugReportNDA.objects.get().nda_file, 0)
+
+
+class AgreeFlowTests(MailFlowTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.report = make_report(report_status=5, report_permission=2)
+
+    def test_agree_sends_exactly_one_mail(self):
+        self.deliver(raw_mail("AGREE_" + self.report.report_id))
+        self.assertEqual(self.sent_codes(), [205])
+        self.mailer_notify.assert_not_called()
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.report_status, 6)
+        self.assertEqual(self.report.report_permission & 2, 0)
+        self.assertEqual(self.last_payload()[2], 6)
+
+    def test_agree_after_status_moved_back_is_refused(self):
+        raw = raw_mail("AGREE_" + self.report.report_id)
+        real_classify = gerofilter.classify_action
+
+        def classify_then_move(sender, subject):
+            result = real_classify(sender, subject)
+            BugReport.objects.filter(report_id=self.report.report_id).update(
+                report_status=3, report_permission=0)
+            return result
+
+        with mock.patch.object(gerofilter, "classify_action", side_effect=classify_then_move):
+            self.deliver(raw)
+
+        self.assertEqual(self.sent_codes(), [403])
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.report_status, 3)
+
+    def test_agree_mail_names_the_new_stage(self):
+        self.assertIn("Bounty in Process", mail_templates.message_205)

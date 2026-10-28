@@ -96,8 +96,10 @@ message_205 = _wrap(
     _HELLO
     + _para("This is a confirmation that your agreement regarding the bounty calculation "
             "for Report ID <b>~ID~</b> has been received.")
-    + _para("The bounty processing will proceed according to the program guidelines. "
-            "You will be notified once there are further updates.")
+    + _para("Your report has moved to <b>Bounty in Process</b>, the stage where we "
+            "prepare the reward. We will email you with the next steps, and we may ask "
+            "for a few details before the payout.")
+    + _para("No action is required from you right now.")
     + _SIGNOFF
 )
 

@@ -623,21 +623,30 @@ def read_mail(mail, folder_name='inbox'):
 
                             # HUNTER AGREE
                             elif(code == 205):
-                                logging.getLogger("Gerologger").info('Report ID: ' + str(payload[0]))
-                                report = BugReport.objects.get(report_id=payload[0])
+                                report_id = str(payload[0])
+                                logging.getLogger("Gerologger").info('Report ID: ' + str(report_id))
 
-                                # REVOKE PERMISSION AND UPDATE STATUS
-                                report.report_permission = report.report_permission - 2
-                                report.save()
+                                with transaction.atomic():
+                                    report = BugReport.objects.select_for_update().get(report_id=report_id)
+                                    payload[1] = report.report_title
 
-                                report.report_status += 1
-                                payload = [report.report_id, report.report_title, report.report_status, "", ""]
-                                geromailer.notify(report.hunter_email, payload)
-                                
-                                report.save()
+                                    if (report.report_status != BOUNTY_CALC_STATUS
+                                            or not report.report_permission & 2):
+                                        code = 403
+                                        payload[2] = report.report_status
+                                    else:
+                                        report.report_permission -= 2
+                                        report.report_status += 1
+                                        report.save()
+                                        payload[2] = report.report_status
 
-                                geronotify.notify(str(payload[0]), hunter_email, "NEW_AGREE")
-                                logging.getLogger("Gerologger").info('[CODE 205] Bug Hunter Agree Received Successfully')
+                                if code == 205:
+                                    geronotify.notify(report_id, hunter_email, "NEW_AGREE")
+                                    logging.getLogger("Gerologger").info('[CODE 205] Bug Hunter Agree Received Successfully')
+                                else:
+                                    logging.getLogger("Gerologger").warning(
+                                        f'[ERROR {code}] Agree refused for {report_id}: '
+                                        'the bounty decision is no longer open')
 
                             # HUNTER SUBMITTED NDA
                             elif(code == 206):
