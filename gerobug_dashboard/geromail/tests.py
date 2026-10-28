@@ -987,3 +987,48 @@ class NoReportsTests(MailFlowTestCase):
     def test_404_template_no_longer_claims_the_report_is_invalid(self):
         self.assertNotIn("marked as <b>Invalid</b>", mail_templates.message_404)
         self.assertIn("could not process", mail_templates.message_404)
+
+
+class ParseBodyTests(SimpleTestCase):
+
+    def test_parse_body_lowercase_and_colon(self):
+        atk, endpoint, summary = gerofilter.parse_body(
+            "type: SQL Injection\nendpoint: https://example.com/login\n"
+            "summary: The login form concatenates the username into the query.")
+        self.assertEqual(atk, "SQL Injection")
+        self.assertEqual(endpoint, "https://example.com/login")
+        self.assertIn("concatenates", summary)
+
+    def test_summary_mentioning_endpoint_is_kept_whole(self):
+        _, endpoint, summary = gerofilter.parse_body(
+            "TYPE=XSS\nENDPOINT=https://example.com/a\n"
+            "SUMMARY=Reflected XSS.\nThe ENDPOINT is reachable without a session.\n"
+            "Payload lands in the page title.")
+        self.assertEqual(endpoint, "https://example.com/a")
+        self.assertIn("Payload lands in the page title.", summary)
+
+    def test_markdown_bold_labels(self):
+        atk, endpoint, summary = gerofilter.parse_body(
+            "*TYPE* = IDOR\n**ENDPOINT**: https://example.com/orders/1\n"
+            "*SUMMARY* - Any user can read any order by changing the id.")
+        self.assertEqual(atk, "IDOR")
+        self.assertEqual(endpoint, "https://example.com/orders/1")
+        self.assertIn("changing the id", summary)
+
+    def test_dash_separator_and_wrapped_endpoint(self):
+        _, endpoint, _ = gerofilter.parse_body(
+            "TYPE - ATO\nENDPOINT - https://api.example.com/v1/batch,\n"
+            "https://login.example.com\nSUMMARY - Full account takeover chain here.")
+        self.assertIn("api.example.com", endpoint)
+        self.assertIn("login.example.com", endpoint)
+
+    def test_apple_mail_fixture_still_parses(self):
+        msg = email.message_from_string(APPLE_MAIL_SUBMIT)
+        body = geroparser.rm_html_tags(geroparser.extract_email_body(msg))
+        atk, endpoint, summary = gerofilter.parse_body(body)
+        self.assertEqual(atk, "Account Takeover (ATO)")
+        self.assertIn("api.example.com", endpoint)
+        self.assertGreater(len(summary), 10)
+
+    def test_no_fields_yields_empty_strings(self):
+        self.assertEqual(gerofilter.parse_body("just a plain reply, thanks"), ("", "", ""))

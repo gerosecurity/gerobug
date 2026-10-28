@@ -326,37 +326,36 @@ def validate_attachment(msg, id, FILEPATH=None):
                      base=FILEPATH if FILEPATH is not None else MEDIA_ROOT)
 
 
+_FIELD_LINE_RE = re.compile(
+    r'^\s*\**\s*(TYPE|ENDPOINT|SUMMARY)\s*\**\s*[=:\-]\s*(.*)$', re.IGNORECASE)
+
+
 # PARSE EMAIL BODY
 def parse_body(body):
-    endpoint = '' 
-    summary = ''
+    fields = {'TYPE': [], 'ENDPOINT': [], 'SUMMARY': []}
+    current = None
 
     try:
-        type = re.search('(TYPE=|TYPE =|TYPE)((.|\n)*)(ENDPOINT=|ENDPOINT =|ENDPOINT)', body.replace('*', ''))
-        if type != None:
-            type = type.group(2)
-            type = str(type.replace("\n",""))
-        else:
-            type = ''
+        for line in str(body or '').replace('\r\n', '\n').split('\n'):
+            match = _FIELD_LINE_RE.match(line)
+            if match:
+                current = match.group(1).upper()
+                fields[current].append(match.group(2).strip())
+            elif current == 'SUMMARY':
+                fields['SUMMARY'].append(line.strip())
+            elif current:
+                fields[current].append(line.strip())
 
-        endpoint = re.search('(ENDPOINT=|ENDPOINT =|ENDPOINT)((.|\n)*)(SUMMARY=|SUMMARY =|SUMMARY)', body.replace('*', ''))
-        if endpoint != None:
-            endpoint = endpoint.group(2)
-            endpoint = re.sub(r"<.*>", "", str(endpoint))
-            endpoint = str(endpoint.replace("\n",""))
-        else:
-            endpoint = ''
-
-        summary = re.search('(SUMMARY=|SUMMARY =|SUMMARY)(.*)', body.replace('\n', ' ').replace('*', ''))
-        if summary != None:
-            summary = summary.group(2)
-        else:
-            summary = ''
+        atk_type = ' '.join(part for part in fields['TYPE'] if part).strip()
+        endpoint = ' '.join(part for part in fields['ENDPOINT'] if part).strip()
+        endpoint = re.sub(r'<[^>]*>', '', endpoint).strip()
+        summary = '\n'.join(fields['SUMMARY']).strip()
 
     except Exception as e:
         logging.getLogger("Gerologger").error(str(e))
+        return '', '', ''
 
-    return type, endpoint, summary
+    return atk_type, endpoint, summary
 
 
 # CLASSIFY ACTION BY EMAIL SUBJECT
