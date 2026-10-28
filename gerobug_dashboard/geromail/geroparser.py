@@ -182,6 +182,11 @@ def parse_bounce(msg):
     return info
 
 
+def bounce_matches_report(info):
+    report = BugReport.objects.filter(report_id=str(info.get('report_id', ''))).only('hunter_email').first()
+    return bool(report) and report.hunter_email.lower() == str(info.get('failed_to', '')).lower()
+
+
 def rm_html_tags(text):
     text = text.replace('&nbsp;', '')
     text = re.sub(r'<br.*?>', '\n', text)
@@ -350,7 +355,15 @@ def read_mail(mail, folder_name='inbox'):
                                     f"OriginalMsgID: {b['orig_msg_id']} | "
                                     f"Subject: {email_subject}"
                                 )
-                                geronotify.notify(b['report_id'], b['failed_to'], "EMAIL_BOUNCED", detail=b['error'])
+                                blacklisted = bool(hunter_email) and gerosecure.check_blacklist(hunter_email)[0]
+                                if hunter_email:
+                                    gerosecure.monitor(hunter_email, int(msg_ts))
+                                if not blacklisted and bounce_matches_report(b):
+                                    geronotify.notify(b['report_id'], b['failed_to'], "EMAIL_BOUNCED", detail=b['error'])
+                                else:
+                                    logging.getLogger("Gerologger").warning(
+                                        f"Bounce not matched to a report's hunter or sender rate-limited, webhook alert skipped | "
+                                        f"ReportID: {b['report_id']} | FailedTo: {b['failed_to']}")
                                 continue
 
                             # AVOID MAIL LOOPS (see loop_sender_reason)

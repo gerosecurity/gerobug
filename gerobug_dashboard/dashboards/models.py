@@ -50,6 +50,25 @@ class BugReport(models.Model):
     def get_absolute_url(self):
         return reverse('report_detail', kwargs={'pk':self.report_id})
 
+    STATUS_PERMISSIONS = {0: 4, 1: 4, 2: 4, 3: 4, 4: 4, 5: 4 | 2, 6: 1, 7: 0}
+
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        instance = super().from_db(db, field_names, values)
+        instance._loaded_status = instance.report_status if 'report_status' in field_names else None
+        return instance
+
+    def save(self, *args, **kwargs):
+        loaded = getattr(self, '_loaded_status', None)
+        if loaded is not None and self.report_status != loaded:
+            allowed = self.STATUS_PERMISSIONS.get(self.report_status, 0)
+            self.report_permission = max(self.report_permission, 0) & allowed
+            update_fields = kwargs.get('update_fields')
+            if update_fields is not None and 'report_permission' not in update_fields:
+                kwargs['update_fields'] = list(update_fields) + ['report_permission']
+        super().save(*args, **kwargs)
+        self._loaded_status = self.report_status
+
     @property
     def severity_label(self):
         return gerocalculator.get_severity_label(self.report_severity)

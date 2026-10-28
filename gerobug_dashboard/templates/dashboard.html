@@ -94,7 +94,7 @@ $(this).remove();
 
         <script>
         (function () {
-          // ---- Aging badges: how long since the report last moved ----------
+          // ---- Aging badges: days since the report was submitted ----------
           var STALE_DAYS = 7, DEAD_DAYS = 14, NOW = Date.now();
           document.querySelectorAll('.gds-kanban-card').forEach(function (card) {
             var updated = Date.parse(card.dataset.updated || '');
@@ -103,7 +103,8 @@ $(this).remove();
             if (days < STALE_DAYS) return;
             var badge = document.createElement('span');
             badge.className = 'gds-aging' + (days >= DEAD_DAYS ? ' gds-aging-dead' : '');
-            badge.textContent = days + 'd without update';
+            badge.textContent = days + 'd old';
+            badge.title = 'Submitted ' + days + ' days ago';
             card.querySelector('.card').appendChild(badge);
           });
 
