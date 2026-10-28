@@ -1620,3 +1620,33 @@ class RetentionSweepTests(TestCase):
         source = inspect.getsource(geroparser.run)
         self.assertIn("loop_count % 2880 == 0", source)
         self.assertIn("sweep_processed_mail()", source)
+
+
+class StatusStampTests(TestCase):
+
+    def setUp(self):
+        self.report = make_report(report_status=2)
+
+    def test_status_change_stamps_time(self):
+        self.assertIsNone(self.report.report_status_changed_at)
+        report = BugReport.objects.get(report_id=self.report.report_id)
+        report.report_status = 3
+        report.save()
+        report.refresh_from_db()
+        self.assertIsNotNone(report.report_status_changed_at)
+        self.assertLess(timezone.now() - report.report_status_changed_at,
+                        timedelta(minutes=1))
+
+    def test_save_with_update_fields_includes_stamp(self):
+        report = BugReport.objects.get(report_id=self.report.report_id)
+        report.report_status = 5
+        report.save(update_fields=["report_status"])
+        report.refresh_from_db()
+        self.assertIsNotNone(report.report_status_changed_at)
+
+    def test_non_status_save_does_not_stamp(self):
+        report = BugReport.objects.get(report_id=self.report.report_id)
+        report.report_title = "Renamed"
+        report.save()
+        report.refresh_from_db()
+        self.assertIsNone(report.report_status_changed_at)

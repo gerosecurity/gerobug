@@ -48,6 +48,7 @@ class BugReport(models.Model):
     report_appeal = models.IntegerField(default=0)
     report_nda  = models.IntegerField(default=0)
     report_calc_sent_at = models.DateTimeField(null=True, blank=True)
+    report_status_changed_at = models.DateTimeField(null=True, blank=True)
     last_email_code = models.IntegerField(default=0)
     last_email_note = models.TextField(blank=True, default='')
 
@@ -74,9 +75,13 @@ class BugReport(models.Model):
         if loaded is not None and self.report_status != loaded:
             allowed = self.STATUS_PERMISSIONS.get(self.report_status, 0)
             self.report_permission = max(self.report_permission, 0) & allowed
+            self.report_status_changed_at = timezone.now()
             update_fields = kwargs.get('update_fields')
-            if update_fields is not None and 'report_permission' not in update_fields:
-                kwargs['update_fields'] = list(update_fields) + ['report_permission']
+            if update_fields is not None:
+                extra = [f for f in ('report_permission', 'report_status_changed_at')
+                         if f not in update_fields]
+                if extra:
+                    kwargs['update_fields'] = list(update_fields) + extra
         super().save(*args, **kwargs)
         self._loaded_status = self.report_status
 
