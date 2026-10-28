@@ -357,129 +357,97 @@ def parse_body(body):
     return atk_type, endpoint, summary
 
 
+_REPLY_PREFIX = re.compile(
+    r'^\s*((re|fw|fwd|aw|sv|wg|tr|rif)\s*(\[\d+\])?\s*:\s*|\[[^\]]{1,40}\]\s*)+', re.I)
+_COMMAND = re.compile(
+    r'^(SUBMIT|CHECK|UPDATE|APPEAL|AGREE|DATA|NDA|COMMENT|WITHDRAW)\s*[_:\- ]\s*(.*)$'
+    r'|^(STATUS_OVERVIEW|MY_SCORE|HELP|COMMANDS)\b', re.I)
+_REPORT_ID = re.compile(r'^([0-9A-Za-z]{12})(?![0-9A-Za-z])')
+
+
+def parse_subject(subject):
+    s = _REPLY_PREFIX.sub('', subject or '').strip()
+    m = _COMMAND.match(s)
+    if not m:
+        return None, ''
+    if m.group(3):
+        return m.group(3).upper(), ''
+    verb, rest = m.group(1).upper(), m.group(2).strip()
+    if verb == 'SUBMIT':
+        return verb, rest
+    idm = _REPORT_ID.match(rest.replace(' ', ''))
+    return verb, (idm.group(1).upper() if idm else rest)
+
+
+_PHASE_D_VERBS = ('COMMENT', 'WITHDRAW', 'HELP', 'COMMANDS')
+
+_SUBJECT_ACTIONS = {
+    'CHECK':  (202, None),
+    'UPDATE': (203, 'U'),
+    'APPEAL': (204, 'A'),
+    'AGREE':  (205, 'A'),
+    'DATA':   (206, 'N'),
+    'NDA':    (206, 'N'),
+}
+
+
 # CLASSIFY ACTION BY EMAIL SUBJECT
 def classify_action(email, subject):
     try:
-        if(re.search(r'^SUBMIT_', subject)):
-            title = subject[7 : ]
-            return 201, title
+        verb, rest = parse_subject(subject)
 
-        elif(re.search(r'^CHECK_', subject)):
-            id = subject[6 : ]
-            id = id.replace(' ','')
-            if valid_report_id(id):
-                if validate_user(email, id):
-                    return 202, id
-                else:
-                    return 403, id
-            else:
+        if verb == 'SUBMIT':
+            return 201, rest
+
+        if verb in _SUBJECT_ACTIONS:
+            code, permission = _SUBJECT_ACTIONS[verb]
+            id = rest
+            if not valid_report_id(id):
                 return 405, id
+            if not validate_user(email, id):
+                return 403, id
+            if code == 203:
+                if not validate_update_stage(id):
+                    return 408, id
+                if not validate_permission('U', id) and not validate_self_update(id):
+                    return 407, id
+            elif permission and not validate_permission(permission, id):
+                return 403, id
+            if code == 204 and not validate_appeal(id):
+                return 409, id
+            return code, id
 
-        elif(re.search(r'^UPDATE_', subject)):
-            id = subject[7 : ]
-            id = id.replace(' ','')
-            if valid_report_id(id):
-                if validate_user(email, id):
-                    if not validate_update_stage(id):
-                        return 408, id
-                    if validate_permission("U", id) or validate_self_update(id):
-                        return 203, id
-                    else:
-                        return 407, id
-                else:
-                    return 403, id
-            else:
-                return 405, id
-
-        elif(re.search(r'^APPEAL_', subject)):
-            id = subject[7 : ]
-            id = id.replace(' ','')
-            if valid_report_id(id):
-                if validate_user(email, id):
-                    if validate_permission("A", id):
-                        if validate_appeal(id):
-                            return 204, id
-                        else:
-                            return 409, id
-                    else:
-                        return 403, id
-                else:
-                    return 403, id
-            else:
-                return 405, id
-
-        elif(re.search(r'^AGREE_', subject)):
-            id = subject[6 : ]
-            id = id.replace(" ","")
-            if valid_report_id(id):
-                if validate_user(email, id):
-                    if validate_permission("A", id):
-                        return 205, id
-                    else:
-                        return 403, id
-                else:
-                    return 403, id
-            else:
-                return 405, id
-
-        elif(re.search(r'^NDA_', subject)):
-            id = subject[4 : ]
-            if valid_report_id(id):
-                if validate_user(email, id):
-                    if validate_permission("N", id):
-                        return 206, id
-                    else:
-                        return 403, id
-                else:
-                    return 403, id
-            else:
-                return 405, id
-
-        elif(re.search(r'^DATA_', subject)):
-            id = subject[5 : ]
-            if valid_report_id(id):
-                if validate_user(email, id):
-                    if validate_permission("N", id):
-                        return 206, id
-                    else:
-                        return 403, id
-                else:
-                    return 403, id
-            else:
-                return 405, id
-
-        elif(re.search(r'^MY_SCORE$', subject)):
+        if verb == 'MY_SCORE':
             if BugHunter.objects.filter(hunter_email=email).exists():
                 hunter = BugHunter.objects.get(hunter_email=email)
                 return 207, str(hunter.hunter_scores)
             else:
                 return 410, " "
-        
-        elif(re.search(r'^STATUS_OVERVIEW$', subject)):
-            if BugHunter.objects.filter(hunter_email=email).exists():
-                if BugReport.objects.filter(hunter_email=email).exists():
-                    reports = []
-                    for report in BugReport.objects.filter(hunter_email=email):
-                        status = ReportStatus.objects.get(status_id=report.report_status)
-                        status = status.status_name
-                        cell = "padding:10px 12px; border:1px solid #d2d6dc; vertical-align:top;"
-                        x = (
-                            "<tr>"
-                            "<td style=\"" + cell + " font-family:'Courier New', monospace; white-space:nowrap;\">" + html.escape(report.report_id) + "</td>"
-                            "<td style=\"" + cell + "\">" + html.escape(report.report_title) + "</td>"
-                            "<td style=\"" + cell + "\">" + html.escape(status) + "</td>"
-                            "</tr>"
-                        )
-                        reports.append(x)
-                    
-                    return 208, reports
-                else:
-                    return 410, " "
+
+        if verb == 'STATUS_OVERVIEW':
+            if BugReport.objects.filter(hunter_email=email).exists():
+                reports = []
+                for report in BugReport.objects.filter(hunter_email=email):
+                    status = ReportStatus.objects.get(status_id=report.report_status)
+                    status = status.status_name
+                    cell = "padding:10px 12px; border:1px solid #d2d6dc; vertical-align:top;"
+                    x = (
+                        "<tr>"
+                        "<td style=\"" + cell + " font-family:'Courier New', monospace; white-space:nowrap;\">" + html.escape(report.report_id) + "</td>"
+                        "<td style=\"" + cell + "\">" + html.escape(report.report_title) + "</td>"
+                        "<td style=\"" + cell + "\">" + html.escape(status) + "</td>"
+                        "</tr>"
+                    )
+                    reports.append(x)
+
+                return 208, reports
             else:
                 return 410, " "
-            
-        else:
-            return 404, REASON_UNKNOWN_COMMAND
+
+        if verb in _PHASE_D_VERBS:
+            return 404, " "
+
+        return 404, REASON_UNKNOWN_COMMAND
 
     except Exception as e:
         logging.getLogger("Gerologger").error(str(e))

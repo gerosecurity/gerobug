@@ -18,8 +18,8 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-from dashboards.models import (APPEAL_WINDOW_DAYS, BlacklistRule, BugReport, BugReportAppeal,
-                               BugReportNDA, BugReportUpdate, ReportStatus)
+from dashboards.models import (APPEAL_WINDOW_DAYS, BlacklistRule, BugHunter, BugReport,
+                               BugReportAppeal, BugReportNDA, BugReportUpdate, ReportStatus)
 from geromail import gerocalculator, gerofilter, geromailer, geronotify, geroparser, mail_templates
 from prerequisites.models import MailBox
 
@@ -1197,3 +1197,106 @@ class RecoverySearchTests(TestCase):
                             self.report.report_id + "U1.pdf")
         with open(path, "rb") as fp:
             self.assertEqual(fp.read(), make_pdf(pad=16))
+class ParseSubjectTests(SimpleTestCase):
+
+    def test_table(self):
+        cases = [
+            ("UPDATE_AB12CD34EF56", ("UPDATE", "AB12CD34EF56")),
+            ("Re: update_ab12cd34ef56", ("UPDATE", "AB12CD34EF56")),
+            ("RE: [EXT] Fwd: APPEAL_ AB12 CD34 EF56", ("APPEAL", "AB12CD34EF56")),
+            ("Re: UPDATE_AB12CD34EF56 | Action Required: Additional Info",
+             ("UPDATE", "AB12CD34EF56")),
+            ("DATA_AB12CD34EF56 | Action Required: Bounty Prerequisites",
+             ("DATA", "AB12CD34EF56")),
+            ("CHECK_AB12CD34EF56 | Status of Report AB12CD34EF56",
+             ("CHECK", "AB12CD34EF56")),
+            ("submit_SQLi on /login", ("SUBMIT", "SQLi on /login")),
+            ("SUBMIT_SQLi on /login", ("SUBMIT", "SQLi on /login")),
+            ("status_overview", ("STATUS_OVERVIEW", "")),
+            ("Re: STATUS_OVERVIEW", ("STATUS_OVERVIEW", "")),
+            ("my_score", ("MY_SCORE", "")),
+            ("HELP", ("HELP", "")),
+            ("commands", ("COMMANDS", "")),
+            ("COMMENT_AB12CD34EF56", ("COMMENT", "AB12CD34EF56")),
+            ("WITHDRAW_AB12CD34EF56", ("WITHDRAW", "AB12CD34EF56")),
+            ("NDA_AB12CD34EF56", ("NDA", "AB12CD34EF56")),
+            ("AGREE: AB12CD34EF56", ("AGREE", "AB12CD34EF56")),
+            ("AGREE AB12CD34EF56", ("AGREE", "AB12CD34EF56")),
+            ("agree-ab12cd34ef56", ("AGREE", "AB12CD34EF56")),
+            ("CHECK_AB12CD34EF56U1", ("CHECK", "AB12CD34EF56U1")),
+            ("Hello team", (None, "")),
+            ("", (None, "")),
+            (None, (None, "")),
+            ("Aw: Wg: CHECK_AB12CD34EF56", ("CHECK", "AB12CD34EF56")),
+        ]
+        for subject, expected in cases:
+            with self.subTest(subject=subject):
+                self.assertEqual(gerofilter.parse_subject(subject), expected)
+
+    def test_report_id_is_uppercased_but_submit_title_is_not(self):
+        self.assertEqual(gerofilter.parse_subject("check_ab12cd34ef56")[1], "AB12CD34EF56")
+        self.assertEqual(gerofilter.parse_subject("SUBMIT_Mixed Case Title")[1],
+                         "Mixed Case Title")
+
+    def test_unterminated_bracket_is_not_a_prefix(self):
+        self.assertEqual(gerofilter.parse_subject("[not closed CHECK_AB12CD34EF56"),
+                         (None, ""))
+
+
+class SubjectRegressionTests(TestCase):
+
+    def setUp(self):
+        self.report = make_report(report_status=5, report_permission=4 | 2 | 1)
+        for status_id, name in enumerate(
+                ["Invalid", "Received", "In Review", "Reproduced", "Fixing",
+                 "Bounty Calculation", "Bounty in Process", "Completed"]):
+            ReportStatus.objects.get_or_create(status_id=status_id,
+                                               defaults={"status_name": name})
+
+    def test_old_subject_formats_still_classify(self):
+        rid = self.report.report_id
+        cases = [
+            ("SUBMIT_A good long title", 201),
+            ("CHECK_" + rid, 202),
+            ("UPDATE_" + rid, 203),
+            ("APPEAL_" + rid, 204),
+            ("AGREE_" + rid, 205),
+            ("NDA_" + rid, 206),
+            ("DATA_" + rid, 206),
+            ("STATUS_OVERVIEW", 208),
+            ("CHECK_ZZ99ZZ99ZZ99", 405),
+            ("Hello team", 404),
+        ]
+        for subject, expected in cases:
+            with self.subTest(subject=subject):
+                code, _ = gerofilter.classify_action("hunter@example.com", subject)
+                self.assertEqual(code, expected)
+
+    def test_my_score_classifies_for_a_hunter_with_reports(self):
+        BugHunter.objects.create(hunter_email="hunter@example.com",
+                                 hunter_username="h", hunter_scores=7)
+        code, payload = gerofilter.classify_action("hunter@example.com", "MY_SCORE")
+        self.assertEqual((code, payload), (207, "7"))
+
+    def test_spaced_id_still_resolves(self):
+        code, payload = gerofilter.classify_action(
+            "hunter@example.com", "CHECK_ " + " ".join(
+                [self.report.report_id[i:i + 4] for i in range(0, 12, 4)]))
+        self.assertEqual((code, payload), (202, self.report.report_id))
+
+    def test_phase_d_verbs_are_not_handled_yet(self):
+        for verb in ("COMMENT", "WITHDRAW"):
+            with self.subTest(verb=verb):
+                code, payload = gerofilter.classify_action(
+                    "hunter@example.com", verb + "_" + self.report.report_id)
+                self.assertEqual((code, payload), (404, " "))
+        for verb in ("HELP", "COMMANDS"):
+            with self.subTest(verb=verb):
+                code, payload = gerofilter.classify_action("hunter@example.com", verb)
+                self.assertEqual((code, payload), (404, " "))
+
+    def test_non_owner_check_is_forbidden_not_widened(self):
+        code, payload = gerofilter.classify_action(
+            "someone.else@example.com", "Re: CHECK_" + self.report.report_id)
+        self.assertEqual((code, payload), (403, self.report.report_id))
+
