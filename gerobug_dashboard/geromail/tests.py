@@ -388,3 +388,24 @@ class MailTemplateTests(SimpleTestCase):
         it, so a stray copy would reach the hunter literally."""
         for code, body in mail_templates.messagelist.items():
             self.assertNotIn("~BOUNTY~", body, code)
+
+
+class BounceMatchTests(TestCase):
+    def setUp(self):
+        BugReport.objects.create(
+            report_id="A3F120261234", report_datetime=timezone.now(),
+            hunter_email="Hunter@Example.org", report_reviewer="r",
+            report_summary="s", report_severitytype="",
+        )
+
+    def test_real_bounce_for_the_reports_hunter_matches(self):
+        info = geroparser.parse_bounce(email.message_from_string(POSTFIX_DSN))
+        self.assertTrue(geroparser.bounce_matches_report(info))
+
+    def test_forged_recipient_does_not_match(self):
+        self.assertFalse(geroparser.bounce_matches_report(
+            {"report_id": "A3F120261234", "failed_to": "victim@example.com"}))
+
+    def test_unknown_report_does_not_match(self):
+        self.assertFalse(geroparser.bounce_matches_report(
+            {"report_id": "unknown", "failed_to": "hunter@example.org"}))

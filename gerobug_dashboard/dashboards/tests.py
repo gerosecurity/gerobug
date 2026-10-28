@@ -88,6 +88,69 @@ class KanbanMoveTests(TestCase):
         response = self.client.post("/dashboard/kanban-move/AB12CD34EF56", {"new_status": 2})
         self.assertIn(response.status_code, (302, 403))
 
+    def test_moving_back_revokes_permissions_of_the_later_stage(self):
+        self.report.report_status = 5
+        self.report.report_permission = 2
+        self.report.save()
+        response, _ = self.move(2)
+        self.assertEqual(response.status_code, 200)
+        self.report.refresh_from_db()
+        self.assertEqual((self.report.report_status, self.report.report_permission), (2, 0))
+
+    def test_moving_keeps_an_open_amend_request(self):
+        self.report.report_status = 2
+        self.report.report_permission = 4
+        self.report.save()
+        self.move(3)
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.report_permission, 4)
+
+
+class StatusPermissionTests(TestCase):
+    def setUp(self):
+        self.report = BugReport.objects.create(
+            report_id="AB12CD34EF56", report_datetime=timezone.now(),
+            hunter_email="hunter@example.com", report_reviewer="reviewer",
+            report_summary="s", report_severitytype="", report_status=5, report_permission=4 | 2,
+        )
+
+    def test_unchanged_status_never_touches_permissions(self):
+        report = BugReport.objects.get(report_id="AB12CD34EF56")
+        report.report_permission = 7
+        report.save()
+        report.refresh_from_db()
+        self.assertEqual(report.report_permission, 7)
+
+    def test_each_stage_keeps_only_its_own_grants(self):
+        for status, expected in ((6, 0), (4, 0), (0, 0)):
+            report = BugReport.objects.get(report_id="AB12CD34EF56")
+            report.report_status, report.report_permission = 5, 7
+            report.save()
+            report.report_status = status
+            report.save()
+            report.refresh_from_db()
+            self.assertEqual(report.report_permission, 7 & BugReport.STATUS_PERMISSIONS[status], status)
+        self.assertEqual(BugReport.STATUS_PERMISSIONS[5], 6)
+        self.assertEqual(BugReport.STATUS_PERMISSIONS[6], 1)
+
+    def test_update_fields_save_still_persists_the_revocation(self):
+        report = BugReport.objects.get(report_id="AB12CD34EF56")
+        report.report_status = 2
+        report.save(update_fields=["report_status"])
+        report.refresh_from_db()
+        self.assertEqual(report.report_permission, 4)
+
+    def test_hunter_agree_advances_without_leaking_the_appeal_bit(self):
+        report = BugReport.objects.get(report_id="AB12CD34EF56")
+        report.report_permission = 2
+        report.save()
+        report.report_permission -= 2
+        report.save()
+        report.report_status += 1
+        report.save()
+        report.refresh_from_db()
+        self.assertEqual((report.report_status, report.report_permission), (6, 0))
+
 
 class PageRenderTests(TestCase):
     """Every dashboard page must render. The templates share base.html and the
