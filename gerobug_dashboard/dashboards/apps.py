@@ -12,7 +12,7 @@ class DashboardsConfig(AppConfig):
             import logging
             from logging.handlers import TimedRotatingFileHandler
             from geromail.thread import RunGeromailThread
-            from dashboards.models import BugReport, BugHunter, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization, UserProfile, BugReportUpdate, BugReportNDA
+            from dashboards.models import BugReport, BugHunter, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization, UserProfile, BugReportUpdate, BugReportNDA, backfill_report_score_awarded
             from django.contrib.auth.models import Group, Permission, User
             from django.core.exceptions import ObjectDoesNotExist
             from prerequisites.models import MailBox
@@ -169,6 +169,11 @@ class DashboardsConfig(AppConfig):
                 if updated:
                     logging.getLogger("Gerologger").info(f"Backfilled file flags for {updated} update/NDA record(s)")
 
+            def init_report_score_awarded():
+                updated = backfill_report_score_awarded()
+                if updated:
+                    logging.getLogger("Gerologger").info(f"Backfilled awarded points for {updated} completed report(s)")
+
             gerologger_config()
             init_status_db(0, "Not Valid")
             init_status_db(1, "Need to Review")
@@ -186,6 +191,7 @@ class DashboardsConfig(AppConfig):
             init_theme_defaults()
             init_user_profiles()
             init_uan_file_flags()
+            init_report_score_awarded()
 
             logging.getLogger("Gerologger").info("Number of Status         :"+str(ReportStatus.objects.count()))
             logging.getLogger("Gerologger").info("Number of Report         :"+str(BugReport.objects.count()))

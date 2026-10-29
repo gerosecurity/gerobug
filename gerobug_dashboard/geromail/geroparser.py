@@ -1015,10 +1015,6 @@ def company_action(id, note, code):
         try:
             gerocert.gerocert.generate(id, hunter.hunter_username, int(report.report_severity))
 
-            # UPDATE HUNTER SCORE
-            hunter.hunter_scores += int(report.report_severity)
-            hunter.save()
-
             # UPDATE REPORT STATUS TO COMPLETE
             report.report_status += 1
             report.save()

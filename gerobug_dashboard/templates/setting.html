@@ -681,7 +681,7 @@
 
                             <div class="tab-pane" id="troubleshoot">
                                 <h5 class="card-title">Troubleshooting</h5>
-                                <p class="text-muted">Recover missing files, resend failed emails, override report fields, and inspect server logs without SSH access.</p>
+                                <p class="text-muted">Recover missing files, resend failed emails, override report fields, manage the Hall of Fame, and inspect server logs without SSH access.</p>
 
                                 {% for message in messages %}
                                     {% if message.tags == "success" %}
@@ -772,6 +772,166 @@
                                         </form>
                                     </div>
                                 </div>
+
+                                <div class="card mb-4 shadow-sm">
+                                    <div class="card-header bg-light"><h6 class="mb-0 fw-bold">Hall of Fame</h6></div>
+                                    <div class="card-body">
+                                        <p class="small text-muted">Scores update automatically when a report is completed or moved out of Completed. Use this to correct a score, hide a hunter, or recompute from completed reports.</p>
+                                        <div class="row g-2 align-items-center mb-2">
+                                            <div class="col-md-6 mb-2">
+                                                <input type="text" id="hof_query" class="form-control" placeholder="Hunter email or name (blank = top hunters)" aria-label="Search hunters by email or name">
+                                            </div>
+                                            <div class="col-md-3 mb-2">
+                                                <button type="button" id="hof-search" class="btn btn-outline-primary w-100">Search</button>
+                                            </div>
+                                        </div>
+                                        <div id="hof-msg" class="small mb-2"></div>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm align-middle" id="hof-table" style="display:none;">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Name</th>
+                                                        <th>Email</th>
+                                                        <th>Score</th>
+                                                        <th>Completed reports</th>
+                                                        <th>Recomputed score</th>
+                                                        <th>Hidden</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="hof-rows"></tbody>
+                                            </table>
+                                        </div>
+                                        <div class="border-top pt-3 mt-2">
+                                        <p class="small text-muted mb-2">Recompute <strong>every</strong> hunter from their completed reports. This overwrites manual corrections and cannot be undone, so it needs a typed confirmation.</p>
+                                        <form method="POST" action="{% url 'hall_of_fame_admin' %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="recompute_all">
+                                            <div class="row g-2 align-items-center">
+                                                <div class="col-md-4 mb-2">
+                                                    <input type="text" name="confirm" class="form-control" placeholder="Type RECOMPUTE" aria-label="Type RECOMPUTE to confirm recomputing every hunter">
+                                                </div>
+                                                <div class="col-md-3 mb-2">
+                                                    <button type="submit" class="btn btn-outline-danger w-100">Recompute all</button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <script>
+                                (function() {
+                                    var searchBtn = document.getElementById('hof-search');
+                                    var queryInput = document.getElementById('hof_query');
+                                    var table = document.getElementById('hof-table');
+                                    var rows = document.getElementById('hof-rows');
+                                    var msg = document.getElementById('hof-msg');
+                                    var endpoint = "{% url 'hall_of_fame_admin' %}";
+                                    var csrf = "{{ csrf_token }}";
+                                    if (!searchBtn) return;
+
+                                    function actionForm(hunterId, action, label, cls, confirmText, withScore, scoreValue) {
+                                        var form = document.createElement('form');
+                                        form.method = 'POST';
+                                        form.action = endpoint;
+                                        form.className = 'd-inline-block me-1 mb-1';
+                                        var token = document.createElement('input');
+                                        token.type = 'hidden';
+                                        token.name = 'csrfmiddlewaretoken';
+                                        token.value = csrf;
+                                        form.appendChild(token);
+                                        var hid = document.createElement('input');
+                                        hid.type = 'hidden';
+                                        hid.name = 'hunter_id';
+                                        hid.value = hunterId;
+                                        form.appendChild(hid);
+                                        var act = document.createElement('input');
+                                        act.type = 'hidden';
+                                        act.name = 'action';
+                                        act.value = action;
+                                        form.appendChild(act);
+                                        if (withScore) {
+                                            var score = document.createElement('input');
+                                            score.type = 'number';
+                                            score.name = 'score';
+                                            score.min = '0';
+                                            score.max = '1000000';
+                                            score.value = scoreValue;
+                                            score.className = 'form-control form-control-sm d-inline-block me-1';
+                                            score.style.width = '90px';
+                                            form.appendChild(score);
+                                        }
+                                        var button = document.createElement('button');
+                                        button.type = 'submit';
+                                        button.className = 'btn btn-sm ' + cls;
+                                        button.textContent = label;
+                                        form.appendChild(button);
+                                        if (confirmText) {
+                                            form.addEventListener('submit', function(ev) {
+                                                if (!window.confirm(confirmText)) ev.preventDefault();
+                                            });
+                                        }
+                                        return form;
+                                    }
+
+                                    function cell(tr, text, highlight) {
+                                        var td = document.createElement('td');
+                                        td.textContent = text;
+                                        if (highlight) td.className = 'text-danger fw-bold';
+                                        tr.appendChild(td);
+                                        return td;
+                                    }
+
+                                    function render(hunters) {
+                                        rows.textContent = '';
+                                        hunters.forEach(function(h) {
+                                            var tr = document.createElement('tr');
+                                            cell(tr, h.name, false);
+                                            cell(tr, h.email, false);
+                                            cell(tr, String(h.score), false);
+                                            cell(tr, String(h.completed_reports), false);
+                                            cell(tr, String(h.recomputed_score), h.recomputed_score !== h.score);
+                                            cell(tr, h.hidden ? 'Yes' : 'No', false);
+                                            var actions = document.createElement('td');
+                                            actions.appendChild(actionForm(h.public_key, 'set_score', 'Save', 'btn-outline-primary', null, true, h.score));
+                                            if (h.hidden) {
+                                                actions.appendChild(actionForm(h.public_key, 'unhide', 'Show', 'btn-outline-secondary', null, false, 0));
+                                            } else {
+                                                actions.appendChild(actionForm(h.public_key, 'hide', 'Hide', 'btn-outline-secondary', null, false, 0));
+                                            }
+                                            actions.appendChild(actionForm(h.public_key, 'recompute', 'Recompute', 'btn-outline-warning', null, false, 0));
+                                            if (!h.has_reports) {
+                                                actions.appendChild(actionForm(h.public_key, 'delete', 'Delete', 'btn-outline-danger',
+                                                    'Delete this bug hunter permanently?', false, 0));
+                                            }
+                                            tr.appendChild(actions);
+                                            rows.appendChild(tr);
+                                        });
+                                        table.style.display = hunters.length ? '' : 'none';
+                                    }
+
+                                    searchBtn.addEventListener('click', function() {
+                                        msg.className = 'small mb-2 text-muted';
+                                        msg.textContent = 'Searching...';
+                                        fetch(endpoint + '?q=' + encodeURIComponent((queryInput.value || '').trim()),
+                                              {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+                                            .then(function(r){ return r.json(); })
+                                            .then(function(data){
+                                                if (!data.ok) {
+                                                    msg.className = 'small mb-2 text-danger';
+                                                    msg.textContent = data.error || 'Search failed.';
+                                                    table.style.display = 'none';
+                                                    return;
+                                                }
+                                                render(data.hunters || []);
+                                                msg.className = 'small mb-2 text-success';
+                                                msg.textContent = (data.hunters || []).length + ' hunter(s) found.';
+                                            })
+                                            .catch(function(err){ msg.className = 'small mb-2 text-danger'; msg.textContent = 'Error: ' + err; });
+                                    });
+                                })();
+                                </script>
 
                                 <div class="card mb-4 shadow-sm">
                                     <div class="card-header bg-light"><h6 class="mb-0 fw-bold">Hunter Email Sinkhole</h6></div>

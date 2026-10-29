@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import LogoutForm, ReportFiles, ReportStatusView, ReportUpdateStatus, KanbanMove, FormHandler, InvalidHandler, AdminSetting, OWASPCalculator, CVSSCalculator, ReviewerDelete, NotificationDelete, RenderDashboardAdmin, ReportDetails, UpdateDetails, AppealDetails, NDADetails, CommentDetails, ReportUpdate, ReportDelete, ResendEmail, ToggleHunterEmailSinkhole, ViewLogs, ReportOverride
+from .views import LogoutForm, ReportFiles, ReportStatusView, ReportUpdateStatus, KanbanMove, FormHandler, InvalidHandler, AdminSetting, OWASPCalculator, CVSSCalculator, ReviewerDelete, NotificationDelete, RenderDashboardAdmin, ReportDetails, UpdateDetails, AppealDetails, NDADetails, CommentDetails, ReportUpdate, ReportDelete, ResendEmail, ToggleHunterEmailSinkhole, ViewLogs, ReportOverride, HallOfFameAdmin
 
 urlpatterns = [
     path("", RenderDashboardAdmin.as_view(), name="dashboard"),
@@ -27,6 +27,7 @@ urlpatterns = [
     path("resend-email", ResendEmail, name="resend_email"),
     path("view-logs", ViewLogs, name="view_logs"),
     path("report-override", ReportOverride, name="report_override"),
+    path("hall-of-fame-admin", HallOfFameAdmin, name="hall_of_fame_admin"),
     path("toggle-hunter-sinkhole", ToggleHunterEmailSinkhole, name="toggle_hunter_sinkhole"),
     path("owasp-calculator", OWASPCalculator, name="owasp-calculator"),
     path("cvss-calculator", CVSSCalculator, name="cvss-calculator"),

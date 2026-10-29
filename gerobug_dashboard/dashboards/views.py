@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required,user_passes_test
+from django.views.decorators.http import require_http_methods
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User, Group
 from django.db.models.query_utils import Q
@@ -13,13 +14,14 @@ from django.views.generic import (
     TemplateView
 )
 from django.urls import reverse, reverse_lazy
+from django.db import transaction
 from django.db.models import Sum
 from django.http import FileResponse, JsonResponse
 from django.utils import timezone
 from django.middleware.csrf import get_token
 from django.utils.html import format_html
 from prerequisites.models import MailBox, Webhook
-from .models import APPEAL_WINDOW_DAYS, BOUNTY_CALC_STATUS, BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, BugReportHunterComment, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization, TroubleshootSettings
+from .models import APPEAL_WINDOW_DAYS, BOUNTY_CALC_STATUS, COMPLETED_STATUS, BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, BugReportHunterComment, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization, TroubleshootSettings
 from .forms import Requestform, RulesGuidelineForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm, WebhookForm, BlacklistForm, TemplateReportForm, TemplateNDAForm, TemplateCertForm, CertDataForm, PersonalizationForm, CompanyIdentityForm, Invalidform, TroubleshootForm
 from geromail import geromailer, gerofilter, geroparser, gerocalculator
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
@@ -1067,6 +1069,163 @@ def ReportOverride(request):
     return redirect(reverse('setting') + '#troubleshoot')
 
 
+HOF_MAX_SCORE = 1_000_000
+HOF_MAX_RESULTS = 20
+
+
+def _hof_recomputed(hunter):
+    rows = (BugReport.objects
+            .filter(hunter_email__iexact=hunter.hunter_email,
+                    report_status=COMPLETED_STATUS)
+            .values_list('report_severity', flat=True))
+    severities = list(rows)
+    return len(severities), sum(max(0, int(s or 0)) for s in severities)
+
+
+def _hof_log(request, action, hunter, score_before, score_after,
+             hidden_before, hidden_after):
+    email = hunter.hunter_email if hunter else "(all hunters)"
+    logging.getLogger("Gerologger").info(
+        f"HALL OF FAME {action} by {request.user.username} | {email} | "
+        f"score {score_before} -> {score_after} | "
+        f"hidden {hidden_before} -> {hidden_after}")
+
+
+def _hof_recompute(hunter):
+    with transaction.atomic():
+        locked = BugHunter.objects.select_for_update().get(pk=hunter.pk)
+        reports = (BugReport.objects
+                   .select_for_update()
+                   .filter(hunter_email__iexact=locked.hunter_email))
+        total = 0
+        for report in reports:
+            points = (max(0, int(report.report_severity or 0))
+                      if report.report_status == COMPLETED_STATUS else 0)
+            total += points
+            if report.report_score_awarded != points:
+                BugReport.objects.filter(report_id=report.report_id).update(
+                    report_score_awarded=points)
+        before = locked.hunter_scores
+        locked.hunter_scores = total
+        locked.save(update_fields=['hunter_scores'])
+    hunter.hunter_scores = total
+    return before, total
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def HallOfFameAdmin(request):
+    if not request.user.is_superuser:
+        if request.method == "GET":
+            return JsonResponse({'ok': False, 'error': 'Forbidden'}, status=403)
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect('setting')
+
+    if request.method == "GET":
+        q = (request.GET.get('q', '') or '').strip()
+        hunters = BugHunter.objects.all()
+        if q:
+            hunters = hunters.filter(Q(hunter_email__icontains=q)
+                                     | Q(hunter_username__icontains=q))
+        hunters = hunters.order_by('-hunter_scores')[:HOF_MAX_RESULTS]
+        rows = []
+        for hunter in hunters:
+            completed, recomputed = _hof_recomputed(hunter)
+            rows.append({
+                'public_key': hunter.pk,
+                'email': hunter.hunter_email,
+                'name': hunter.hunter_username,
+                'score': hunter.hunter_scores,
+                'hidden': bool(hunter.hunter_hidden),
+                'completed_reports': completed,
+                'recomputed_score': recomputed,
+                'has_reports': BugReport.objects.filter(
+                    hunter_email__iexact=hunter.hunter_email).exists(),
+            })
+        return JsonResponse({'ok': True, 'hunters': rows})
+
+    if request.method != "POST":
+        return redirect(reverse('setting') + '#troubleshoot')
+
+    target = reverse('setting') + '#troubleshoot'
+    action = (request.POST.get('action', '') or '').strip()
+
+    if action == "recompute_all":
+        if (request.POST.get('confirm', '') or '').strip() != "RECOMPUTE":
+            messages.error(request, "Type RECOMPUTE to confirm recomputing every hunter.")
+            return redirect(target)
+        changed = 0
+        for hunter in BugHunter.objects.all():
+            before, after = _hof_recompute(hunter)
+            if before != after:
+                changed += 1
+        _hof_log(request, "recompute_all", None, "-", "-", "-", "-")
+        messages.success(request, f"Recomputed every hunter. {changed} score(s) changed.")
+        return redirect(target)
+
+    if action not in ("set_score", "hide", "unhide", "recompute", "delete"):
+        messages.error(request, "Unknown Hall of Fame action.")
+        return redirect(target)
+
+    try:
+        hunter_id = int((request.POST.get('hunter_id', '') or '').strip())
+    except (TypeError, ValueError):
+        messages.error(request, "Invalid hunter selection.")
+        return redirect(target)
+    hunter = BugHunter.objects.filter(pk=hunter_id).first()
+    if hunter is None:
+        messages.error(request, "That hunter was not found.")
+        return redirect(target)
+
+    score_before, hidden_before = hunter.hunter_scores, bool(hunter.hunter_hidden)
+
+    if action == "set_score":
+        try:
+            score = int((request.POST.get('score', '') or '').strip())
+        except (TypeError, ValueError):
+            messages.error(request, "Score must be a whole number.")
+            return redirect(target)
+        if score < 0:
+            messages.error(request, "Score cannot be negative.")
+            return redirect(target)
+        if score > HOF_MAX_SCORE:
+            messages.error(request, f"Score cannot exceed {HOF_MAX_SCORE}.")
+            return redirect(target)
+        hunter.hunter_scores = score
+        hunter.save(update_fields=['hunter_scores'])
+        _hof_log(request, "set_score", hunter, score_before, score,
+                 hidden_before, hidden_before)
+        messages.success(request, f"Score for {hunter.hunter_email} set to {score}.")
+        return redirect(target)
+
+    if action in ("hide", "unhide"):
+        hunter.hunter_hidden = (action == "hide")
+        hunter.save(update_fields=['hunter_hidden'])
+        _hof_log(request, action, hunter, score_before, score_before,
+                 hidden_before, bool(hunter.hunter_hidden))
+        messages.success(request, (f"{hunter.hunter_email} is now hidden from the Hall of Fame."
+                                   if hunter.hunter_hidden else
+                                   f"{hunter.hunter_email} is shown in the Hall of Fame again."))
+        return redirect(target)
+
+    if action == "recompute":
+        before, after = _hof_recompute(hunter)
+        _hof_log(request, "recompute", hunter, before, after,
+                 hidden_before, hidden_before)
+        messages.success(request, f"Score for {hunter.hunter_email} recomputed: {before} -> {after}.")
+        return redirect(target)
+
+    if BugReport.objects.filter(hunter_email__iexact=hunter.hunter_email).exists():
+        messages.error(request, "This hunter has reports. Hide them instead, so certificates can still be resent.")
+        return redirect(target)
+    email = hunter.hunter_email
+    _hof_log(request, "delete", hunter, score_before, 0, hidden_before, hidden_before)
+    hunter.delete()
+    messages.success(request, f"Hunter {email} deleted.")
+    return redirect(target)
+
+
+
 @login_required
 def ReviewerDelete(request,public_id):
     if not request.user.is_superuser:
@@ -1184,7 +1343,7 @@ def emailcontext(request,):
 def halloffame(request,):
     bughunters = BugHunter.objects.alias(
         points=Sum('hunter_scores')
-    ).exclude(hunter_scores=0).order_by('-points')
+    ).exclude(hunter_scores=0).exclude(hunter_hidden=True).order_by('-points')
 
     # COMPANY NAME
     THEME = Personalization.objects.get(personalize_id=1)

@@ -1,5 +1,36 @@
 # Changelog
 
+## Unreleased
+
+### Hall of Fame
+
+- **Scores stay in sync with Completed.** Completing a report awards the hunter
+  its severity points, and moving a report back out of Completed takes exactly
+  those points away again. Every path is covered: the completion email (code
+  704), Troubleshooting > Override Report Fields, the Kanban board and any
+  future path, because the award now happens in one place when the status
+  changes. A score can never go below zero.
+- **New operator tool: Settings > Troubleshooting > Hall of Fame**
+  (superuser only). Search hunters by email or name, then per hunter: set the
+  score by hand, hide the hunter from the public Hall of Fame without losing
+  their score, recompute the score from their completed reports, or delete a
+  hunter who has no reports at all. A hunter with reports can only be hidden,
+  so their certificates can still be resent. Recompute All recomputes every
+  hunter and needs a typed RECOMPUTE confirmation. Every action is written to
+  the server log.
+- **Hidden hunters** no longer appear on the public Hall of Fame page, and
+  still receive MY_SCORE replies with their real score.
+
+### Upgrade notes
+
+- Two new fields are added: `report_score_awarded` on a report (the points that
+  report currently contributes) and `hunter_hidden` on a bug hunter.
+- Existing hunter scores are kept exactly as they are. On first boot, completed
+  reports are back-filled with the points they awarded, so a later move out of
+  Completed subtracts the right amount. The backfill is idempotent and never
+  changes a hunter score. If an old score has drifted, correct it with
+  Recompute in the new Hall of Fame card.
+
 ## v4.0 - 29 OCT 2026
 
 Every hunter email action is now correct, forgiving about formatting and able
