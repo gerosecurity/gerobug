@@ -9,6 +9,7 @@ import re
 import shutil
 import tempfile
 import time
+import urllib.parse
 from datetime import timedelta
 from unittest import mock
 
@@ -246,23 +247,6 @@ class HunterAllowanceTests(TestCase):
         self.report.save()
         code, _ = gerofilter.classify_action("hunter@example.com", "UPDATE_AB12CD34EF56")
         self.assertEqual(code, 203)
-
-    def test_consume_update_allowance_spends_quota_when_uninvited(self):
-        for spent in range(1, gerofilter.SELF_UPDATE_LIMIT + 1):
-            remaining = gerofilter.consume_update_allowance(self.report.report_id)
-            self.report.refresh_from_db()
-            self.assertEqual(self.report.report_update_self, spent)
-            self.assertEqual(remaining, gerofilter.SELF_UPDATE_LIMIT - spent)
-            self.assertEqual(self.report.report_permission, 0)
-
-    def test_consume_update_allowance_spends_the_invitation_first(self):
-        self.report.report_permission = 4 + 2 + 1
-        self.report.save()
-        remaining = gerofilter.consume_update_allowance(self.report.report_id)
-        self.report.refresh_from_db()
-        self.assertEqual(self.report.report_update_self, 0)
-        self.assertEqual(remaining, gerofilter.SELF_UPDATE_LIMIT)
-        self.assertEqual(self.report.report_permission, 3)
 
     def test_classify_update_closed_once_bounty_is_in_process(self):
         self.report.report_permission = 4
@@ -589,6 +573,17 @@ def make_pdf(pad=0):
 
 
 MINIMAL_PDF = make_pdf()
+
+
+def pdf_of_exactly(size):
+    pad = size - len(MINIMAL_PDF)
+    while True:
+        data = make_pdf(pad=pad)
+        if len(data) == size:
+            return data
+        pad -= len(data) - size
+        if pad < 0:
+            raise ValueError("cannot build a PDF that small")
 
 
 def attach_pdf(msg, data, name="report.pdf", content_type="application/pdf"):
@@ -931,6 +926,40 @@ class SubmissionOrderingTests(MailFlowTestCase):
         report.refresh_from_db()
         self.assertEqual((report.report_nda, report.report_permission), (0, 1))
         self.assertEqual(os.listdir(self.media), [])
+
+    def test_uninvited_update_spends_the_self_quota(self):
+        report = make_report("CC11DD22EE33", report_status=2)
+        for spent in range(1, gerofilter.SELF_UPDATE_LIMIT + 1):
+            self.write_mail.reset_mock()
+            self.deliver(raw_mail("UPDATE_" + report.report_id,
+                                  body="Extra detail number " + str(spent),
+                                  date="Mon, 1%d May 2025 10:00:00 +0200" % spent))
+            self.assertEqual(self.sent_codes(), [203], spent)
+            report.refresh_from_db()
+            self.assertEqual(report.report_update_self, spent)
+            self.assertEqual(report.report_permission, 0)
+            self.assertIn(str(gerofilter.SELF_UPDATE_LIMIT - spent) + " of "
+                          + str(gerofilter.SELF_UPDATE_LIMIT), self.last_note())
+
+    def test_update_tells_the_hunter_an_unstored_pdf_was_lost(self):
+        report = make_report("CC11DD22EE33", report_status=2)
+        with mock.patch.object(gerofilter, "store_pdf", return_value=False):
+            self.deliver(raw_mail("UPDATE_" + report.report_id,
+                                  body="Here is the extra detail you asked for.",
+                                  pdf=MINIMAL_PDF))
+        self.assertEqual(self.sent_codes(), [203])
+        self.assertIn("could not store the attached PDF", self.last_note())
+        self.assertIn("new UPDATE", self.last_note())
+        self.assertEqual(BugReportUpdate.objects.get().update_file, 0)
+
+    def test_data_with_an_unstorable_pdf_is_not_rerouted(self):
+        report = make_report("CC11DD22EE33", report_status=6, report_permission=1)
+        with mock.patch.object(gerofilter, "store_pdf", return_value=False):
+            self.deliver(raw_mail("DATA_" + report.report_id,
+                                  body="The signed NDA is attached.", pdf=MINIMAL_PDF))
+        self.assertEqual(self.sent_codes(), [206])
+        self.assertIn("could not store the attached PDF", self.last_note())
+        self.assertIn("new DATA email", self.last_note())
 
     def test_data_without_a_pdf_confirms_with_209(self):
         report = make_report("CC11DD22EE33", report_status=6, report_permission=1)
@@ -1353,7 +1382,31 @@ class ThreadHeaderTests(SimpleTestCase):
         self.assertEqual(parent, "<inbound@mail.example>")
         self.assertEqual(
             references,
-            "<gerobug-report-AB12CD34EF56@example.com> <inbound@mail.example>")
+            "<inbound@mail.example> <gerobug-report-AB12CD34EF56@example.com>")
+
+    def test_inbound_chain_is_kept_deduplicated_and_capped(self):
+        inbound = " ".join("<m%d@x>" % n for n in range(14)) + " <m3@x>"
+        parent, references = geromailer.thread_headers(
+            "AB12CD34EF56", "example.com", "<parent@x>", inbound)
+        refs = references.split()
+        self.assertEqual(refs[:10], ["<m%d@x>" % n for n in range(4, 14)])
+        self.assertEqual(refs[10:], ["<parent@x>",
+                                     "<gerobug-report-AB12CD34EF56@example.com>"])
+        self.assertEqual(len(refs), len(set(refs)))
+
+    def test_inbound_chain_drops_junk_and_newlines(self):
+        parent, references = geromailer.thread_headers(
+            "AB12CD34EF56", "example.com", None,
+            "<a@x>\r\nBcc: victim@example.com not-an-addr <b@x>")
+        self.assertNotIn("\\r", references)
+        self.assertNotIn("\\n", references)
+        self.assertNotIn("not-an-addr", references)
+        self.assertEqual(references.split()[:2], ["<a@x>", "<b@x>"])
+
+    def test_a_parent_already_in_the_chain_is_not_repeated(self):
+        parent, references = geromailer.thread_headers(
+            "AB12CD34EF56", "example.com", "<a@x>", "<a@x> <b@x>")
+        self.assertEqual(references.split().count("<a@x>"), 1)
 
     def test_report_token_is_present_without_a_parent(self):
         parent, references = geromailer.thread_headers(
@@ -1462,6 +1515,20 @@ class ReplyThreadingFlowTests(MailFlowTestCase):
         self.assertEqual(self.sent_codes(), [202])
         self.assertIn("in_reply_to", self.write_mail.call_args[1])
         self.assertTrue(self.write_mail.call_args[1]["in_reply_to"])
+
+    def test_read_mail_passes_the_inbound_references(self):
+        report = make_report()
+        msg = MIMEMultipart("mixed")
+        msg["From"] = "Hunter <hunter@example.com>"
+        msg["Subject"] = "CHECK_" + report.report_id
+        msg["Date"] = "Mon, 12 May 2025 10:00:00 +0200"
+        msg["Return-Path"] = "<hunter@example.com>"
+        msg["Message-ID"] = "<child@mail.example>"
+        msg["References"] = "<root@mail.example> <middle@mail.example>"
+        msg.attach(MIMEText("", "plain"))
+        self.deliver(msg.as_bytes())
+        self.assertEqual(self.write_mail.call_args[1]["references"],
+                         "<root@mail.example> <middle@mail.example>")
 class MailFingerprintTests(SimpleTestCase):
 
     def _msg(self, **headers):
@@ -2149,7 +2216,16 @@ class HelpTests(CardTestCase):
         help_html = gerocard.build_help("nobody@example.com")
         self.assertIn("?subject=STATUS_OVERVIEW", help_html)
         self.assertIn("?subject=MY_SCORE", help_html)
-        self.assertNotIn("?subject=SUBMIT_", help_html)
+        self.assertIn("?subject=SUBMIT_", help_html)
+
+    def test_help_lists_open_reports_newest_first(self):
+        make_report(report_id="OLDOLDOLDOLD", report_status=2,
+                    report_datetime=timezone.now() - timedelta(days=6))
+        make_report(report_id="NEWNEWNEWNEW", report_status=2,
+                    report_datetime=timezone.now())
+        help_html = gerocard.build_help("hunter@example.com")
+        self.assertLess(help_html.index("NEWNEWNEWNEW"),
+                        help_html.index("OLDOLDOLDOLD"))
 
     def test_help_without_a_mailbox_still_lists_the_commands(self):
         MailBox.objects.all().delete()
@@ -2242,15 +2318,38 @@ class CommentFlowTests(MailFlowTestCase):
         self.assertEqual(BugReportHunterComment.objects.count(),
                          gerofilter.COMMENT_LIMIT)
 
-    def test_comment_on_completed_report_refused(self):
+    def test_comment_on_a_closed_report_is_questions_closed(self):
         for status in (0, 7):
             BugReportHunterComment.objects.all().delete()
             BugReport.objects.all().delete()
             self.write_mail.reset_mock()
             make_report(report_status=status)
             self.comment(body="a question at stage " + str(status))
-            self.assertEqual(self.sent_codes(), [403], status)
+            self.assertEqual(self.sent_codes(), [413], status)
+            self.assertEqual(self.last_payload()[2], status)
             self.assertEqual(BugReportHunterComment.objects.count(), 0)
+
+    def test_questions_closed_is_refused_after_the_lock_too(self):
+        report = make_report(report_status=2)
+        real_classify = gerofilter.classify_action
+
+        def classify_then_complete(sender, subject):
+            result = real_classify(sender, subject)
+            BugReport.objects.filter(report_id=report.report_id).update(report_status=7)
+            return result
+
+        with mock.patch.object(gerofilter, "classify_action",
+                               side_effect=classify_then_complete):
+            self.comment()
+        self.assertEqual(self.sent_codes(), [413])
+        self.assertEqual(BugReportHunterComment.objects.count(), 0)
+
+    def test_413_names_the_stage_and_keeps_403_for_ownership(self):
+        self.assertIn("~STATUS~", mail_templates.message_413)
+        make_report(report_status=7)
+        self.deliver(raw_mail("COMMENT_AB12CD34EF56", body="not mine",
+                              sender="stranger@example.com"))
+        self.assertEqual(self.sent_codes(), [403])
 
     def test_comment_allowed_at_every_open_stage(self):
         for status in gerofilter.COMMENT_STATUSES:
@@ -2328,7 +2427,7 @@ class WithdrawFlowTests(MailFlowTestCase):
         self.assertEqual(self.sent_codes(), [212])
         report.refresh_from_db()
         self.assertEqual(report.report_status, 0)
-        self.assertEqual(report.last_email_code, 300)
+        self.assertEqual(report.last_email_code, 212)
         self.assertEqual(report.last_email_note, "Withdrawn by the hunter")
 
     def test_withdraw_at_received(self):
@@ -2377,11 +2476,11 @@ class WithdrawFlowTests(MailFlowTestCase):
         self.deliver(raw_mail("WITHDRAW_ZZZZZZZZZZZZ"))
         self.assertEqual(self.sent_codes(), [405])
 
-    def test_withdraw_clears_the_open_grants(self):
-        report = make_report(report_status=2, report_permission=4)
+    def test_withdraw_clears_every_open_grant(self):
+        report = make_report(report_status=2, report_permission=4 | 2 | 1)
         self.withdraw()
         report.refresh_from_db()
-        self.assertEqual(report.report_permission, 4 & BugReport.STATUS_PERMISSIONS[0])
+        self.assertEqual(report.report_permission, 0)
 
     def test_withdrawn_report_shows_as_closed_on_the_card(self):
         report = make_report(report_status=2)
@@ -2390,6 +2489,7 @@ class WithdrawFlowTests(MailFlowTestCase):
         card = gerocard.build_report_card(report)
         self.assertIn("closed as not valid", card)
         self.assertIn("Withdrawn by the hunter", card)
+        self.assertIn("nothing further can be sent", card)
 
     def test_withdraw_subject_classifies_from_a_reply(self):
         make_report(report_status=2)
@@ -2422,3 +2522,354 @@ class SampleRenderTests(CardTestCase):
             "~NOTE~", gerocard.build_help("hunter@example.com"))
         with open(os.path.join(out, "oss-help.html"), "w", encoding="utf-8") as fp:
             fp.write(page)
+
+
+class ExtractPdfTests(SimpleTestCase):
+
+    def part(self, data, name, content_type="application/pdf", disposition="attachment"):
+        maintype, subtype = content_type.split("/", 1)
+        part = MIMEBase(maintype, subtype)
+        part.set_payload(data)
+        encoders.encode_base64(part)
+        if disposition:
+            part.add_header("Content-Disposition", disposition, filename=name)
+        return part
+
+    def message(self, *parts, body="hello"):
+        msg = MIMEMultipart("mixed")
+        msg["From"] = "Hunter <hunter@example.com>"
+        msg["Subject"] = "SUBMIT_Something"
+        msg.attach(MIMEText(body, "plain"))
+        for part in parts:
+            msg.attach(part)
+        return msg
+
+    def test_inline_png_before_a_pdf_is_skipped(self):
+        msg = self.message(
+            self.part(b"\x89PNG\r\n\x1a\n" + b"x" * 400, "signature.png",
+                      "image/png", "inline"),
+            self.part(MINIMAL_PDF, "report.pdf"))
+        data, reason = gerofilter.extract_pdf(msg)
+        self.assertEqual(reason, "")
+        self.assertEqual(data, MINIMAL_PDF)
+
+    def test_a_huge_zip_does_not_block_a_small_pdf(self):
+        msg = self.message(
+            self.part(b"PK\x03\x04" + b"z" * 26_000_000, "poc.zip",
+                      "application/zip"),
+            self.part(MINIMAL_PDF, "report.pdf"))
+        data, reason = gerofilter.extract_pdf(msg)
+        self.assertEqual(reason, "")
+        self.assertEqual(data, MINIMAL_PDF)
+
+    def test_a_text_attachment_is_not_a_pdf_candidate(self):
+        msg = self.message(self.part(b"notes" * 10, "notes.txt", "text/plain"))
+        data, reason = gerofilter.extract_pdf(msg)
+        self.assertEqual((data, reason), (None, "none"))
+
+    def test_the_limit_is_inclusive(self):
+        exact = pdf_of_exactly(gerofilter.MAX_PDF_BYTES)
+        self.assertEqual(len(exact), gerofilter.MAX_PDF_BYTES)
+        msg = self.message(self.part(exact, "report.pdf"))
+        data, reason = gerofilter.extract_pdf(msg)
+        self.assertEqual(reason, "")
+        self.assertEqual(len(data), gerofilter.MAX_PDF_BYTES)
+
+    def test_one_byte_over_the_limit_is_too_large(self):
+        big = pdf_of_exactly(gerofilter.MAX_PDF_BYTES + 1)
+        self.assertEqual(len(big), gerofilter.MAX_PDF_BYTES + 1)
+        msg = self.message(self.part(big, "report.pdf"))
+        data, reason = gerofilter.extract_pdf(msg)
+        self.assertEqual((data, reason), (None, "too_large"))
+
+    def test_too_large_reports_the_size_of_that_part(self):
+        big = make_pdf(pad=gerofilter.MAX_PDF_BYTES)
+        msg = self.message(
+            self.part(b"tiny", "logo.png", "image/png", "inline"),
+            self.part(big, "report.pdf"))
+        data, reason, size = gerofilter.extract_pdf_sized(msg)
+        self.assertEqual(reason, "too_large")
+        self.assertEqual(size, len(big))
+        self.assertIn("%.1f MB" % (len(big) / 1000000.0),
+                      gerofilter.pdf_reason_text(reason, size))
+
+    def test_a_pdf_named_without_the_extension_is_still_checked(self):
+        msg = self.message(self.part(MINIMAL_PDF, "report", "application/pdf"))
+        data, reason = gerofilter.extract_pdf(msg)
+        self.assertEqual(reason, "")
+
+    def test_a_broken_pdf_is_reported_as_not_pdf(self):
+        msg = self.message(self.part(b"%PDF-1.4 but broken", "report.pdf"))
+        data, reason = gerofilter.extract_pdf(msg)
+        self.assertEqual((data, reason), (None, "not_pdf"))
+
+    def test_an_oversize_pdf_followed_by_a_valid_one_is_accepted(self):
+        msg = self.message(
+            self.part(make_pdf(pad=gerofilter.MAX_PDF_BYTES), "big.pdf"),
+            self.part(MINIMAL_PDF, "small.pdf"))
+        data, reason = gerofilter.extract_pdf(msg)
+        self.assertEqual(reason, "")
+        self.assertEqual(data, MINIMAL_PDF)
+
+
+class SubjectHardeningTests(SimpleTestCase):
+
+    def test_a_huge_subject_parses_quickly(self):
+        subject = ("Re: " + " " * 4) * 40000 + "CHECK_AB12CD34EF56"
+        start = time.monotonic()
+        verb, rest = gerofilter.parse_subject(subject)
+        self.assertLess(time.monotonic() - start, 0.5)
+        self.assertIsNone(verb)
+
+    def test_input_is_truncated_to_500_characters(self):
+        verb, rest = gerofilter.parse_subject("CHECK_AB12CD34EF56 " + "x" * 5000)
+        self.assertEqual(verb, "CHECK")
+        self.assertEqual(rest, "AB12CD34EF56")
+
+    def test_a_trailing_word_after_the_id_is_ignored(self):
+        for subject, expected in (
+                ("CHECK_AB12CD34EF56 thanks", ("CHECK", "AB12CD34EF56")),
+                ("UPDATE_AB12CD34EF56 (see attachment)", ("UPDATE", "AB12CD34EF56")),
+                ("AGREE AB12CD34EF56 please", ("AGREE", "AB12CD34EF56")),
+                ("APPEAL_ AB12 CD34 EF56", ("APPEAL", "AB12CD34EF56")),
+        ):
+            with self.subTest(subject=subject):
+                self.assertEqual(gerofilter.parse_subject(subject), expected)
+
+    def test_reply_prefixes_still_parse(self):
+        for subject in ("Re: CHECK_AB12CD34EF56",
+                        "RE:CHECK_AB12CD34EF56",
+                        "Fwd: [EXT] CHECK_AB12CD34EF56",
+                        "AW: WG: CHECK_AB12CD34EF56",
+                        "Re[2]: CHECK_AB12CD34EF56",
+                        "[EXTERNAL] Re: CHECK_AB12CD34EF56"):
+            with self.subTest(subject=subject):
+                self.assertEqual(gerofilter.parse_subject(subject),
+                                 ("CHECK", "AB12CD34EF56"))
+
+    def test_a_word_that_merely_starts_with_re_is_not_a_prefix(self):
+        self.assertEqual(gerofilter.parse_subject("Research CHECK_AB12CD34EF56"),
+                         (None, ""))
+
+    def test_an_unparsed_remainder_is_clamped(self):
+        verb, rest = gerofilter.parse_subject("CHECK_" + "n" * 400)
+        self.assertEqual(verb, "CHECK")
+        self.assertEqual(len(rest), 64)
+
+
+class SubmitOneClickTests(CardTestCase):
+
+    def test_submit_mailto_round_trips_to_the_submit_verb(self):
+        link = gerocard.mailto("SUBMIT")
+        subject = urllib.parse.unquote(link.split("?subject=", 1)[1])
+        self.assertEqual(subject, "SUBMIT_")
+        self.assertEqual(gerofilter.parse_subject(subject), ("SUBMIT", ""))
+
+    def test_every_help_button_subject_round_trips(self):
+        make_report(report_status=2)
+        help_html = gerocard.build_help("hunter@example.com")
+        subjects = re.findall(r'\?subject=([^"]+)"', help_html)
+        self.assertTrue(subjects)
+        for raw in subjects:
+            subject = urllib.parse.unquote(html.unescape(raw))
+            with self.subTest(subject=subject):
+                self.assertIsNotNone(gerofilter.parse_subject(subject)[0])
+
+    def test_every_verb_mailto_round_trips(self):
+        expected = {
+            "SUBMIT": "SUBMIT", "CHECK": "CHECK", "UPDATE": "UPDATE",
+            "APPEAL": "APPEAL", "AGREE": "AGREE", "DATA": "DATA",
+            "COMMENT": "COMMENT", "WITHDRAW": "WITHDRAW",
+            "MY_SCORE": "MY_SCORE", "STATUS_OVERVIEW": "STATUS_OVERVIEW",
+            "HELP": "HELP",
+        }
+        for verb, want in expected.items():
+            with self.subTest(verb=verb):
+                needs_id = verb not in gerocard.HELP_VERBS_WITHOUT_ID
+                link = gerocard.mailto(verb, "AB12CD34EF56" if needs_id else None)
+                subject = urllib.parse.unquote(link.split("?subject=", 1)[1])
+                self.assertEqual(gerofilter.parse_subject(subject)[0], want)
+
+    def test_submit_page_js_builds_a_parsable_submit_subject(self):
+        import os
+        from gerobug.settings import BASE_DIR
+        path = os.path.join(BASE_DIR, "templates", "submit.html")
+        with open(path, encoding="utf-8") as fp:
+            page = fp.read()
+        self.assertIn("'SUBMIT_'", page)
+        self.assertNotIn("'SUBMIT_Report Title'", page)
+        self.assertEqual(gerofilter.parse_subject("SUBMIT_"), ("SUBMIT", ""))
+
+
+class ActionOrderTests(CardTestCase):
+
+    def test_a_closed_report_is_closed_even_with_a_stale_update_bit(self):
+        report = make_report(report_status=0, report_permission=4)
+        self.assertEqual(gerocard.action_needed(report)[0], "closed")
+
+    def test_a_completed_report_is_completed_even_with_a_stale_bit(self):
+        report = make_report(report_status=7, report_permission=4 | 1)
+        self.assertEqual(gerocard.action_needed(report)[0], "completed")
+
+    def test_a_decision_outranks_a_stale_update_bit(self):
+        report = make_report(report_status=5, report_permission=4 | 2,
+                             report_calc_sent_at=timezone.now())
+        self.assertEqual(gerocard.action_needed(report)[0], "decision")
+        card = gerocard.build_report_card(report)
+        self.assertIn("subject=AGREE_AB12CD34EF56", card)
+        self.assertIn("counts as agreed", card)
+
+    def test_an_update_bit_outside_the_decision_stage_still_asks_for_an_update(self):
+        report = make_report(report_status=2, report_permission=4 | 1)
+        self.assertEqual(gerocard.action_needed(report)[0], "update")
+
+    def test_a_data_bit_alone_asks_for_data(self):
+        report = make_report(report_status=6, report_permission=1)
+        self.assertEqual(gerocard.action_needed(report)[0], "data")
+
+    def test_status_permissions_are_untouched(self):
+        self.assertEqual(BugReport.STATUS_PERMISSIONS,
+                         {0: 4, 1: 4, 2: 4, 3: 4, 4: 4, 5: 4 | 2, 6: 1, 7: 0})
+
+    def test_a_closed_report_has_no_allowance_counters(self):
+        for status in (0, 7):
+            report = make_report(report_id="CL%010d" % status, report_status=status)
+            lines = gerocard.allowance_lines(report)
+            self.assertEqual(
+                lines, ["This report is closed, so nothing further can be sent."])
+
+    def test_an_open_report_still_lists_its_counters(self):
+        report = make_report(report_status=2)
+        self.assertEqual(len(gerocard.allowance_lines(report)), 3)
+
+
+class SenderCaseTests(MailFlowTestCase):
+
+    def test_a_mixed_case_sender_owns_their_report(self):
+        make_report(hunter_email="Hunter@Example.com")
+        self.deliver(raw_mail("CHECK_AB12CD34EF56", sender="hunter@example.com"))
+        self.assertEqual(self.sent_codes(), [202])
+
+    def test_validate_user_ignores_case_and_padding(self):
+        make_report(hunter_email=" Hunter@Example.COM ")
+        self.assertTrue(gerofilter.validate_user("HUNTER@example.com",
+                                                 "AB12CD34EF56"))
+        self.assertFalse(gerofilter.validate_user("other@example.com",
+                                                  "AB12CD34EF56"))
+
+    def test_overview_and_help_find_a_mixed_case_sender(self):
+        make_report(hunter_email="Hunter@Example.com", report_status=2)
+        self.assertEqual(len(gerocard.build_overview_rows("hunter@example.com")), 1)
+        self.assertIn("AB12CD34EF56", gerocard.build_help("hunter@example.com"))
+
+    def test_my_score_finds_a_mixed_case_hunter_row(self):
+        make_report(hunter_email="Hunter@Example.com")
+        BugHunter.objects.create(hunter_email="HUNTER@example.com",
+                                 hunter_username="h", hunter_scores=9)
+        code, payload = gerofilter.classify_action("hunter@example.com", "MY_SCORE")
+        self.assertEqual((code, payload), (207, "9"))
+
+    def test_duplicate_hunter_rows_do_not_break_my_score(self):
+        make_report()
+        for score in (3, 5):
+            BugHunter.objects.create(hunter_email="hunter@example.com",
+                                     hunter_username="h", hunter_scores=score)
+        code, payload = gerofilter.classify_action("hunter@example.com", "MY_SCORE")
+        self.assertEqual(code, 207)
+        self.assertIn(payload, ("3", "5"))
+
+    def test_a_sender_with_reports_but_no_hunter_row_scores_zero(self):
+        make_report()
+        self.assertFalse(BugHunter.objects.exists())
+        code, payload = gerofilter.classify_action("hunter@example.com", "MY_SCORE")
+        self.assertEqual((code, payload), (207, "0"))
+
+    def test_a_sender_with_nothing_at_all_still_gets_410(self):
+        code, payload = gerofilter.classify_action("nobody@example.com", "MY_SCORE")
+        self.assertEqual(code, 410)
+
+    def test_status_overview_matches_case_insensitively(self):
+        make_report(hunter_email="Hunter@Example.com")
+        self.deliver(raw_mail("STATUS_OVERVIEW", sender="HUNTER@example.com"))
+        self.assertEqual(self.sent_codes(), [208])
+
+
+class FingerprintReleaseTests(MailFlowTestCase):
+
+    def test_a_crash_after_the_state_changed_keeps_the_fingerprint(self):
+        report = make_report(report_status=2, report_permission=4)
+        self.write_mail.side_effect = RuntimeError("smtp exploded")
+        self.deliver(raw_mail("UPDATE_" + report.report_id,
+                              body="Here is the extra detail you asked for."))
+        self.assertEqual(ProcessedMail.objects.count(), 1)
+        report.refresh_from_db()
+        self.assertEqual(report.report_update, 1)
+
+    def test_a_crash_before_any_mutation_releases_the_fingerprint(self):
+        report = make_report(report_status=2)
+        with mock.patch.object(gerocard, "build_report_card",
+                               side_effect=RuntimeError("boom")):
+            self.deliver(raw_mail("CHECK_" + report.report_id))
+        self.assertFalse(ProcessedMail.objects.exists())
+
+    def test_a_failure_saving_the_update_row_keeps_the_fingerprint(self):
+        report = make_report(report_status=2, report_permission=4)
+        with mock.patch.object(geroparser, "save_uan",
+                               side_effect=RuntimeError("row exploded")):
+            self.deliver(raw_mail("UPDATE_" + report.report_id,
+                                  body="Here is the extra detail you asked for."))
+        self.assertFalse(BugReportUpdate.objects.exists())
+        report.refresh_from_db()
+        self.assertEqual(report.report_update, 0)
+        self.assertFalse(ProcessedMail.objects.exists())
+
+    def test_the_dead_helpers_are_gone(self):
+        self.assertFalse(hasattr(gerofilter, "consume_update_allowance"))
+        self.assertFalse(hasattr(geroparser, "already_processed"))
+        self.assertFalse(hasattr(gerofilter, "attachment_size"))
+
+
+class ReplyFriendlySubjectTests(SimpleTestCase):
+
+    def test_new_subjects_lead_with_a_command(self):
+        self.assertEqual(mail_templates.subjectlist[211],
+                         "COMMENT_~ID~ | Question Received: Report ~ID~")
+        self.assertEqual(mail_templates.subjectlist[212],
+                         "COMMENT_~ID~ | Report Withdrawn: ~ID~")
+        self.assertEqual(mail_templates.subjectlist[412],
+                         "COMMENT_~ID~ | Withdrawal Not Possible: ~ID~")
+        self.assertEqual(mail_templates.subjectlist[411],
+                         "CHECK_~ID~ | Question Limit Reached: ~ID~")
+        self.assertEqual(mail_templates.subjectlist[413],
+                         "CHECK_~ID~ | Questions Closed: Report ~ID~")
+
+    def test_a_reply_to_each_new_subject_classifies_to_its_verb(self):
+        wanted = {211: "COMMENT", 212: "COMMENT", 412: "COMMENT",
+                  411: "CHECK", 413: "CHECK"}
+        for code, verb in wanted.items():
+            with self.subTest(code=code):
+                subject = mail_templates.subjectlist[code].replace(
+                    "~ID~", "AB12CD34EF56")
+                self.assertEqual(gerofilter.parse_subject("Re: " + subject),
+                                 (verb, "AB12CD34EF56"))
+
+    def test_411_no_longer_invites_a_plain_reply(self):
+        self.assertNotIn("reply to this email", mail_templates.message_411.lower())
+
+    def test_bodies_that_invite_a_reply_name_it_as_a_question(self):
+        for code in (212, 412):
+            with self.subTest(code=code):
+                body = mail_templates.messagelist[code]
+                self.assertIn("reply to this email", body.lower())
+                self.assertIn("question", body.lower())
+
+    def test_411_reads_the_limit_from_gerofilter(self):
+        self.assertIn("<b>" + str(gerofilter.COMMENT_LIMIT) + "</b>",
+                      mail_templates.message_411)
+
+    def test_413_is_short_and_names_the_status(self):
+        body = mail_templates.message_413
+        self.assertIn("~STATUS~", body)
+        self.assertIn("~ID~", body)
+        self.assertNotIn("~BOUNTY~", body)
+        self.assertLess(len(body), len(mail_templates.message_411) + 600)
