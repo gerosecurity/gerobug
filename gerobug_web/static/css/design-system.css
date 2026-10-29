@@ -1474,6 +1474,7 @@ body.gds-public footer #copyright p {
 }
 .gds-idbox input:disabled { opacity: 0.5; cursor: not-allowed; }
 .gds-idbox-hint {
+  display: block;
   margin: 8px 0 0;
   font-size: 12.5px;
   line-height: 1.6;

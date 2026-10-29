@@ -279,10 +279,14 @@ def mail_header_decode(text):
         return str(text)
 
 
+SENDER_ADDRESS = re.compile(r"(?<![\w.+-])[\w.+-]++@[\w.+-]+\.\w+")
+RETURN_PATH_ADDRESS = re.compile(r"(?<![a-z0-9.+_-])[a-z0-9.+_-]++@[a-z0-9.+_-]+\.[a-z]+", re.IGNORECASE)
+
+
 def parse_sender(raw_from):
     raw_from = str(raw_from or "")
     display_name, addr = parseaddr(raw_from)
-    match = re.search(r"[\w.+-]++@[\w-]++(?:\.[\w-]++)+", (addr or raw_from)[:320])
+    match = SENDER_ADDRESS.search(addr or raw_from)
     email_address = match.group() if match else ""
 
     name = mail_header_decode(display_name)
@@ -300,10 +304,10 @@ def sender_auth_failure(msg, hunter_email):
         if not (spf_pass or dkim_pass):
             return f'Spoofing blocked (SPF/DKIM failed): spf={spf_pass}, dkim={dkim_pass}, from={hunter_email}'
 
-    return_path = parseaddr(str(msg.get('return-path', '')))[1].strip()
-    if not return_path or '@' not in return_path:
+    return_path = RETURN_PATH_ADDRESS.search(str(msg.get('return-path', '')))
+    if return_path is None:
         return 'Possible Spoofing Attempt (no Return-Path), Ignoring Mail!'
-    if hunter_email.lower() != return_path.lower():
+    if hunter_email.lower() != return_path.group().lower():
         return f'Possible Spoofing Attempt (Return-Path mismatch), Ignoring Mail! from={hunter_email}'
     return None
 
