@@ -81,12 +81,6 @@
 
     <main class="gds-submit-main">
         <p class="gds-submit-intro">{{ template }}</p>
-        <ul class="gds-submit-rules">
-            <li>Subjects are not case sensitive. <code>CHECK_AB12CD34EF56</code> and <code>check_ab12cd34ef56</code> do the same thing.</li>
-            <li>Replying to any email we send you works. Our subjects already start with the command your reply needs.</li>
-            <li>One PDF of up to {{ max_pdf_mb }} MB per email. Anything larger is refused and we tell you the size.</li>
-            <li>PoC videos, screenshot bundles, archives (.zip/.rar) and exploit code must <b>not</b> be attached, because mail filters strip them. Upload them to Google Drive, OneDrive, Dropbox, a private GitHub repository or a secret GitHub Gist and put the link, plus the password if there is one, inside the PDF.</li>
-        </ul>
         <p class="gds-submit-intro">Join the Gerobug community on <a href="https://discord.gg/VhU4X4TQ5F" target="_blank" rel="noopener">Discord</a></p>
 
         <div class="gds-idbox">
@@ -131,6 +125,10 @@ SUMMARY= Summary of your finding</textarea>
                         <br>
                         Your full report as a PDF file
                         (<a href="{% static 'templates/Template_Report.docx' %}">download the report template</a>)
+                        <ul class="gds-submit-rules">
+                            <li>One PDF of up to <b>{{ max_pdf_mb }} MB</b> per email. Anything larger is refused with a reason, not dropped.</li>
+                            <li>PoC videos, screenshot bundles, archives (.zip/.rar) and exploit code must <b>not</b> be attached, because mail filters strip them. Upload them to Google Drive, OneDrive, Dropbox, a private GitHub repository or a secret GitHub Gist and put the link (and password, if any) inside the PDF.</li>
+                        </ul>
 
                         <p class="gds-rules-title">Rules for this email</p>
                         <ul class="gds-rules">
