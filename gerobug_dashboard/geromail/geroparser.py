@@ -165,7 +165,7 @@ def release_fingerprint(fingerprint):
     try:
         deleted, _ = ProcessedMail.objects.filter(fingerprint=fingerprint).delete()
     except Exception as e:
-        logging.getLogger("Gerologger").warning(
+        logging.getLogger("Gerologger").exception(
             f"Could not release ingest fingerprint {fingerprint}: {e}")
         return False
     return bool(deleted)
@@ -282,7 +282,7 @@ def mail_header_decode(text):
 def parse_sender(raw_from):
     raw_from = str(raw_from or "")
     display_name, addr = parseaddr(raw_from)
-    match = re.search(r"[\w\.\-+_]+@[\w\.\-+_]+\.[\w]+", addr or raw_from)
+    match = re.search(r"[\w\.\-+_]+@[\w\.\-+_]+\.[\w]+", (addr or raw_from)[:320])
     email_address = match.group() if match else ""
 
     name = mail_header_decode(display_name)
@@ -300,10 +300,10 @@ def sender_auth_failure(msg, hunter_email):
         if not (spf_pass or dkim_pass):
             return f'Spoofing blocked (SPF/DKIM failed): spf={spf_pass}, dkim={dkim_pass}, from={hunter_email}'
 
-    return_path = re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", str(msg.get('return-path', '')), re.IGNORECASE)
-    if return_path is None:
+    return_path = parseaddr(str(msg.get('return-path', '')))[1].strip()
+    if not return_path or '@' not in return_path:
         return 'Possible Spoofing Attempt (no Return-Path), Ignoring Mail!'
-    if hunter_email.lower() != return_path.group().lower():
+    if hunter_email.lower() != return_path.lower():
         return f'Possible Spoofing Attempt (Return-Path mismatch), Ignoring Mail! from={hunter_email}'
     return None
 
