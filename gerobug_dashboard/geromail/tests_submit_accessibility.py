@@ -14,9 +14,11 @@ class SubmitMarkupTests(unittest.TestCase):
                 source = (root / app / 'templates' / 'submit.html').read_text()
                 parser.feed(source)
                 fields = [attrs for tag, attrs in elements if tag == 'textarea' and 'readonly' in attrs]
-                self.assertTrue(fields)
+                self.assertEqual(len(fields), 12)
+                labels = [attrs.get('for') for tag, attrs in elements if tag == 'label']
                 for attrs in fields:
-                    self.assertTrue(attrs.get('aria-label'))
+                    self.assertEqual(labels.count(attrs['id']), 1)
+                    self.assertNotIn('aria-label', attrs)
                 outputs = [attrs for tag, attrs in elements if tag == 'output' and attrs.get('id') == 'reportIdHint']
                 self.assertEqual(len(outputs), 1)
                 self.assertEqual(outputs[0].get('for'), 'reportIdInput')

@@ -282,7 +282,7 @@ def mail_header_decode(text):
 def parse_sender(raw_from):
     raw_from = str(raw_from or "")
     display_name, addr = parseaddr(raw_from)
-    match = re.search(r"[\w\.\-+_]+@[\w\.\-+_]+\.[\w]+", (addr or raw_from)[:320])
+    match = re.search(r"[\w.+-]++@[\w-]++(?:\.[\w-]++)+", (addr or raw_from)[:320])
     email_address = match.group() if match else ""
 
     name = mail_header_decode(display_name)

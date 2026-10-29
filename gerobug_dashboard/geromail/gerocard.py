@@ -10,6 +10,7 @@ from . import gerofilter
 
 TR_OPEN = "<tr>"
 TD_CLOSE = "</td>"
+TD_STYLE_OPEN = '<td style="'
 
 
 STAGE_TEXT = {
@@ -307,9 +308,9 @@ def build_report_card(report):
     for name, when, has_pdf in _submission_rows(report):
         rows.append(
             TR_OPEN
-            + '<td style="' + _TD + " " + _MONO + ' white-space:nowrap;">' + _esc(name) + TD_CLOSE
-            + '<td style="' + _TD + ' white-space:nowrap;">' + _esc(_date(when) or "-") + TD_CLOSE
-            + '<td style="' + _TD + '">' + ("yes" if has_pdf else "no") + TD_CLOSE
+            + TD_STYLE_OPEN + _TD + " " + _MONO + ' white-space:nowrap;">' + _esc(name) + TD_CLOSE
+            + TD_STYLE_OPEN + _TD + ' white-space:nowrap;">' + _esc(_date(when) or "-") + TD_CLOSE
+            + TD_STYLE_OPEN + _TD + '">' + ("yes" if has_pdf else "no") + TD_CLOSE
             + "</tr>")
     parts.append(
         '<table role="presentation" cellpadding="0" cellspacing="0" style="' + _TABLE + '">'
@@ -363,10 +364,10 @@ def build_overview_rows(email):
         needs_cell = _esc(label) if needs else "-"
         rows.append(
             TR_OPEN
-            + '<td style="' + _TD + " " + _MONO + ' white-space:nowrap;">' + id_cell + TD_CLOSE
-            + '<td style="' + _TD + '">' + _esc(report.report_title) + TD_CLOSE
-            + '<td style="' + _TD + '">' + _esc(_status_name(report.report_status)) + TD_CLOSE
-            + '<td style="' + _TD + '">' + needs_cell + TD_CLOSE
+            + TD_STYLE_OPEN + _TD + " " + _MONO + ' white-space:nowrap;">' + id_cell + TD_CLOSE
+            + TD_STYLE_OPEN + _TD + '">' + _esc(report.report_title) + TD_CLOSE
+            + TD_STYLE_OPEN + _TD + '">' + _esc(_status_name(report.report_status)) + TD_CLOSE
+            + TD_STYLE_OPEN + _TD + '">' + needs_cell + TD_CLOSE
             + "</tr>")
     return rows
 
@@ -376,9 +377,9 @@ def _help_command_rows():
     for _verb, subject, description in COMMAND_HELP:
         rows.append(
             TR_OPEN
-            + '<td style="' + _TD + " " + _MONO + ' white-space:nowrap;">'
+            + TD_STYLE_OPEN + _TD + " " + _MONO + ' white-space:nowrap;">'
             + _esc(subject) + TD_CLOSE
-            + '<td style="' + _TD + '">' + _esc(description) + TD_CLOSE
+            + TD_STYLE_OPEN + _TD + '">' + _esc(description) + TD_CLOSE
             + "</tr>")
     return "".join(rows)
 
