@@ -4,9 +4,11 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.utils import timezone
 
-from dashboards.models import (BlacklistRule, BugReport, BugReportHunterComment,
-                               CertificateData, Personalization, ReportStatus,
-                               StaticRules)
+from django.urls import reverse
+
+from dashboards.models import (BlacklistRule, BugHunter, BugReport,
+                               BugReportHunterComment, CertificateData,
+                               Personalization, ReportStatus, StaticRules)
 from prerequisites.models import MailBox
 
 
@@ -899,3 +901,109 @@ class SubmitSampleRenderTests(TestCase):
         self.assertEqual(response.status_code, 200)
         with open(os.path.join(out, "oss-submit.html"), "w", encoding="utf-8") as fp:
             fp.write(response.content.decode())
+
+
+class ScoreSyncTests(TestCase):
+
+    def setUp(self):
+        for i, name in enumerate(PageRenderTests.STATUS_NAMES):
+            ReportStatus.objects.get_or_create(status_id=i, defaults={"status_name": name})
+        Personalization.objects.get_or_create(personalize_id=1)
+        MailBox.objects.create(mailbox_id=1, email="ops@example.com", password="pw", mailbox_status=1)
+        self.hunter = BugHunter.objects.create(
+            hunter_email="hunter@example.com", hunter_username="Hunter", hunter_scores=10)
+        self.report = BugReport.objects.create(
+            report_id="AB12CD34EF56", report_datetime=timezone.now(),
+            hunter_email="hunter@example.com", report_reviewer="reviewer",
+            report_title="Test finding", report_summary="s", report_severity=7.5,
+            report_severitytype="", report_status=6, report_permission=1)
+        self.admin = User.objects.create_superuser(username="admin2", password="x", email="a@b.c")
+        self.client.force_login(self.admin)
+
+    def _override(self, status):
+        self.client.post(reverse("report_override"), {
+            "report_id": self.report.report_id, "title": self.report.report_title,
+            "status": str(status), "endpoint": "", "attack": "", "hunter_name": "Hunter"})
+        self.report.refresh_from_db()
+        if BugHunter.objects.filter(pk=self.hunter.pk).exists():
+            self.hunter.refresh_from_db()
+
+    def test_override_into_completed_awards(self):
+        self._override(7)
+        self.assertEqual((self.hunter.hunter_scores, self.report.report_score_awarded), (17, 7))
+
+    def test_override_out_of_completed_revokes(self):
+        self._override(7)
+        self._override(6)
+        self.assertEqual((self.hunter.hunter_scores, self.report.report_score_awarded), (10, 0))
+
+    def test_override_to_not_valid_revokes(self):
+        self._override(7)
+        self._override(0)
+        self.assertEqual((self.hunter.hunter_scores, self.report.report_score_awarded), (10, 0))
+
+    def test_resaving_completed_does_not_award_twice(self):
+        self._override(7)
+        self._override(7)
+        self.assertEqual((self.hunter.hunter_scores, self.report.report_score_awarded), (17, 7))
+
+    def test_company_action_704_awards_exactly_once(self):
+        from geromail import geromailer, geroparser
+        self.report.report_status = 6
+        self.report.save()
+        with mock.patch("gerocert.gerocert.generate"), \
+                mock.patch.object(geromailer, "write_mail"):
+            geroparser.company_action(self.report.report_id, "", 704)
+        self.report.refresh_from_db()
+        self.hunter.refresh_from_db()
+        self.assertEqual((self.report.report_status, self.report.report_score_awarded), (7, 7))
+        self.assertEqual(self.hunter.hunter_scores, 17)
+
+    def test_revoke_never_goes_below_zero(self):
+        self.hunter.hunter_scores = 0
+        self.hunter.save()
+        self._override(7)
+        self.hunter.hunter_scores = 2
+        self.hunter.save()
+        self._override(5)
+        self.assertEqual(self.hunter.hunter_scores, 0)
+
+    def test_award_without_a_hunter_row_is_harmless(self):
+        BugHunter.objects.all().delete()
+        self._override(7)
+        self.assertEqual(self.report.report_score_awarded, 0)
+
+    def test_severity_edited_while_completed_revokes_the_recorded_award(self):
+        self._override(7)
+        BugReport.objects.filter(report_id=self.report.report_id).update(report_severity=2.0)
+        self.report.refresh_from_db()
+        self._override(6)
+        self.assertEqual((self.hunter.hunter_scores, self.report.report_score_awarded), (10, 0))
+
+    def test_mixed_case_hunter_email_still_finds_the_hunter(self):
+        BugReport.objects.filter(report_id=self.report.report_id).update(
+            hunter_email="HUNTER@Example.COM")
+        self.report.refresh_from_db()
+        self._override(7)
+        self.assertEqual(self.hunter.hunter_scores, 17)
+
+    def test_backfill_fills_awarded_and_keeps_scores(self):
+        from dashboards.models import backfill_report_score_awarded
+        BugReport.objects.filter(report_id=self.report.report_id).update(report_status=7)
+        self.assertEqual(backfill_report_score_awarded(), 1)
+        self.report.refresh_from_db()
+        self.hunter.refresh_from_db()
+        self.assertEqual((self.report.report_score_awarded, self.hunter.hunter_scores), (7, 10))
+
+        self.assertEqual(backfill_report_score_awarded(), 0)
+        self.report.refresh_from_db()
+        self.hunter.refresh_from_db()
+        self.assertEqual((self.report.report_score_awarded, self.hunter.hunter_scores), (7, 10))
+
+    def test_backfilled_report_revokes_the_right_amount(self):
+        from dashboards.models import backfill_report_score_awarded
+        BugReport.objects.filter(report_id=self.report.report_id).update(report_status=7)
+        backfill_report_score_awarded()
+        self._override(6)
+        self.assertEqual((self.hunter.hunter_scores, self.report.report_score_awarded), (3, 0))
+

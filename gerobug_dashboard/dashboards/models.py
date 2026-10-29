@@ -1,9 +1,10 @@
+import logging
 import uuid
 from datetime import timedelta
 from email.policy import default
 from random import choices
 from unittest.util import _MAX_LENGTH
-from django.db import models
+from django.db import models, transaction
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.core.validators import RegexValidator, MaxValueValidator, MinValueValidator, MinLengthValidator
@@ -24,6 +25,7 @@ class UserProfile(models.Model):
         return f"{self.user.username} ({self.public_id})"
 
 BOUNTY_CALC_STATUS = 5
+COMPLETED_STATUS = 7
 APPEAL_WINDOW_DAYS = 30
 
 
@@ -52,6 +54,7 @@ class BugReport(models.Model):
     report_status_changed_at = models.DateTimeField(null=True, blank=True)
     last_email_code = models.IntegerField(default=0)
     last_email_note = models.TextField(blank=True, default='')
+    report_score_awarded = models.IntegerField(default=0)
 
     class Meta:
       ordering = ['-report_datetime']
@@ -77,10 +80,21 @@ class BugReport(models.Model):
             allowed = self.STATUS_PERMISSIONS.get(self.report_status, 0)
             self.report_permission = max(self.report_permission, 0) & allowed
             self.report_status_changed_at = timezone.now()
+            score_changed = False
+            if loaded != COMPLETED_STATUS and self.report_status == COMPLETED_STATUS \
+                    and self.report_score_awarded == 0:
+                award_points(self)
+                score_changed = True
+            elif loaded == COMPLETED_STATUS and self.report_status != COMPLETED_STATUS \
+                    and self.report_score_awarded > 0:
+                revoke_points(self)
+                score_changed = True
             update_fields = kwargs.get('update_fields')
             if update_fields is not None:
-                extra = [f for f in ('report_permission', 'report_status_changed_at')
-                         if f not in update_fields]
+                candidates = ['report_permission', 'report_status_changed_at']
+                if score_changed:
+                    candidates.append('report_score_awarded')
+                extra = [f for f in candidates if f not in update_fields]
                 if extra:
                     kwargs['update_fields'] = list(update_fields) + extra
         super().save(*args, **kwargs)
@@ -97,6 +111,59 @@ class BugReport(models.Model):
         if self.report_calc_sent_at is None:
             return None
         return self.report_calc_sent_at + timedelta(days=APPEAL_WINDOW_DAYS)
+
+
+def report_points(report):
+    return max(0, int(report.report_severity))
+
+
+def _locked_hunter(report):
+    return BugHunter.objects.select_for_update().filter(
+        hunter_email__iexact=report.hunter_email).first()
+
+
+def award_points(report):
+    points = report_points(report)
+    with transaction.atomic():
+        hunter = _locked_hunter(report)
+        if hunter is None:
+            logging.getLogger("Gerologger").warning(
+                f"HALL OF FAME award skipped for {report.report_id}: "
+                f"no bug hunter row for {report.hunter_email}")
+            report.report_score_awarded = 0
+            return 0
+        hunter.hunter_scores = max(0, hunter.hunter_scores or 0) + points
+        hunter.save(update_fields=['hunter_scores'])
+    report.report_score_awarded = points
+    return points
+
+
+def revoke_points(report):
+    points = max(0, int(report.report_score_awarded))
+    with transaction.atomic():
+        hunter = _locked_hunter(report)
+        if hunter is None:
+            logging.getLogger("Gerologger").warning(
+                f"HALL OF FAME revoke skipped for {report.report_id}: "
+                f"no bug hunter row for {report.hunter_email}")
+            report.report_score_awarded = 0
+            return 0
+        hunter.hunter_scores = max(0, (hunter.hunter_scores or 0) - points)
+        hunter.save(update_fields=['hunter_scores'])
+    report.report_score_awarded = 0
+    return points
+
+
+def backfill_report_score_awarded():
+    updated = 0
+    for report in BugReport.objects.filter(report_status=COMPLETED_STATUS,
+                                           report_score_awarded=0):
+        points = report_points(report)
+        if points:
+            BugReport.objects.filter(report_id=report.report_id).update(
+                report_score_awarded=points)
+            updated += 1
+    return updated
 
 
 class BugReportUpdate(models.Model):
@@ -156,6 +223,7 @@ class BugHunter(models.Model):
     hunter_email = models.EmailField()
     hunter_username = models.CharField(max_length=50)
     hunter_scores = models.IntegerField()
+    hunter_hidden = models.BooleanField(default=False)
 
     def __str__(self):
         return self.hunter_scores
