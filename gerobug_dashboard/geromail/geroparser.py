@@ -801,6 +801,12 @@ def read_mail(mail, folder_name='inbox'):
                                 logging.getLogger("Gerologger").info('Hunter Reports (' + payload[0] + '):\n' + payload[3])
                                 logging.getLogger("Gerologger").info("[CODE 208] Bug Hunter Check All Status Successfully")
 
+                            elif(code == 210):
+                                payload[3] = payload[0]
+                                payload[0] = ""
+                                logging.getLogger("Gerologger").info(
+                                    f'[CODE 210] Sent the command list to {hunter_email}')
+
                             elif(code == 410):
                                 payload[0] = ""
                                 payload[3] = ""

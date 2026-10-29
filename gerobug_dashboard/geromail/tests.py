@@ -1288,16 +1288,12 @@ class SubjectRegressionTests(TestCase):
                 [self.report.report_id[i:i + 4] for i in range(0, 12, 4)]))
         self.assertEqual((code, payload), (202, self.report.report_id))
 
-    def test_phase_d_verbs_are_not_handled_yet(self):
-        for verb in ("COMMENT", "WITHDRAW"):
-            with self.subTest(verb=verb):
-                code, payload = gerofilter.classify_action(
-                    "hunter@example.com", verb + "_" + self.report.report_id)
-                self.assertEqual((code, payload), (404, " "))
-        for verb in ("HELP", "COMMANDS"):
+    def test_help_and_commands_answer_with_the_command_list(self):
+        for verb in ("HELP", "COMMANDS", "help"):
             with self.subTest(verb=verb):
                 code, payload = gerofilter.classify_action("hunter@example.com", verb)
-                self.assertEqual((code, payload), (404, " "))
+                self.assertEqual(code, 210)
+                self.assertIn("STATUS_OVERVIEW", payload)
 
     def test_non_owner_check_is_forbidden_not_widened(self):
         code, payload = gerofilter.classify_action(
@@ -2100,3 +2096,86 @@ class OverviewFlowTests(MailFlowTestCase):
     def test_overview_for_a_sender_with_no_reports(self):
         self.deliver(raw_mail("STATUS_OVERVIEW", sender="nobody@example.com"))
         self.assertEqual(self.sent_codes(), [410])
+
+
+class HelpTests(CardTestCase):
+
+    def test_help_lists_every_command(self):
+        help_html = gerocard.build_help("nobody@example.com")
+        for verb, subject, description in gerocard.COMMAND_HELP:
+            self.assertIn(subject, help_html, verb)
+            self.assertIn(html.escape(description), help_html, verb)
+
+    def test_help_for_unknown_sender_has_no_reports(self):
+        make_report()
+        help_html = gerocard.build_help("stranger@example.com")
+        self.assertNotIn("AB12CD34EF56", help_html)
+        self.assertNotIn("Your open reports", help_html)
+        self.assertNotIn("Test finding", help_html)
+
+    def test_help_lists_open_reports_only(self):
+        make_report(report_id="AAAAAAAAAAAA", report_status=2,
+                    report_title="Still open")
+        make_report(report_id="BBBBBBBBBBBB", report_status=0,
+                    report_title="Closed one")
+        make_report(report_id="CCCCCCCCCCCC", report_status=7,
+                    report_title="Finished one")
+        help_html = gerocard.build_help("hunter@example.com")
+        self.assertIn("AAAAAAAAAAAA", help_html)
+        self.assertNotIn("BBBBBBBBBBBB", help_html)
+        self.assertNotIn("CCCCCCCCCCCC", help_html)
+
+    def test_help_never_shows_another_senders_report(self):
+        make_report(report_id="AAAAAAAAAAAA", report_status=2,
+                    hunter_email="someone@example.com", report_title=LEAK)
+        help_html = gerocard.build_help("hunter@example.com")
+        self.assertNotIn(LEAK, help_html)
+        self.assertNotIn("AAAAAAAAAAAA", help_html)
+
+    def test_help_states_the_allowances_of_each_open_report(self):
+        make_report(report_status=2, report_update_self=1, report_appeal=1)
+        help_html = gerocard.build_help("hunter@example.com")
+        self.assertIn("Updates you can send on your own initiative: 2 of 3", help_html)
+        self.assertIn("Appeals left: 2 of 3", help_html)
+
+    def test_help_escapes_a_hostile_title(self):
+        make_report(report_status=2, report_title="<img src=x onerror=1>")
+        help_html = gerocard.build_help("hunter@example.com")
+        self.assertNotIn("<img", help_html)
+        self.assertIn("&lt;img src=x onerror=1&gt;", help_html)
+
+    def test_help_buttons_need_no_report_id(self):
+        help_html = gerocard.build_help("nobody@example.com")
+        self.assertIn("?subject=STATUS_OVERVIEW", help_html)
+        self.assertIn("?subject=MY_SCORE", help_html)
+        self.assertNotIn("?subject=SUBMIT_", help_html)
+
+    def test_help_without_a_mailbox_still_lists_the_commands(self):
+        MailBox.objects.all().delete()
+        help_html = gerocard.build_help("nobody@example.com")
+        self.assertIn("STATUS_OVERVIEW", help_html)
+        self.assertNotIn("mailto:", help_html)
+
+
+class HelpFlowTests(MailFlowTestCase):
+
+    def test_help_reply_is_code_210(self):
+        self.deliver(raw_mail("HELP"))
+        self.assertEqual(self.sent_codes(), [210])
+        note = self.last_note()
+        self.assertIn("STATUS_OVERVIEW", note)
+        self.assertEqual(self.last_payload()[0], "")
+
+    def test_help_is_pre_rendered(self):
+        self.assertIn(210, geromailer.PRE_RENDERED_CODES)
+
+    def test_help_reply_names_the_open_report(self):
+        make_report(report_status=2)
+        self.deliver(raw_mail("COMMANDS"))
+        self.assertIn("AB12CD34EF56", self.last_note())
+
+    def test_help_reply_to_an_unknown_sender_lists_no_reports(self):
+        make_report(report_status=2)
+        self.deliver(raw_mail("Re: help", sender="stranger@example.com"))
+        self.assertEqual(self.sent_codes(), [210])
+        self.assertNotIn("AB12CD34EF56", self.last_note())

@@ -378,8 +378,6 @@ def parse_subject(subject):
     return verb, (idm.group(1).upper() if idm else rest)
 
 
-_PHASE_D_VERBS = ('COMMENT', 'WITHDRAW', 'HELP', 'COMMANDS')
-
 _SUBJECT_ACTIONS = {
     'CHECK':  (202, None),
     'UPDATE': (203, 'U'),
@@ -429,8 +427,9 @@ def classify_action(email, subject):
             else:
                 return 410, " "
 
-        if verb in _PHASE_D_VERBS:
-            return 404, " "
+        if verb in ('HELP', 'COMMANDS'):
+            from . import gerocard
+            return 210, gerocard.build_help(email)
 
         return 404, REASON_UNKNOWN_COMMAND
 

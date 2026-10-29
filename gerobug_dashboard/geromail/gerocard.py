@@ -23,6 +23,12 @@ STAGE_TEXT = {
 STAGE_COUNT = 7
 
 VERB_LABELS = {
+    "SUBMIT": "Send a new report",
+    "STATUS_OVERVIEW": "List my reports",
+    "MY_SCORE": "Check my score",
+    "HELP": "Send me this list again",
+    "COMMENT": "Ask a question",
+    "WITHDRAW": "Withdraw this report",
     "UPDATE": "Send update",
     "APPEAL": "Appeal the decision",
     "AGREE": "Agree to the decision",
@@ -39,6 +45,36 @@ LAST_EMAIL_LABELS = {
     704: "We completed your report and sent your certificate",
     705: "We asked for bounty prerequisites",
 }
+
+COMMAND_HELP = (
+    ("SUBMIT", "SUBMIT_Your report title",
+     "Send a new report. Put TYPE, ENDPOINT and SUMMARY in the body and "
+     "attach the full report as a PDF."),
+    ("CHECK", "CHECK_Report ID",
+     "Get the full status card for one report."),
+    ("STATUS_OVERVIEW", "STATUS_OVERVIEW",
+     "List every report you have sent us and what each one needs."),
+    ("MY_SCORE", "MY_SCORE",
+     "See the score you have earned in this program."),
+    ("HELP", "HELP",
+     "Send this list of commands back to you."),
+    ("UPDATE", "UPDATE_Report ID",
+     "Add new information to a report, with text or a PDF."),
+    ("COMMENT", "COMMENT_Report ID",
+     "Ask our team a question about a report. Text only."),
+    ("DATA", "DATA_Report ID",
+     "Send the documents we asked for before a payout."),
+    ("AGREE", "AGREE_Report ID",
+     "Accept our bounty decision for a report."),
+    ("APPEAL", "APPEAL_Report ID",
+     "Tell us why you think the bounty decision should change."),
+    ("WITHDRAW", "WITHDRAW_Report ID",
+     "Withdraw a report while it is still in review."),
+)
+
+HELP_VERBS_WITHOUT_ID = ("SUBMIT", "STATUS_OVERVIEW", "MY_SCORE", "HELP")
+
+OPEN_STATUSES = (1, 2, 3, 4, 5, 6)
 
 ACTION_LABELS = {
     "update": "Send us more information",
@@ -315,3 +351,49 @@ def build_overview_rows(email):
             '<td style="' + _TD + '">' + needs_cell + "</td>"
             "</tr>")
     return rows
+
+
+def _help_command_rows():
+    rows = []
+    for _verb, subject, description in COMMAND_HELP:
+        rows.append(
+            "<tr>"
+            '<td style="' + _TD + " " + _MONO + ' white-space:nowrap;">'
+            + _esc(subject) + "</td>"
+            '<td style="' + _TD + '">' + _esc(description) + "</td>"
+            "</tr>")
+    return "".join(rows)
+
+
+def build_help(email):
+    parts = [_heading("Commands you can send us")]
+    parts.append(_para("Send any of these as the subject of an email to this address. "
+                       "Subjects are not case sensitive, and replying to one of our "
+                       "emails works too."))
+    parts.append(
+        '<table role="presentation" cellpadding="0" cellspacing="0" style="' + _TABLE + '">'
+        "<thead><tr>"
+        '<th align="left" style="' + _TH + '">Subject</th>'
+        '<th align="left" style="' + _TH + '">What it does</th>'
+        "</tr></thead><tbody>" + _help_command_rows() + "</tbody></table>")
+
+    buttons = render_actions(None, HELP_VERBS_WITHOUT_ID)
+    if buttons:
+        parts.append(buttons)
+
+    reports = list(BugReport.objects.filter(hunter_email=email,
+                                            report_status__in=OPEN_STATUSES))
+    reports.sort(key=lambda report: (report.report_datetime is None,
+                                     report.report_datetime))
+    if reports:
+        parts.append(_heading("Your open reports"))
+        for report in reports:
+            parts.append(_para("<b>" + _esc(report.report_id) + "</b> "
+                               + _esc(report.report_title)))
+            parts.append('<ul style="' + _LIST + '">'
+                         + "".join("<li>" + _esc(line) + "</li>"
+                                   for line in allowance_lines(report))
+                         + "</ul>")
+            parts.append(render_actions(report.report_id, ["CHECK"]))
+
+    return "".join(part for part in parts if part)

@@ -158,6 +158,17 @@ message_208 = _wrap(
 )
 
 
+subject_210 = "Gerobug Commands: What You Can Send Us"
+message_210 = _wrap(
+    _HELLO
+    + _para("Here is everything you can ask us by email, with a one line "
+            "description of each command.")
+    + "~NOTE~"
+    + _para("If a command is refused, our reply says why and what to send instead.")
+    + _SIGNOFF
+)
+
+
 subject_403 = "Authorization Failure: Report ~ID~"
 message_403 = _wrap(
     _HELLO
@@ -421,6 +432,7 @@ subjectlist = {
     207: subject_207,   # CHECK SCORE (NOTE)
     208: subject_208,   # CHECK ALL STATUS (ID, NOTE)
     209: subject_209,
+    210: subject_210,
 
     300: subject_300,   # INVALID NOTIFICATION (TITLE, ID, STATUS, NOTE)
     301: subject_301,   # STATUS UPDATE NOTIFICATION (TITLE, ID, STATUS)
@@ -454,6 +466,7 @@ messagelist = {
     207: message_207,
     208: message_208,
     209: message_209,
+    210: message_210,
 
     300: message_300,
     301: message_301,
