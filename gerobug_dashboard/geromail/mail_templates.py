@@ -133,8 +133,9 @@ subject_208 = "Submission Summary: Report Overview"
 message_208 = _wrap(
     _HELLO
     + _para("Here is an overview of your report history with our bug bounty program. "
-            "You have submitted a total of <b>~ID~</b> report(s). The current status "
-            "of each is listed below.")
+            "You have submitted a total of <b>~ID~</b> report(s). The ones that need "
+            "something from you are listed first. Click a Report ID to ask for its "
+            "full card.")
     + '<table role="presentation" cellpadding="0" cellspacing="0" '
       'style="width:100%; border-collapse:collapse; margin:8px 0 20px 0; font-size:14px;">'
         "<thead><tr>"
@@ -144,6 +145,8 @@ message_208 = _wrap(
             'color:#ffffff; border:1px solid #1f2933;">Title</th>'
             '<th align="left" style="padding:10px 12px; background-color:#1f2933; '
             'color:#ffffff; border:1px solid #1f2933;">Status</th>'
+            '<th align="left" style="padding:10px 12px; background-color:#1f2933; '
+            'color:#ffffff; border:1px solid #1f2933;">Needs you</th>'
         "</tr></thead>"
         "<tbody>~NOTE~</tbody>"
       "</table>"

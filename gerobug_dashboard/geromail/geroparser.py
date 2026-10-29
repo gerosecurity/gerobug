@@ -795,8 +795,9 @@ def read_mail(mail, folder_name='inbox'):
 
                             # HUNTER CHECK ALL STATUS
                             elif(code == 208):
-                                payload[3] = str(payload[0]).replace('[','').replace(']','').replace("'",'').replace(',','\n')
-                                payload[0] = str(len(payload[0]))
+                                rows = payload[0]
+                                payload[3] = ''.join(rows)
+                                payload[0] = str(len(rows))
                                 logging.getLogger("Gerologger").info('Hunter Reports (' + payload[0] + '):\n' + payload[3])
                                 logging.getLogger("Gerologger").info("[CODE 208] Bug Hunter Check All Status Successfully")
 

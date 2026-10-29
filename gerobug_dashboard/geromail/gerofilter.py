@@ -1,13 +1,12 @@
 import re
 import os
-import html
 import PyPDF2
 import logging
 
 from django.db import transaction
 
 from dashboards.models import (BOUNTY_CALC_STATUS, BugHunter, BugReport, BugReportUpdate,
-                               BugReportAppeal, BugReportNDA, ReportStatus)
+                               BugReportAppeal, BugReportNDA)
 from gerobug.settings import MEDIA_ROOT
 
 
@@ -425,21 +424,8 @@ def classify_action(email, subject):
 
         if verb == 'STATUS_OVERVIEW':
             if BugReport.objects.filter(hunter_email=email).exists():
-                reports = []
-                for report in BugReport.objects.filter(hunter_email=email):
-                    status = ReportStatus.objects.get(status_id=report.report_status)
-                    status = status.status_name
-                    cell = "padding:10px 12px; border:1px solid #d2d6dc; vertical-align:top;"
-                    x = (
-                        "<tr>"
-                        "<td style=\"" + cell + " font-family:'Courier New', monospace; white-space:nowrap;\">" + html.escape(report.report_id) + "</td>"
-                        "<td style=\"" + cell + "\">" + html.escape(report.report_title) + "</td>"
-                        "<td style=\"" + cell + "\">" + html.escape(status) + "</td>"
-                        "</tr>"
-                    )
-                    reports.append(x)
-
-                return 208, reports
+                from . import gerocard
+                return 208, gerocard.build_overview_rows(email)
             else:
                 return 410, " "
 

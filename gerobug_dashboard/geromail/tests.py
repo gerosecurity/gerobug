@@ -2056,3 +2056,40 @@ class CheckCardDeliveryTests(CardTestCase):
         body = sent[0].replace("=\r\n", "").replace("=\n", "").replace("=3D", "=")
         self.assertIn("Stage 2 of 7", body)
         self.assertNotIn("&lt;table", body)
+
+
+class OverviewFlowTests(MailFlowTestCase):
+
+    def test_overview_sorts_action_needed_first_in_the_reply(self):
+        make_report(report_id="AAAAAAAAAAAA", report_status=3,
+                    report_datetime=timezone.now())
+        make_report(report_id="BBBBBBBBBBBB", report_status=2, report_permission=4,
+                    report_datetime=timezone.now() - timedelta(days=9))
+        self.deliver(raw_mail("STATUS_OVERVIEW"))
+        self.assertEqual(self.sent_codes(), [208])
+        payload = self.last_payload()
+        self.assertEqual(payload[0], "2")
+        self.assertLess(payload[3].index("BBBBBBBBBBBB"),
+                        payload[3].index("AAAAAAAAAAAA"))
+        self.assertIn("Send us more information", payload[3])
+        self.assertIn(">No<", payload[3])
+
+    def test_overview_ids_link_to_check_in_the_reply(self):
+        make_report()
+        self.deliver(raw_mail("STATUS_OVERVIEW"))
+        self.assertIn("mailto:bounty@example.com?subject=CHECK_AB12CD34EF56",
+                      self.last_note())
+
+    def test_overview_escapes_title_in_the_reply(self):
+        make_report(report_title="<img src=x onerror=1>")
+        self.deliver(raw_mail("STATUS_OVERVIEW"))
+        note = self.last_note()
+        self.assertNotIn("<img", note)
+        self.assertIn("&lt;img src=x onerror=1&gt;", note)
+
+    def test_overview_template_has_a_needs_you_column(self):
+        self.assertIn("Needs you", mail_templates.message_208)
+
+    def test_overview_for_a_sender_with_no_reports(self):
+        self.deliver(raw_mail("STATUS_OVERVIEW", sender="nobody@example.com"))
+        self.assertEqual(self.sent_codes(), [410])
