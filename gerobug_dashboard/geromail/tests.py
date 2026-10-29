@@ -2523,6 +2523,28 @@ class SampleRenderTests(CardTestCase):
         with open(os.path.join(out, "oss-help.html"), "w", encoding="utf-8") as fp:
             fp.write(page)
 
+        geroparser.save_uan("U", "AB12CD34EF56U1", "AB12CD34EF56",
+                            timezone.now() - timedelta(days=9), "first update", 1)
+        geroparser.save_uan("A", "CCCCCCCCCCCCA1", "CCCCCCCCCCCC",
+                            timezone.now() - timedelta(days=2), "an appeal", 0)
+        BugReport.objects.filter(report_id="CCCCCCCCCCCC").update(
+            report_calc_sent_at=timezone.now() - timedelta(days=4),
+            report_status_changed_at=timezone.now() - timedelta(days=4),
+            report_severity=7.5, last_email_code=702,
+            last_email_note="Scored High on impact, Medium on likelihood.")
+        decision = BugReport.objects.get(report_id="CCCCCCCCCCCC")
+        card = mail_templates.messagelist[202].replace(
+            "~NOTE~", gerocard.build_report_card(decision))
+        with open(os.path.join(out, "oss-check.html"), "w", encoding="utf-8") as fp:
+            fp.write(card)
+
+        rows = gerocard.build_overview_rows("hunter@example.com")
+        overview = (mail_templates.messagelist[208]
+                    .replace("~NOTE~", "".join(rows))
+                    .replace("~ID~", str(len(rows))))
+        with open(os.path.join(out, "oss-overview.html"), "w", encoding="utf-8") as fp:
+            fp.write(overview)
+
 
 class ExtractPdfTests(SimpleTestCase):
 
