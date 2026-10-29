@@ -62,10 +62,8 @@ message_201 = _wrap(
 subject_202 = "CHECK_~ID~ | Status of Report ~ID~"
 message_202 = _wrap(
     _HELLO
-    + _para("This email provides an update on your bug report.")
-    + _para("The current status of Report ID <b>~ID~</b> (<b>~TITLE~</b>) is <b>~STATUS~</b>.")
-    + _para("We will notify you if there are further updates or if additional "
-            "information is required.")
+    + _para("Here is where your report stands and what, if anything, we need from you.")
+    + "~NOTE~"
     + _SIGNOFF
 )
 

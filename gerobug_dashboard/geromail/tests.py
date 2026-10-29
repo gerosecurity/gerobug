@@ -1986,3 +1986,73 @@ class ActionsPlaceholderTests(CardTestCase):
     def test_actions_degrade_without_a_mailbox_address(self):
         MailBox.objects.all().update(email="")
         self.assertEqual(geromailer.render_actions_for(701, "AB12CD34EF56"), "")
+
+
+class CheckCardFlowTests(MailFlowTestCase):
+
+    def test_check_reply_contains_card(self):
+        report = make_report(report_status=2, report_permission=4,
+                             last_email_code=701, last_email_note="Add a PoC")
+        self.deliver(raw_mail("CHECK_" + report.report_id))
+        self.assertEqual(self.sent_codes(), [202])
+        note = self.last_note()
+        self.assertIn("Stage 2 of 7", note)
+        self.assertIn("Test finding", note)
+        self.assertIn("Add a PoC", note)
+        self.assertIn("subject=UPDATE_" + report.report_id, note)
+
+    def test_check_card_is_pre_rendered_html(self):
+        self.assertEqual(geromailer.PRE_RENDERED_CODES, {202, 208, 210})
+
+    def test_message_202_is_greeting_note_signoff(self):
+        self.assertIn("~NOTE~", mail_templates.message_202)
+        self.assertNotIn("~STATUS~", mail_templates.message_202)
+
+    def test_check_card_escapes_a_hostile_title(self):
+        report = make_report(report_title="<img src=x onerror=1>")
+        self.deliver(raw_mail("CHECK_" + report.report_id))
+        note = self.last_note()
+        self.assertNotIn("<img", note)
+        self.assertIn("&lt;img src=x onerror=1&gt;", note)
+
+    def test_check_card_does_not_leak_triage_fields(self):
+        report = make_report(report_reviewer=LEAK, report_duplicate_of="LEAKCHECK",
+                             report_severitytype=LEAK, report_summary=LEAK)
+        BugReport.objects.filter(report_id=report.report_id).update(
+            report_severitystring=LEAK)
+        self.deliver(raw_mail("CHECK_" + report.report_id))
+        self.assertNotIn(LEAK, self.last_note())
+
+
+class CheckCardDeliveryTests(CardTestCase):
+
+    def test_check_card_survives_write_mail(self):
+        report = make_report(report_status=2)
+        MailBox.objects.all().update(email="bounty@example.com", password="secret")
+        closer = mock.patch.object(geromailer.connection, "close")
+        closer.start()
+        self.addCleanup(closer.stop)
+        sent = []
+
+        class Recorder:
+            def __init__(self, *a, **kw):
+                pass
+
+            def login(self, *a):
+                return None
+
+            def sendmail(self, sender, destination, text):
+                sent.append(text)
+
+            def close(self):
+                return None
+
+        card = gerocard.build_report_card(report)
+        with mock.patch.object(geromailer.smtplib, "SMTP_SSL", Recorder):
+            geromailer.write_mail(
+                202, [report.report_id, report.report_title, 2, card, "7.5"],
+                "hunter@example.com")
+        self.assertTrue(sent)
+        body = sent[0].replace("=\r\n", "").replace("=\n", "").replace("=3D", "=")
+        self.assertIn("Stage 2 of 7", body)
+        self.assertNotIn("&lt;table", body)

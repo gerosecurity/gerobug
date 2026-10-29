@@ -16,6 +16,7 @@ from django.db import connection, transaction
 from django.utils import timezone
 
 import gerocert.gerocert
+from . import gerocard
 from . import gerosecure
 from . import gerofilter
 from . import geromailer
@@ -598,6 +599,7 @@ def read_mail(mail, folder_name='inbox'):
 
                                 payload[1] = report.report_title
                                 payload[2] = report.report_status
+                                payload[3] = gerocard.build_report_card(report)
                                 logging.getLogger("Gerologger").info('[CODE 202] Bug Hunter Check Report Status')
                             
                             # HUNTER UPDATE/AMEND REPORT
