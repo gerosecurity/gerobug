@@ -407,21 +407,21 @@ def classify_action(email, subject):
 
         if verb in _SUBJECT_ACTIONS:
             code, permission = _SUBJECT_ACTIONS[verb]
-            id = rest
-            if not valid_report_id(id):
-                return 405, id
-            if not validate_user(email, id):
-                return 403, id
+            report_id = rest
+            if not valid_report_id(report_id):
+                return 405, report_id
+            if not validate_user(email, report_id):
+                return 403, report_id
             if code == 203:
-                if not validate_update_stage(id):
-                    return 408, id
-                if not validate_permission('U', id) and not validate_self_update(id):
-                    return 407, id
-            elif permission and not validate_permission(permission, id):
-                return 403, id
-            if code == 204 and not validate_appeal(id):
-                return 409, id
-            return code, id
+                if not validate_update_stage(report_id):
+                    return 408, report_id
+                if not validate_permission('U', report_id) and not validate_self_update(report_id):
+                    return 407, report_id
+            elif permission and not validate_permission(permission, report_id):
+                return 403, report_id
+            if code == 204 and not validate_appeal(report_id):
+                return 409, report_id
+            return code, report_id
 
         if verb == 'MY_SCORE':
             hunter = BugHunter.objects.filter(hunter_email__iexact=email).first()
@@ -439,28 +439,28 @@ def classify_action(email, subject):
                 return 410, " "
 
         if verb == 'COMMENT':
-            id = rest
-            if not valid_report_id(id):
-                return 405, id
-            if not validate_user(email, id):
-                return 403, id
-            report = BugReport.objects.get(report_id=id)
+            report_id = rest
+            if not valid_report_id(report_id):
+                return 405, report_id
+            if not validate_user(email, report_id):
+                return 403, report_id
+            report = BugReport.objects.get(report_id=report_id)
             if report.report_status not in COMMENT_STATUSES:
-                return 413, id
+                return 413, report_id
             if report.report_hunter_comment >= COMMENT_LIMIT:
-                return 411, id
-            return 211, id
+                return 411, report_id
+            return 211, report_id
 
         if verb == 'WITHDRAW':
-            id = rest
-            if not valid_report_id(id):
-                return 405, id
-            if not validate_user(email, id):
-                return 403, id
-            report = BugReport.objects.get(report_id=id)
+            report_id = rest
+            if not valid_report_id(report_id):
+                return 405, report_id
+            if not validate_user(email, report_id):
+                return 403, report_id
+            report = BugReport.objects.get(report_id=report_id)
             if report.report_status not in WITHDRAW_STATUSES:
-                return 412, id
-            return 212, id
+                return 412, report_id
+            return 212, report_id
 
         if verb in ('HELP', 'COMMANDS'):
             from . import gerocard
