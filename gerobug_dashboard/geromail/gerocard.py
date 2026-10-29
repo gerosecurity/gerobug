@@ -200,10 +200,10 @@ def _action_section(report):
         due = _date(report.auto_accept_at)
         if due:
             body.append(_para("Reply AGREE or APPEAL by " + _esc(due)
-                              + ". If we hear nothing by then, the decision counts as accepted."))
+                              + ". After that date the decision counts as agreed."))
         else:
             body.append(_para("Reply AGREE or APPEAL within " + str(APPEAL_WINDOW_DAYS)
-                              + " days. If we hear nothing, the decision counts as accepted."))
+                              + " days. After that the decision counts as agreed."))
         body.append(render_actions(report_id, ["AGREE", "APPEAL"]))
     elif key == "data":
         nda = int(report.last_email_code or 0) == 703
@@ -306,7 +306,7 @@ def build_overview_rows(email):
                        + _esc(report.report_id) + "</a>")
         else:
             id_cell = _esc(report.report_id)
-        needs_cell = _esc(label) if needs else "No"
+        needs_cell = _esc(label) if needs else "-"
         rows.append(
             "<tr>"
             '<td style="' + _TD + " " + _MONO + ' white-space:nowrap;">' + id_cell + "</td>"

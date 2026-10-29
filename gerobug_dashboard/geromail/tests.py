@@ -1728,6 +1728,12 @@ class ReportCardTests(CardTestCase):
         self.assertIn("Please add a PoC video link", card)
         self.assertIn("subject=UPDATE_AB12CD34EF56", card)
 
+    def test_decision_deadline_names_the_agreement_rule(self):
+        report = make_report(report_status=5, report_permission=2,
+                             report_calc_sent_at=timezone.now())
+        card = gerocard.build_report_card(report)
+        self.assertIn("After that date the decision counts as agreed.", card)
+
     def test_action_decision_shows_severity_and_deadline(self):
         report = make_report(report_status=5, report_permission=2,
                              report_severity=7.5,
@@ -1881,7 +1887,7 @@ class OverviewRowTests(CardTestCase):
         self.assertIn("BBBBBBBBBBBB", rows[0])
         self.assertIn("AAAAAAAAAAAA", rows[1])
         self.assertIn("Send us more information", rows[0])
-        self.assertIn(">No<", rows[1])
+        self.assertIn(">-<", rows[1])
 
     def test_overview_newest_first_within_a_group(self):
         make_report(report_id="OLDOLDOLDOLD", report_status=3,
@@ -2072,7 +2078,8 @@ class OverviewFlowTests(MailFlowTestCase):
         self.assertLess(payload[3].index("BBBBBBBBBBBB"),
                         payload[3].index("AAAAAAAAAAAA"))
         self.assertIn("Send us more information", payload[3])
-        self.assertIn(">No<", payload[3])
+        self.assertIn(">-<", payload[3])
+        self.assertNotIn(">No<", payload[3])
 
     def test_overview_ids_link_to_check_in_the_reply(self):
         make_report()
