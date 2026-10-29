@@ -94,7 +94,7 @@ This should be the only page accessible by public, which contains Rules and Guid
 Bug Hunter will submit their findings by email, which Gerobug will parse, filter, and show them on dashboard.
 
 - Auto Reply and Notification for Bug Hunters<br>
-Bug Hunter's inquiries will be automatically replied and notified if there any updates on their report.
+Bug Hunter's inquiries will be automatically replied and notified if there any updates on their report. Hunters run the whole lifecycle by email: submit, check a report's status card, list all their reports, update, ask a question, send requested documents, agree or appeal a bounty decision, withdraw a report, and ask for the command list with HELP. The Submit page documents every command.
 
 - Notification Channel<br>
 Company will also be notified via Slack/Telegram if there any new report.

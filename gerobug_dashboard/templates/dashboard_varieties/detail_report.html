@@ -259,6 +259,13 @@
                             {% include "dashboard_varieties/submission_list.html" with rows=submissions.data %}
                         </div>
                         {% endif %}
+
+                        {% if submissions.comments %}
+                        <div class="resource-card">
+                            <h6>Hunter Questions <span class="submission-count">{{ submissions.comments|length }}</span></h6>
+                            {% include "dashboard_varieties/submission_list.html" with rows=submissions.comments %}
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
 

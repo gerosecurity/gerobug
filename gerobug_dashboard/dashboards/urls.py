@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import LogoutForm, ReportFiles, ReportStatusView, ReportUpdateStatus, KanbanMove, FormHandler, InvalidHandler, AdminSetting, OWASPCalculator, CVSSCalculator, ReviewerDelete, NotificationDelete, RenderDashboardAdmin, ReportDetails, UpdateDetails, AppealDetails, NDADetails, ReportUpdate, ReportDelete, ResendEmail, ToggleHunterEmailSinkhole, ViewLogs, ReportOverride
+from .views import LogoutForm, ReportFiles, ReportStatusView, ReportUpdateStatus, KanbanMove, FormHandler, InvalidHandler, AdminSetting, OWASPCalculator, CVSSCalculator, ReviewerDelete, NotificationDelete, RenderDashboardAdmin, ReportDetails, UpdateDetails, AppealDetails, NDADetails, CommentDetails, ReportUpdate, ReportDelete, ResendEmail, ToggleHunterEmailSinkhole, ViewLogs, ReportOverride
 
 urlpatterns = [
     path("", RenderDashboardAdmin.as_view(), name="dashboard"),
@@ -11,6 +11,7 @@ urlpatterns = [
     path("update-detail/<str:pk>", UpdateDetails.as_view(), name="update_detail"),
     path("appeal-detail/<str:pk>", AppealDetails.as_view(), name="appeal_detail"),
     path("nda-detail/<str:pk>", NDADetails.as_view(), name="nda_detail"),
+    path("comment-detail/<str:pk>", CommentDetails.as_view(), name="comment_detail"),
     
     path("report-status/<str:id>", ReportStatusView, name="report_status"),
     path("report-detail/<str:id>/move/", ReportUpdateStatus, name="report_updatestatus"),

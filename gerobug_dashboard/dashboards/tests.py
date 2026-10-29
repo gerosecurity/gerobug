@@ -4,8 +4,9 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.utils import timezone
 
-from dashboards.models import (BlacklistRule, BugReport, CertificateData,
-                               Personalization, ReportStatus, StaticRules)
+from dashboards.models import (BlacklistRule, BugReport, BugReportHunterComment,
+                               CertificateData, Personalization, ReportStatus,
+                               StaticRules)
 from prerequisites.models import MailBox
 
 
@@ -587,3 +588,314 @@ class InvalidDuplicateOfTests(TroubleshootFixture):
             "report_id": self.report.report_id, "title": "t", "status": "5"})
         self.report.refresh_from_db()
         self.assertEqual((self.report.report_duplicate, self.report.report_duplicate_of), (0, ""))
+
+
+class OrphanDetailTests(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="reviewer3", password="x")
+        self.client.force_login(self.user)
+        Personalization.objects.create(personalize_id=1)
+        from dashboards.models import BugReportAppeal, BugReportNDA, BugReportUpdate
+        BugReportUpdate.objects.create(update_id="ZZ99ZZ99ZZ99U1",
+                                       report_id="ZZ99ZZ99ZZ99",
+                                       update_datetime=timezone.now(),
+                                       update_summary="u", update_file=0)
+        BugReportAppeal.objects.create(appeal_id="ZZ99ZZ99ZZ99A1",
+                                       report_id="ZZ99ZZ99ZZ99",
+                                       appeal_datetime=timezone.now(),
+                                       appeal_summary="a", appeal_file=0)
+        BugReportNDA.objects.create(nda_id="ZZ99ZZ99ZZ99N1",
+                                    report_id="ZZ99ZZ99ZZ99",
+                                    nda_datetime=timezone.now(),
+                                    nda_summary="n", nda_file=0)
+        BugReportHunterComment.objects.create(comment_id="ZZ99ZZ99ZZ99C1",
+                                              report_id="ZZ99ZZ99ZZ99",
+                                              comment_datetime=timezone.now(),
+                                              comment_summary="c")
+
+    def test_detail_pages_render_without_the_parent_report(self):
+        for path in ("update-detail/ZZ99ZZ99ZZ99U1",
+                     "appeal-detail/ZZ99ZZ99ZZ99A1",
+                     "nda-detail/ZZ99ZZ99ZZ99N1",
+                     "comment-detail/ZZ99ZZ99ZZ99C1"):
+            with self.subTest(path=path):
+                response = self.client.get("/dashboard/" + path)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.context["report_title"], "")
+
+
+class WithdrawnResendTests(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_superuser(username="admin1",
+                                                  password="x", email="a@b.c")
+        self.client.force_login(self.user)
+        Personalization.objects.create(personalize_id=1)
+        for status_id, name in enumerate(
+                ["Invalid", "Received", "In Review", "Reproduced", "Fixing",
+                 "Bounty Calculation", "Bounty in Process", "Completed"]):
+            ReportStatus.objects.get_or_create(status_id=status_id,
+                                               defaults={"status_name": name})
+        MailBox.objects.create(mailbox_id=1, email="ops@example.com", password="pw",
+                               mailbox_status=1)
+        BugReport.objects.create(
+            report_id="AB12CD34EF56", report_datetime=timezone.now(),
+            hunter_email="hunter@example.com", report_reviewer="reviewer",
+            report_summary="s", report_severitytype="", report_status=0,
+            last_email_code=212, last_email_note="Withdrawn by the hunter")
+
+    def test_212_is_not_resendable(self):
+        from dashboards import views
+        self.assertNotIn(212, views.RESEND_EMAIL_LABELS)
+        with mock.patch("dashboards.views.geroparser.check_mailbox_status",
+                        return_value=True), \
+                mock.patch("dashboards.views.threading.Thread") as thread:
+            response = self.client.post("/dashboard/resend-email",
+                                        {"report_id": "AB12CD34EF56"})
+        self.assertEqual(response.status_code, 302)
+        thread.assert_not_called()
+
+
+class HunterCommentDashboardTests(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="reviewer2", password="x")
+        self.client.force_login(self.user)
+        Personalization.objects.create(personalize_id=1)
+        for status_id, name in enumerate(
+                ["Invalid", "Received", "In Review", "Reproduced", "Fixing",
+                 "Bounty Calculation", "Bounty in Process", "Completed"]):
+            ReportStatus.objects.get_or_create(status_id=status_id,
+                                               defaults={"status_name": name})
+        MailBox.objects.create(mailbox_id=1, email="ops@example.com", password="pw",
+                               mailbox_status=1)
+        self.report = BugReport.objects.create(
+            report_id="AB12CD34EF56", report_datetime=timezone.now(),
+            hunter_email="hunter@example.com", report_reviewer="reviewer",
+            report_summary="s", report_severitytype="", report_status=2,
+        )
+        self.comment = BugReportHunterComment.objects.create(
+            comment_id="AB12CD34EF56C1", report_id=self.report.report_id,
+            comment_datetime=timezone.now(),
+            comment_summary="Do you need a retest from me?",
+        )
+
+    def test_comment_is_listed_on_the_report_page(self):
+        response = self.client.get("/dashboard/report-detail/AB12CD34EF56")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Hunter Questions")
+        self.assertContains(response, "Do you need a retest from me?")
+        self.assertContains(response, "comment-detail/AB12CD34EF56C1")
+
+    def test_comment_detail_renders(self):
+        response = self.client.get("/dashboard/comment-detail/AB12CD34EF56C1")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "AB12CD34EF56C1")
+        self.assertContains(response, "Do you need a retest from me?")
+
+    def test_comment_detail_requires_login(self):
+        self.client.logout()
+        response = self.client.get("/dashboard/comment-detail/AB12CD34EF56C1")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login/", response["Location"])
+
+    def test_comment_text_is_escaped_on_the_detail_page(self):
+        BugReportHunterComment.objects.filter(pk=self.comment.pk).update(
+            comment_summary="<img src=x onerror=1>")
+        response = self.client.get("/dashboard/comment-detail/AB12CD34EF56C1")
+        self.assertNotContains(response, "<img src=x onerror=1>")
+        self.assertContains(response, "&lt;img src=x onerror=1&gt;")
+
+    def test_deleting_a_report_deletes_every_child_row(self):
+        from dashboards.models import BugReportAppeal, BugReportNDA, BugReportUpdate
+        BugReportUpdate.objects.create(update_id="AB12CD34EF56U1",
+                                       report_id=self.report.report_id,
+                                       update_datetime=timezone.now(),
+                                       update_summary="u", update_file=0)
+        BugReportAppeal.objects.create(appeal_id="AB12CD34EF56A1",
+                                       report_id=self.report.report_id,
+                                       appeal_datetime=timezone.now(),
+                                       appeal_summary="a", appeal_file=0)
+        BugReportNDA.objects.create(nda_id="AB12CD34EF56N1",
+                                    report_id=self.report.report_id,
+                                    nda_datetime=timezone.now(),
+                                    nda_summary="n", nda_file=0)
+        response = self.client.post("/dashboard/report-detail/AB12CD34EF56/delete/")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(BugReport.objects.count(), 0)
+        self.assertEqual(BugReportUpdate.objects.count(), 0)
+        self.assertEqual(BugReportAppeal.objects.count(), 0)
+        self.assertEqual(BugReportNDA.objects.count(), 0)
+        self.assertEqual(BugReportHunterComment.objects.count(), 0)
+
+
+SUBMIT_COMMANDS = ("SUBMIT", "CHECK", "STATUS_OVERVIEW", "MY_SCORE", "HELP",
+                   "UPDATE", "COMMENT", "DATA", "AGREE", "APPEAL", "WITHDRAW")
+
+
+def read_web_submit_template():
+    import os
+    from gerobug.settings import BASE_DIR
+    path = os.path.join(os.path.dirname(BASE_DIR), "gerobug_web", "templates",
+                        "submit.html")
+    with open(path, encoding="utf-8") as fp:
+        return fp.read()
+
+
+class SubmitPageTests(TestCase):
+
+    URL = "/submit/"
+
+    def setUp(self):
+        Personalization.objects.create(personalize_id=1)
+        self.mailbox = MailBox.objects.create(
+            mailbox_id=1, email="bounty@example.com", password="pw", mailbox_status=1)
+
+    def page(self):
+        response = self.client.get(self.URL)
+        self.assertEqual(response.status_code, 200)
+        return response.content.decode()
+
+    def test_submit_page_lists_every_command(self):
+        page = self.page()
+        for command in SUBMIT_COMMANDS:
+            self.assertIn(command, page, command)
+
+    def test_submit_page_mailto_uses_mailbox(self):
+        page = self.page()
+        self.assertIn("bounty@example.com", page)
+        self.assertIn('data-verb="HELP"', page)
+        self.assertIn('id="reportIdInput"', page)
+
+    def test_submit_page_without_mailbox_keeps_the_id_box_usable(self):
+        MailBox.objects.all().update(email="")
+        page = self.page()
+        self.assertIn("set their email yet", page)
+        self.assertIn('id="reportIdInput"', page)
+        self.assertIn("The mail buttons are unavailable until the program mailbox "
+                      "is set up.", page)
+        box = page.split('id="reportIdInput"', 1)[1].split(">", 1)[0]
+        self.assertNotIn("disabled", box)
+        self.assertNotIn("bounty@example.com", page)
+
+    def test_copy_controls_are_real_buttons(self):
+        web = read_web_submit_template()
+        self.assertNotIn('class="clipboard" role="button"', web)
+        self.assertIn('<button type="button" class="clipboard"', web)
+        self.assertNotIn('tabindex="0" aria-label="Copy', web)
+        self.assertEqual(web.count('<button type="button" class="clipboard"'),
+                         web.count("onclick=\"copytext("))
+
+    def test_update_rules_name_the_two_stages(self):
+        web = read_web_submit_template()
+        self.assertIn("Updates close once the report moves past Bounty Calculation "
+                      "to Bounty in Process.", web)
+
+    def test_check_example_shows_the_question_allowance(self):
+        web = read_web_submit_template()
+        self.assertIn("Questions you can still ask:", web)
+        example = web.split('class="gds-example"', 1)[1]
+        self.assertIn("left.", example.split("</div>", 1)[0])
+
+    def test_silence_after_the_deadline_is_called_agreed(self):
+        from geromail import gerocard, mail_templates
+        web = read_web_submit_template()
+        self.assertNotIn("counts as accepted", web)
+        self.assertNotIn("treated as accepted", web)
+        self.assertIn("counts as agreed", mail_templates.message_302)
+        self.assertNotIn("considered accepted", mail_templates.message_302)
+        report = BugReport(report_id="AB12CD34EF56", report_status=5,
+                           report_permission=2, report_datetime=timezone.now(),
+                           report_calc_sent_at=timezone.now())
+        self.assertIn("counts as agreed", gerocard.build_report_card(report))
+
+    def test_submit_page_limits_come_from_the_view(self):
+        from geromail import gerofilter
+        from dashboards.models import APPEAL_WINDOW_DAYS
+        response = self.client.get(self.URL)
+        context = response.context
+        self.assertEqual(context["comment_limit"], gerofilter.COMMENT_LIMIT)
+        self.assertEqual(context["self_update_limit"], gerofilter.SELF_UPDATE_LIMIT)
+        self.assertEqual(context["appeal_limit"], gerofilter.APPEAL_LIMIT)
+        self.assertEqual(context["appeal_window_days"], APPEAL_WINDOW_DAYS)
+        self.assertEqual(context["max_pdf_mb"], gerofilter.MAX_PDF_BYTES // 1000000)
+        self.assertEqual(context["endpoint_max"], gerofilter.FIELD_LIMITS["endpoint"][1])
+        self.assertEqual(context["title_max"], gerofilter.FIELD_LIMITS["title"][1])
+        web = read_web_submit_template()
+        self.assertNotIn("10 questions per report", web)
+        self.assertIn("{{ comment_limit }}", web)
+
+    def test_mailbox_address_escaped(self):
+        MailBox.objects.all().update(email='a@b.c"><script>alert(1)</script>')
+        page = self.page()
+        self.assertNotIn("<script>alert(1)</script>", page)
+        self.assertIn("&lt;script&gt;", page)
+
+    def test_submit_pages_in_sync(self):
+        import os
+        from gerobug.settings import BASE_DIR
+        dashboard_path = os.path.join(BASE_DIR, "templates", "submit.html")
+        with open(dashboard_path, encoding="utf-8") as fp:
+            dashboard_template = fp.read()
+        self.assertEqual(dashboard_template, read_web_submit_template())
+        self.assertIn("gds-submit-main", self.page())
+
+    def test_stage_text_matches_submit_page(self):
+        from geromail import gerocard
+        web = read_web_submit_template()
+        for status, text in gerocard.STAGE_TEXT.items():
+            if status == 0:
+                continue
+            self.assertIn(text, web, status)
+
+    def test_submit_page_limits_match_field_limits(self):
+        from geromail import gerofilter
+        page = self.page()
+        title_low, title_high = gerofilter.FIELD_LIMITS["title"]
+        self.assertIn(f"{title_low} to {title_high} characters", page)
+        self.assertIn(str(gerofilter.FIELD_LIMITS["type"][1]), page)
+        self.assertIn(str(gerofilter.FIELD_LIMITS["endpoint"][1]), page)
+        self.assertIn(f"at least {gerofilter.FIELD_LIMITS['summary'][0]} characters", page)
+        self.assertIn(f"{gerofilter.MAX_PDF_BYTES // 1000000} MB", page)
+        self.assertIn(f"{gerofilter.SELF_UPDATE_LIMIT} updates", page)
+        self.assertIn(f"{gerofilter.APPEAL_LIMIT} appeals", page)
+        self.assertIn(f"{gerofilter.COMMENT_LIMIT} questions", page)
+        from dashboards.models import APPEAL_WINDOW_DAYS
+        self.assertIn(f"{APPEAL_WINDOW_DAYS} days", page)
+        endpoint_max = gerofilter.FIELD_LIMITS["endpoint"][1]
+        self.assertIn(f"ENDPOINT: 1 to {endpoint_max} characters", page)
+
+    def test_submit_page_has_no_outdated_screenshots(self):
+        web = read_web_submit_template()
+        self.assertNotIn("sample/check.png", web)
+        self.assertNotIn("sample/overview.png", web)
+        self.assertNotIn("max 100 characters", web)
+
+    def test_submit_page_js_validates_the_id(self):
+        web = read_web_submit_template()
+        self.assertIn("^[0-9A-Za-z]{12}$", web)
+        self.assertIn("encodeURIComponent", web)
+        self.assertNotIn("innerHTML = id", web)
+
+    def test_submit_page_has_no_em_dash(self):
+        self.assertNotIn("\u2014", read_web_submit_template())
+
+
+class SubmitSampleRenderTests(TestCase):
+
+    def test_write_submit_sample(self):
+        import os
+        if os.environ.get("GB_WRITE_SAMPLES") != "1":
+            self.skipTest("set GB_WRITE_SAMPLES=1 to write the sample HTML")
+
+        out = os.environ.get("GB_SAMPLE_DIR") or "."
+        os.makedirs(out, exist_ok=True)
+
+        Personalization.objects.create(personalize_id=1)
+        MailBox.objects.create(mailbox_id=1, email="bounty@example.com", password="pw",
+                               mailbox_status=1)
+        response = self.client.get("/submit/")
+        self.assertEqual(response.status_code, 200)
+        with open(os.path.join(out, "oss-submit.html"), "w", encoding="utf-8") as fp:
+            fp.write(response.content.decode())

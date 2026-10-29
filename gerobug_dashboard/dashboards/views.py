@@ -17,8 +17,9 @@ from django.db.models import Sum
 from django.http import FileResponse, JsonResponse
 from django.utils import timezone
 from django.middleware.csrf import get_token
+from django.utils.html import format_html
 from prerequisites.models import MailBox, Webhook
-from .models import BOUNTY_CALC_STATUS, BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization, TroubleshootSettings
+from .models import APPEAL_WINDOW_DAYS, BOUNTY_CALC_STATUS, BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, BugReportHunterComment, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization, TroubleshootSettings
 from .forms import Requestform, RulesGuidelineForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm, WebhookForm, BlacklistForm, TemplateReportForm, TemplateNDAForm, TemplateCertForm, CertDataForm, PersonalizationForm, CompanyIdentityForm, Invalidform, TroubleshootForm
 from geromail import geromailer, gerofilter, geroparser, gerocalculator
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
@@ -61,9 +62,10 @@ class RenderDashboardAdmin(LoginRequiredMixin,ListView):
 
     
 _SUBMISSION_KINDS = (
-    ('updates', 'update', BugReportUpdate, 'update_detail', 'Update'),
-    ('appeals', 'appeal', BugReportAppeal, 'appeal_detail', 'Appeal'),
-    ('data',    'nda',    BugReportNDA,    'nda_detail',    'Submission'),
+    ('updates',  'update',  BugReportUpdate,        'update_detail',  'Update'),
+    ('appeals',  'appeal',  BugReportAppeal,        'appeal_detail',  'Appeal'),
+    ('data',     'nda',     BugReportNDA,           'nda_detail',     'Submission'),
+    ('comments', 'comment', BugReportHunterComment, 'comment_detail', 'Question'),
 )
 
 
@@ -80,7 +82,7 @@ def build_hunter_submissions(report):
                 'when': getattr(row, prefix + '_datetime'),
                 'summary': getattr(row, prefix + '_summary'),
                 'detail_url': reverse(route, kwargs={'pk': ident}),
-                'has_file': bool(getattr(row, prefix + '_file')) and os.path.isfile(
+                'has_file': bool(getattr(row, prefix + '_file', 0)) and os.path.isfile(
                     os.path.join(MEDIA_ROOT, report.report_id, ident + '.pdf')),
             })
         rows.sort(key=lambda r: r['when'], reverse=True)
@@ -139,20 +141,12 @@ class ReportDelete(LoginRequiredMixin,DeleteView):
     model = BugReport
     template_name = "dashboard_varieties/delete_report.html"
     
-    def delete(self, *args, **kwargs):
-        self.object = self.get_object()
-        super().delete(*args, **kwargs)
-        #self.object.delete()
-
-        # DELETE ALL CHILD UAN OBJECT
-        if BugReportUpdate.objects.filter(report_id=self.object.report_id).exists():
-            BugReportUpdate.objects.filter(report_id=self.object.report_id).delete()
-
-        if BugReportAppeal.objects.filter(report_id=self.object.report_id).exists():
-            BugReportAppeal.objects.filter(report_id=self.object.report_id).delete()
-        
-        if BugReportNDA.objects.filter(report_id=self.object.report_id).exists():
-            BugReportNDA.objects.filter(report_id=self.object.report_id).delete() 
+    def form_valid(self, form):
+        report_id = self.get_object().report_id
+        for model in (BugReportUpdate, BugReportAppeal, BugReportNDA,
+                      BugReportHunterComment):
+            model.objects.filter(report_id=report_id).delete()
+        return super().form_valid(form)
 
     def get_success_url(self):
         report_dir = os.path.join(MEDIA_ROOT, self.object.report_id)
@@ -172,7 +166,8 @@ class UpdateDetails(LoginRequiredMixin,DetailView):
     def get_context_data(self, **kwargs):
         context = super(UpdateDetails, self).get_context_data(**kwargs)
         context['uan_type'] = self.kwargs.get('pk')[12:13]
-        context['report_title'] = BugReport.objects.get(report_id=self.kwargs.get('pk')[:12]).report_title
+        parent = BugReport.objects.filter(report_id=self.kwargs.get('pk')[:12]).first()
+        context['report_title'] = parent.report_title if parent else ''
 
         # COMPANY NAME
         THEME = Personalization.objects.get(personalize_id=1)
@@ -190,13 +185,31 @@ class AppealDetails(LoginRequiredMixin,DetailView):
     def get_context_data(self, **kwargs):
         context = super(AppealDetails, self).get_context_data(**kwargs)
         context['uan_type'] = self.kwargs.get('pk')[12:13]
-        context['report_title'] = BugReport.objects.get(report_id=self.kwargs.get('pk')[:12]).report_title
+        parent = BugReport.objects.filter(report_id=self.kwargs.get('pk')[:12]).first()
+        context['report_title'] = parent.report_title if parent else ''
 
         # COMPANY NAME
         THEME = Personalization.objects.get(personalize_id=1)
         context['company_name'] = THEME.company_name
         return context
     
+
+class CommentDetails(LoginRequiredMixin,DetailView):
+    login_url = '/login/'
+    redirect_field_name = 'login'
+    model = BugReportHunterComment
+    template_name = "dashboard_varieties/detail_comment.html"
+    context_object_name = "bugposts"
+
+    def get_context_data(self, **kwargs):
+        context = super(CommentDetails, self).get_context_data(**kwargs)
+        parent = BugReport.objects.filter(report_id=self.kwargs.get('pk')[:12]).first()
+        context['report_title'] = parent.report_title if parent else ''
+
+        THEME = Personalization.objects.get(personalize_id=1)
+        context['company_name'] = THEME.company_name
+        return context
+
 
 class NDADetails(LoginRequiredMixin,DetailView):
     login_url = '/login/'
@@ -208,7 +221,8 @@ class NDADetails(LoginRequiredMixin,DetailView):
     def get_context_data(self, **kwargs):
         context = super(NDADetails, self).get_context_data(**kwargs)
         context['uan_type'] = self.kwargs.get('pk')[12:13]
-        context['report_title'] = BugReport.objects.get(report_id=self.kwargs.get('pk')[:12]).report_title
+        parent = BugReport.objects.filter(report_id=self.kwargs.get('pk')[:12]).first()
+        context['report_title'] = parent.report_title if parent else ''
 
         # COMPANY NAME
         THEME = Personalization.objects.get(personalize_id=1)
@@ -1136,18 +1150,36 @@ def rulescontext(request,):
 
     return render(request,'rules.html',{'RDP':staticrules.RDP,'bountyterms':staticrules.bountyterms,'inscope':staticrules.inscope,'outofscope':staticrules.outofscope,'reportguidelines':staticrules.reportguidelines,'faq':staticrules.faq,'company_name':company_name})
 
+
+def submit_page_context():
+    return {
+        'comment_limit': gerofilter.COMMENT_LIMIT,
+        'self_update_limit': gerofilter.SELF_UPDATE_LIMIT,
+        'appeal_limit': gerofilter.APPEAL_LIMIT,
+        'appeal_window_days': APPEAL_WINDOW_DAYS,
+        'max_pdf_mb': gerofilter.MAX_PDF_BYTES // 1000000,
+        'endpoint_max': gerofilter.FIELD_LIMITS['endpoint'][1],
+        'title_max': gerofilter.FIELD_LIMITS['title'][1],
+    }
+
+
 def emailcontext(request,):
-    if MailBox.objects.filter(mailbox_id=1)[0].email != "":
-        email = MailBox.objects.filter(mailbox_id=1)[0].email
-        template = "Submit your email to <strong>"+ email +"</strong> using the templates below..."
+    mailbox = MailBox.objects.filter(mailbox_id=1).first()
+    mailbox_email = mailbox.email if mailbox and mailbox.email else ""
+    if mailbox_email:
+        template = format_html(
+            "Send your email to {} using the formats below.", mailbox_email)
     else:
         template = "Currently the company hasn't set their email yet. Please contact the admin/wait for the mailbox setup."
 
-    # COMPANY NAME
     THEME = Personalization.objects.get(personalize_id=1)
     company_name = THEME.company_name
 
-    return render(request, 'submit.html',{'template':template, 'company_name':company_name})
+    context = {'template': template, 'mailbox_email': mailbox_email,
+               'company_name': company_name}
+    context.update(submit_page_context())
+
+    return render(request, 'submit.html', context)
 
 def halloffame(request,):
     bughunters = BugHunter.objects.alias(

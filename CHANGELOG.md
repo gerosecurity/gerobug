@@ -1,6 +1,87 @@
 # Changelog
 
-## Unreleased
+## v4.0 - 29 OCT 2026
+
+Every hunter email action is now correct, forgiving about formatting and able
+to explain itself. CHECK answers with a card that says what the hunter should
+do next, three new commands fill the gaps hunters kept writing to us about,
+and the Submit page documents all of it.
+
+### Hunter actions
+
+- **HELP** (or **COMMANDS**) replies with every command, a one line
+  description of each, and the remaining allowances of each report the sender
+  still has open. A sender with no reports gets the command list only.
+- **COMMENT_<Report ID>** lets a hunter ask the team a question without
+  spending one of their three updates. Text only, 10 per report, allowed while
+  the report is open. Questions show on the report page in the dashboard. On a
+  closed or completed report the reply says questions are closed and names the
+  stage, rather than reporting an authorization failure.
+- **WITHDRAW_<Report ID>** closes a report the hunter no longer wants pursued,
+  while it is still waiting for a triager or in review. It drops every open
+  grant and is recorded as a withdrawal, not as an invalid report, so
+  Troubleshooting > Resend never replays an "Invalid Report" notice for it.
+  Later than that the reply names the current stage and offers a plain reply
+  instead. An operator can reverse a withdrawal from
+  Troubleshooting > Override Report Fields.
+- **Subjects are forgiving.** `Re:`, `Fwd:`, `[EXT]` and similar prefixes,
+  lower case, spaces inside a Report ID, and a trailing word or suffix after
+  the Report ID are all accepted, so `CHECK_AB12CD34EF56 thanks` works. Every
+  operator email that asks for something now carries a subject the hunter can
+  simply reply to.
+- **Replies are threaded**, so a hunter's mail client groups all the messages
+  about one report into one conversation.
+- **An email is answered once.** Inbound mail is deduplicated by Message-ID,
+  so marking the mailbox unread no longer makes Gerobug reply all over again.
+- **Clear refusals.** A PDF over 25 MB states its own size (the 25 MB limit
+  itself is accepted), a non-PDF attachment says so, and a short SUBMIT names
+  the field that is too short. Inline signature images, archives and text files
+  are skipped, so the real PDF behind them is still found. Nothing is counted
+  or stored until the submission has passed validation, so a rejected appeal no
+  longer burns an appeal or strands a file.
+- **AGREE is atomic** and sends one confirmation naming the new stage.
+
+### Status card
+
+- **CHECK replies with a report card**: the stage and since when, what we need
+  from the hunter next with a button for it, the remaining update and appeal
+  allowance, every submission the hunter has sent, the last message we sent,
+  and the original submission. It is built from an allowlist, so triage
+  internals cannot leak into it.
+- **STATUS_OVERVIEW is an index** of every report, with a "Needs you" column,
+  the reports that need the hunter listed first, and a link per Report ID that
+  asks for its card.
+- **One-click buttons** in the emails that ask for something: update, agree,
+  appeal, send data.
+
+### Submit page
+
+- Grouped sections for all eleven commands, each with its subject, its body
+  format and the rules that apply, stating the real limits.
+- A Report ID box that fills the ID into every subject and mail button on the
+  page. Nothing is sent or stored; the ID stays in the browser.
+- An "Open in mail app" button per section, with the SUBMIT one pre-filling
+  the body template.
+- A "What happens next" list explaining all seven stages, in the same words
+  the emails use.
+
+### Fixed
+
+- Inbound mail is parsed as bytes, so Latin-1 and other 8-bit emails no longer
+  vanish, and a missing or broken Date header no longer drops the message.
+- SUBMIT and APPEAL use the shared body extractor, so an email whose only
+  content is an attachment no longer crashes the parser.
+- SUBMIT bodies are parsed line by line, so lower case labels, colons, dashes
+  and markdown bold all work, and a summary mentioning the word ENDPOINT stays
+  intact.
+- Report IDs are random and unique, instead of being derived from the hunter's
+  address and the clock.
+- File recovery covers every submission, appeals included, and picks the
+  message closest to the row's own date.
+- Deleting a report now really deletes its updates, appeals, data submissions
+  and questions. The old cleanup never ran on Django 4.
+- MY_SCORE and STATUS_OVERVIEW from a sender with no reports answer with a
+  "no reports yet" reply instead of an authorization failure.
 
 ### Hunter lifecycle
 
@@ -57,15 +138,29 @@ Settings > Troubleshooting gains four tools (superuser only):
 - **Mark as Invalid can name the original** of a duplicate. The report detail
   page shows it as a link.
 
-### Upgrade note
+### Upgrade notes
 
-The submission guidelines gained a bullet asking hunters to share videos,
-archives and exploit code as links inside the PDF. Installations that already
-have their rules saved keep the stored text, so paste the bullet into
-Settings > Rules if you want it. Reports already at Bounty Calculation before
-the upgrade never auto-accept, because their hunters were not told about the
-30-day window; re-send the calculation (report page or Troubleshooting >
-Resend) to start it. Resend only knows about emails sent after the upgrade.
+- New tables: `ProcessedMail` (inbound dedupe, swept after 180 days) and
+  `BugReportHunterComment`.
+- New fields on `BugReport`: `report_status_changed_at` and
+  `report_hunter_comment`.
+- Reports that existed before the upgrade show no "since" date on their card
+  until their stage next changes.
+- A Settings > Rules text saved before the upgrade keeps whatever command list
+  it contained until you edit it.
+- New report IDs are random hex. Existing report IDs keep working.
+- MY_SCORE and STATUS_OVERVIEW from a sender with no reports changed from 403
+  to a new "no reports yet" reply.
+- A bounty decision still needs an explicit AGREE or APPEAL. A plain reply to
+  the decision email is not treated as agreement.
+- The submission guidelines gained a bullet asking hunters to share videos,
+  archives and exploit code as links inside the PDF. Installations that already
+  have their rules saved keep the stored text, so paste the bullet into
+  Settings > Rules if you want it.
+- Reports already at Bounty Calculation before the upgrade never auto-accept,
+  because their hunters were not told about the 30-day window. Re-send the
+  calculation (report page or Troubleshooting > Resend) to start it. Resend
+  only knows about emails sent after the upgrade.
 
 ## v3.1 — 25 OCT 2026
 

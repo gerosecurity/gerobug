@@ -7,6 +7,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.core.validators import RegexValidator, MaxValueValidator, MinValueValidator, MinLengthValidator
+from django.utils import timezone
 from django_quill.fields import QuillField
 from geromail import gerocalculator
 from .rulestemplate import *
@@ -46,7 +47,9 @@ class BugReport(models.Model):
     report_update_self = models.IntegerField(default=0)
     report_appeal = models.IntegerField(default=0)
     report_nda  = models.IntegerField(default=0)
+    report_hunter_comment = models.IntegerField(default=0)
     report_calc_sent_at = models.DateTimeField(null=True, blank=True)
+    report_status_changed_at = models.DateTimeField(null=True, blank=True)
     last_email_code = models.IntegerField(default=0)
     last_email_note = models.TextField(blank=True, default='')
 
@@ -73,9 +76,13 @@ class BugReport(models.Model):
         if loaded is not None and self.report_status != loaded:
             allowed = self.STATUS_PERMISSIONS.get(self.report_status, 0)
             self.report_permission = max(self.report_permission, 0) & allowed
+            self.report_status_changed_at = timezone.now()
             update_fields = kwargs.get('update_fields')
-            if update_fields is not None and 'report_permission' not in update_fields:
-                kwargs['update_fields'] = list(update_fields) + ['report_permission']
+            if update_fields is not None:
+                extra = [f for f in ('report_permission', 'report_status_changed_at')
+                         if f not in update_fields]
+                if extra:
+                    kwargs['update_fields'] = list(update_fields) + extra
         super().save(*args, **kwargs)
         self._loaded_status = self.report_status
 
@@ -131,6 +138,19 @@ class BugReportNDA(models.Model):
 
     def get_absolute_url(self):
         return reverse('nda_detail', kwargs={'pk':self.nda_id})  
+
+class BugReportHunterComment(models.Model):
+    comment_id = models.CharField(max_length=20,primary_key=True,validators=[alphanumeric])
+    report_id = models.CharField(max_length=15)
+    comment_datetime = models.DateTimeField()
+    comment_summary = models.TextField()
+
+    def __str__(self):
+        return self.comment_id
+
+    def get_absolute_url(self):
+        return reverse('comment_detail', kwargs={'pk':self.comment_id})
+
 
 class BugHunter(models.Model):
     hunter_email = models.EmailField()
@@ -325,3 +345,14 @@ class TroubleshootSettings(models.Model):
 
     def __str__(self):
         return f"TroubleshootSettings (sinkhole={'on' if self.hunter_email_sinkhole else 'off'})"
+
+
+PROCESSED_MAIL_RETENTION_DAYS = 180
+
+
+class ProcessedMail(models.Model):
+    fingerprint = models.CharField(max_length=128, unique=True)
+    received_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    def __str__(self):
+        return self.fingerprint

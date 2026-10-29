@@ -1,13 +1,34 @@
 import re
 import os
-import html
 import PyPDF2
 import logging
 
-from django.db import transaction
-
 from dashboards.models import (BOUNTY_CALC_STATUS, BugHunter, BugReport, BugReportUpdate,
-                               BugReportAppeal, BugReportNDA, ReportStatus)
+                               BugReportAppeal, BugReportNDA)
+from gerobug.settings import MEDIA_ROOT
+
+
+MAX_PDF_BYTES = 25_000_000
+
+FIELD_LIMITS = {
+    "title": (3, 150),
+    "type": (1, 100),
+    "endpoint": (1, 255),
+    "summary": (10, None),
+}
+
+REASON_PDF_TOO_LARGE = ("Your PDF is {mb:.1f} MB; the limit is 25 MB. "
+                        "Put large evidence behind a link inside the PDF.")
+REASON_PDF_INVALID = "The attachment is not a valid PDF file."
+REASON_SUBMIT_NO_PDF = "Attach your report as a PDF file."
+REASON_TITLE = "Title needs 3 to 150 characters."
+REASON_TYPE = "TYPE is missing or longer than 100 characters."
+REASON_ENDPOINT = "ENDPOINT is missing or longer than 255 characters."
+REASON_SUMMARY = "SUMMARY needs at least 10 characters."
+REASON_EMPTY_UPDATE = "Include a written description in the email body or attach a PDF."
+REASON_EMPTY_APPEAL = "Include your reasoning in the email body or attach a PDF."
+REASON_UNKNOWN_COMMAND = ("We could not recognise the command in the subject. "
+                          "Send an email with the subject HELP for the list of commands.")
 
 
 
@@ -75,6 +96,19 @@ def check_duplicate(id):
 
 APPEAL_LIMIT = 3
 
+COMMENT_LIMIT = 10
+
+COMMENT_STATUSES = (1, 2, 3, 4, 5, 6)
+
+WITHDRAW_STATUSES = (1, 2)
+
+REASON_EMPTY_COMMENT = "Write your question in the email body."
+
+REASON_PDF_NOT_STORED_UPDATE = ("We could not store the attached PDF. "
+                                "Please send it again in a new UPDATE.")
+REASON_PDF_NOT_STORED_DATA = ("We could not store the attached PDF. "
+                              "Please send it again in a new DATA email.")
+
 
 # VALIDATE APPEAL LIMIT
 def validate_appeal(id):
@@ -93,17 +127,6 @@ def validate_update_stage(id):
 def validate_self_update(id):
     report = BugReport.objects.get(report_id=id)
     return report.report_update_self < SELF_UPDATE_LIMIT
-
-
-def consume_update_allowance(id):
-    with transaction.atomic():
-        report = BugReport.objects.select_for_update().get(report_id=id)
-        if report.report_permission >= 4:
-            report.report_permission -= 4
-        else:
-            report.report_update_self += 1
-        report.save()
-        return max(0, SELF_UPDATE_LIMIT - report.report_update_self)
 
 
 # VALIDATE IF CERTAIN OPERATION IS PERMITTED
@@ -143,11 +166,16 @@ def validate_permission(operation, id):
 # VALIDATE USER OWNERSHIP FOR REPORT ID
 def validate_user(email, id):
     report = BugReport.objects.get(report_id=id)
-    
-    if(report.hunter_email == email):
-        return True
-    else:    
+    return str(report.hunter_email or '').strip().lower() == str(email or '').strip().lower()
+
+
+_REPORT_ID_RE = re.compile(r'^[0-9A-Za-z]{12}$')
+
+
+def valid_report_id(id):
+    if not _REPORT_ID_RE.match(str(id or '')):
         return False
+    return BugReport.objects.filter(report_id=id).exists()
 
 
 # VALIDATE REPORT ID
@@ -186,210 +214,259 @@ def check_pdf(file):
         return True
 
 
-# VALIDATE AND DOWNLOAD ATTACHMENT
-def validate_attachment(msg, id, FILEPATH):
-    valid = False
-    filePath = ''
+def looks_like_pdf(part, data):
+    if (part.get_content_type() or '').lower() == 'application/pdf':
+        return True
+    if str(part.get_filename() or '').lower().endswith('.pdf'):
+        return True
+    return bool(data) and data[:4] == b'%PDF'
+
+
+def extract_pdf_sized(msg):
+    reason = "none"
+    reason_size = 0
+
     for part in msg.walk():
         if part.get_content_maintype() == 'multipart':
             continue
-
         if part.get('Content-Disposition') is None:
             continue
-        
-        fileName = part.get_filename()
-        if bool(fileName):
-            report_id = id[:12]
-            fileName = id + '.pdf'
-            fileDir = os.path.join(FILEPATH, report_id)
-            filePath = os.path.join(fileDir, fileName)
+        if not part.get_filename():
+            continue
 
-            real_filepath = os.path.realpath(filePath)
-            real_basepath = os.path.realpath(FILEPATH)
-            if not real_filepath.startswith(real_basepath + os.sep):
-                logging.getLogger("Gerologger").error(f"Path traversal blocked: {filePath} resolves outside {FILEPATH}")
-                break
+        data = part.get_payload(decode=True)
+        if not data:
+            continue
+        if not looks_like_pdf(part, data):
+            continue
 
-            file = part.get_payload(decode=True)
-            fileSize = len(file)
-            logging.getLogger("Gerologger").info('File size = ' + str(fileSize))
+        size = len(data)
+        logging.getLogger("Gerologger").info('File size = ' + str(size))
 
-            if fileSize >= 25000000:
-                pass
-            elif not os.path.isfile(filePath):
-                if not check_pdf(file):
-                    logging.getLogger("Gerologger").warning('Invalid PDF detected in memory, file not written to disk')
-                    continue
+        if size > MAX_PDF_BYTES:
+            if reason in ("none", "not_pdf"):
+                reason, reason_size = "too_large", size
+            continue
+        if not check_pdf(data):
+            logging.getLogger("Gerologger").warning(
+                'Invalid PDF detected in memory, file not written to disk')
+            if reason == "none":
+                reason, reason_size = "not_pdf", size
+            continue
+        return data, "", size
 
-                if not os.path.exists(fileDir):
-                    os.mkdir(fileDir)
+    return None, reason, reason_size
 
-                fp = open(filePath, 'wb')
-                fp.write(file)
-                fp.close()
-                valid = True
 
-                break
-    
-    return valid
+def extract_pdf(msg):
+    data, reason, _size = extract_pdf_sized(msg)
+    return data, reason
+
+
+def pdf_reason_text(reason, size=0):
+    if reason == "too_large":
+        return REASON_PDF_TOO_LARGE.format(mb=size / 1000000.0)
+    if reason == "not_pdf":
+        return REASON_PDF_INVALID
+    return ""
+
+
+def store_pdf(report_id, file_id, data, base=None):
+    if base is None:
+        base = MEDIA_ROOT
+    if not data:
+        return False
+
+    file_dir = os.path.join(base, report_id)
+    file_path = os.path.join(file_dir, file_id + '.pdf')
+
+    real_filepath = os.path.realpath(file_path)
+    real_basepath = os.path.realpath(base)
+    if not real_filepath.startswith(real_basepath + os.sep):
+        logging.getLogger("Gerologger").error(
+            f"Path traversal blocked: {file_path} resolves outside {base}")
+        return False
+
+    if os.path.isfile(file_path):
+        logging.getLogger("Gerologger").warning(
+            f"Refusing to overwrite an existing file: {file_path}")
+        return False
+
+    os.makedirs(file_dir, exist_ok=True)
+    with open(file_path, 'wb') as fp:
+        fp.write(data)
+    return True
+
+
+def validate_submit_fields(title, atk_type, endpoint, summary):
+    title = (title or '').strip()
+    atk_type = (atk_type or '').strip()
+    endpoint = (endpoint or '').strip()
+    summary = (summary or '').strip()
+
+    low, high = FIELD_LIMITS["title"]
+    if len(title) < low or len(title) > high:
+        return REASON_TITLE
+    low, high = FIELD_LIMITS["type"]
+    if len(atk_type) < low or len(atk_type) > high:
+        return REASON_TYPE
+    low, high = FIELD_LIMITS["endpoint"]
+    if len(endpoint) < low or len(endpoint) > high:
+        return REASON_ENDPOINT
+    low, high = FIELD_LIMITS["summary"]
+    if len(summary) < low:
+        return REASON_SUMMARY
+    return ""
+
+
+def validate_attachment(msg, id, FILEPATH=None):
+    data, reason = extract_pdf(msg)
+    if reason:
+        return False
+    return store_pdf(str(id)[:12], str(id), data,
+                     base=FILEPATH if FILEPATH is not None else MEDIA_ROOT)
+
+
+_FIELD_LINE_RE = re.compile(
+    r'^\s*\**\s*(TYPE|ENDPOINT|SUMMARY)\s*\**\s*[=:\-]\s*(.*)$', re.IGNORECASE)
 
 
 # PARSE EMAIL BODY
 def parse_body(body):
-    endpoint = '' 
-    summary = ''
+    fields = {'TYPE': [], 'ENDPOINT': [], 'SUMMARY': []}
+    current = None
 
     try:
-        type = re.search('(TYPE=|TYPE =|TYPE)((.|\n)*)(ENDPOINT=|ENDPOINT =|ENDPOINT)', body.replace('*', ''))
-        if type != None:
-            type = type.group(2)
-            type = str(type.replace("\n",""))
-        else:
-            type = ''
+        for line in str(body or '').replace('\r\n', '\n').split('\n'):
+            match = _FIELD_LINE_RE.match(line)
+            if match:
+                current = match.group(1).upper()
+                fields[current].append(match.group(2).strip())
+            elif current == 'SUMMARY':
+                fields['SUMMARY'].append(line.strip())
+            elif current:
+                fields[current].append(line.strip())
 
-        endpoint = re.search('(ENDPOINT=|ENDPOINT =|ENDPOINT)((.|\n)*)(SUMMARY=|SUMMARY =|SUMMARY)', body.replace('*', ''))
-        if endpoint != None:
-            endpoint = endpoint.group(2)
-            endpoint = re.sub(r"<.*>", "", str(endpoint))
-            endpoint = str(endpoint.replace("\n",""))
-        else:
-            endpoint = ''
-
-        summary = re.search('(SUMMARY=|SUMMARY =|SUMMARY)(.*)', body.replace('\n', ' ').replace('*', ''))
-        if summary != None:
-            summary = summary.group(2)
-        else:
-            summary = ''
+        atk_type = ' '.join(part for part in fields['TYPE'] if part).strip()
+        endpoint = ' '.join(part for part in fields['ENDPOINT'] if part).strip()
+        endpoint = re.sub(r'<[^>]*>', '', endpoint).strip()
+        summary = '\n'.join(fields['SUMMARY']).strip()
 
     except Exception as e:
         logging.getLogger("Gerologger").error(str(e))
+        return '', '', ''
 
-    return type, endpoint, summary
+    return atk_type, endpoint, summary
 
 
-# CLASSIFY ACTION BY EMAIL SUBJECT
+_SUBJECT_MAX = 500
+
+_REPLY_PREFIX = re.compile(
+    r'^(?:\s*(?:(?:re|fw|fwd|aw|sv|wg|tr|rif)\s?(?:\[\d+\])?\s?:|\[[^\]]{1,40}\]))+\s*',
+    re.I)
+_COMMAND = re.compile(
+    r'^(SUBMIT|CHECK|UPDATE|APPEAL|AGREE|DATA|NDA|COMMENT|WITHDRAW)\s*[_:\- ]\s*(.*)$'
+    r'|^(STATUS_OVERVIEW|MY_SCORE|HELP|COMMANDS)\b', re.I)
+_REPORT_ID = re.compile(r'^([0-9A-Za-z]{12})(?![0-9A-Za-z])')
+
+_REST_MAX = 64
+
+
+def parse_subject(subject):
+    s = str(subject or '')[:_SUBJECT_MAX]
+    s = _REPLY_PREFIX.sub('', s).strip()
+    m = _COMMAND.match(s)
+    if not m:
+        return None, ''
+    if m.group(3):
+        return m.group(3).upper(), ''
+    verb, rest = m.group(1).upper(), m.group(2).strip()
+    if verb == 'SUBMIT':
+        return verb, rest
+    idm = _REPORT_ID.match(rest) or _REPORT_ID.match(rest.replace(' ', ''))
+    return verb, (idm.group(1).upper() if idm else rest[:_REST_MAX])
+
+
+_SUBJECT_ACTIONS = {
+    'CHECK':  (202, None),
+    'UPDATE': (203, 'U'),
+    'APPEAL': (204, 'A'),
+    'AGREE':  (205, 'A'),
+    'DATA':   (206, 'N'),
+    'NDA':    (206, 'N'),
+}
+
+
 def classify_action(email, subject):
     try:
-        if(re.search(r'^SUBMIT_', subject)):
-            title = subject[7 : ]
-            return 201, title
+        verb, rest = parse_subject(subject)
 
-        elif(re.search(r'^CHECK_', subject)):
-            id = subject[6 : ]
-            id = id.replace(' ','')
-            if validate_id(id):
-                if validate_user(email, id):
-                    return 202, id
-                else:
-                    return 403, id
-            else:
+        if verb == 'SUBMIT':
+            return 201, rest
+
+        if verb in _SUBJECT_ACTIONS:
+            code, permission = _SUBJECT_ACTIONS[verb]
+            id = rest
+            if not valid_report_id(id):
                 return 405, id
+            if not validate_user(email, id):
+                return 403, id
+            if code == 203:
+                if not validate_update_stage(id):
+                    return 408, id
+                if not validate_permission('U', id) and not validate_self_update(id):
+                    return 407, id
+            elif permission and not validate_permission(permission, id):
+                return 403, id
+            if code == 204 and not validate_appeal(id):
+                return 409, id
+            return code, id
 
-        elif(re.search(r'^UPDATE_', subject)):
-            id = subject[7 : ]
-            id = id.replace(' ','')
-            if validate_id(id):
-                if validate_user(email, id):
-                    if not validate_update_stage(id):
-                        return 408, id
-                    if validate_permission("U", id) or validate_self_update(id):
-                        return 203, id
-                    else:
-                        return 407, id
-                else:
-                    return 403, id
-            else:
-                return 405, id
-
-        elif(re.search(r'^APPEAL_', subject)):
-            id = subject[7 : ]
-            id = id.replace(' ','')
-            if validate_id(id):
-                if validate_user(email, id):
-                    if validate_permission("A", id):
-                        if validate_appeal(id):
-                            return 204, id
-                        else:
-                            return 409, id
-                    else:
-                        return 403, id
-                else:
-                    return 403, id
-            else:
-                return 405, id
-
-        elif(re.search(r'^AGREE_', subject)):
-            id = subject[6 : ]
-            id = id.replace(" ","")
-            if validate_id(id):
-                if validate_user(email, id):
-                    if validate_permission("A", id):
-                        return 205, id
-                    else:
-                        return 403, id
-                else:
-                    return 403, id
-            else:
-                return 405, id
-
-        elif(re.search(r'^NDA_', subject)):
-            id = subject[4 : ]
-            if validate_id(id):
-                if validate_user(email, id):
-                    if validate_permission("N", id):
-                        return 206, id
-                    else:
-                        return 403, id
-                else:
-                    return 403, id
-            else:
-                return 405, id
-
-        elif(re.search(r'^DATA_', subject)):
-            id = subject[5 : ]
-            if validate_id(id):
-                if validate_user(email, id):
-                    if validate_permission("N", id):
-                        return 206, id
-                    else:
-                        return 403, id
-                else:
-                    return 403, id
-            else:
-                return 405, id
-
-        elif(re.search(r'^MY_SCORE$', subject)):
-            if BugHunter.objects.filter(hunter_email=email).exists():
-                hunter = BugHunter.objects.get(hunter_email=email)
+        if verb == 'MY_SCORE':
+            hunter = BugHunter.objects.filter(hunter_email__iexact=email).first()
+            if hunter is not None:
                 return 207, str(hunter.hunter_scores)
+            if BugReport.objects.filter(hunter_email__iexact=email).exists():
+                return 207, "0"
+            return 410, " "
+
+        if verb == 'STATUS_OVERVIEW':
+            if BugReport.objects.filter(hunter_email__iexact=email).exists():
+                from . import gerocard
+                return 208, gerocard.build_overview_rows(email)
             else:
-                return 403, " "
-        
-        elif(re.search(r'^STATUS_OVERVIEW$', subject)):
-            if BugHunter.objects.filter(hunter_email=email).exists():
-                if BugReport.objects.filter(hunter_email=email).exists():
-                    reports = []
-                    for report in BugReport.objects.filter(hunter_email=email):
-                        status = ReportStatus.objects.get(status_id=report.report_status)
-                        status = status.status_name
-                        cell = "padding:10px 12px; border:1px solid #d2d6dc; vertical-align:top;"
-                        x = (
-                            "<tr>"
-                            "<td style=\"" + cell + " font-family:'Courier New', monospace; white-space:nowrap;\">" + html.escape(report.report_id) + "</td>"
-                            "<td style=\"" + cell + "\">" + html.escape(report.report_title) + "</td>"
-                            "<td style=\"" + cell + "\">" + html.escape(status) + "</td>"
-                            "</tr>"
-                        )
-                        reports.append(x)
-                    
-                    return 208, reports
-                else:
-                    return 403, " "
-            else:
-                return 403, " "
-            
-        else:
-            return 404, " "
+                return 410, " "
+
+        if verb == 'COMMENT':
+            id = rest
+            if not valid_report_id(id):
+                return 405, id
+            if not validate_user(email, id):
+                return 403, id
+            report = BugReport.objects.get(report_id=id)
+            if report.report_status not in COMMENT_STATUSES:
+                return 413, id
+            if report.report_hunter_comment >= COMMENT_LIMIT:
+                return 411, id
+            return 211, id
+
+        if verb == 'WITHDRAW':
+            id = rest
+            if not valid_report_id(id):
+                return 405, id
+            if not validate_user(email, id):
+                return 403, id
+            report = BugReport.objects.get(report_id=id)
+            if report.report_status not in WITHDRAW_STATUSES:
+                return 412, id
+            return 212, id
+
+        if verb in ('HELP', 'COMMANDS'):
+            from . import gerocard
+            return 210, gerocard.build_help(email)
+
+        return 404, REASON_UNKNOWN_COMMAND
 
     except Exception as e:
         logging.getLogger("Gerologger").error(str(e))
+        return 404, " "

@@ -1,5 +1,7 @@
 # MAIL TEMPLATES FOR GEROBUG
 
+from .gerofilter import APPEAL_LIMIT, COMMENT_LIMIT, SELF_UPDATE_LIMIT
+
 _P    = "margin:0 0 16px 0;"
 _LAST = "margin:0;"
 _LIST = "margin:0 0 16px 0; padding-left:22px;"
@@ -59,13 +61,11 @@ message_201 = _wrap(
     + _SIGNOFF
 )
 
-subject_202 = "Status of Report ID ~ID~"
+subject_202 = "CHECK_~ID~ | Status of Report ~ID~"
 message_202 = _wrap(
     _HELLO
-    + _para("This email provides an update on your bug report.")
-    + _para("The current status of Report ID <b>~ID~</b> (<b>~TITLE~</b>) is <b>~STATUS~</b>.")
-    + _para("We will notify you if there are further updates or if additional "
-            "information is required.")
+    + _para("Here is where your report stands and what, if anything, we need from you.")
+    + "~NOTE~"
     + _SIGNOFF
 )
 
@@ -96,8 +96,10 @@ message_205 = _wrap(
     _HELLO
     + _para("This is a confirmation that your agreement regarding the bounty calculation "
             "for Report ID <b>~ID~</b> has been received.")
-    + _para("The bounty processing will proceed according to the program guidelines. "
-            "You will be notified once there are further updates.")
+    + _para("Your report has moved to <b>Bounty in Process</b>, the stage where we "
+            "prepare the reward. We will email you with the next steps, and we may ask "
+            "for a few details before the payout.")
+    + _para("No action is required from you right now.")
     + _SIGNOFF
 )
 
@@ -133,8 +135,9 @@ subject_208 = "Submission Summary: Report Overview"
 message_208 = _wrap(
     _HELLO
     + _para("Here is an overview of your report history with our bug bounty program. "
-            "You have submitted a total of <b>~ID~</b> report(s). The current status "
-            "of each is listed below.")
+            "You have submitted a total of <b>~ID~</b> report(s). The ones that need "
+            "something from you are listed first. Click a Report ID to ask for its "
+            "full card.")
     + '<table role="presentation" cellpadding="0" cellspacing="0" '
       'style="width:100%; border-collapse:collapse; margin:8px 0 20px 0; font-size:14px;">'
         "<thead><tr>"
@@ -144,11 +147,90 @@ message_208 = _wrap(
             'color:#ffffff; border:1px solid #1f2933;">Title</th>'
             '<th align="left" style="padding:10px 12px; background-color:#1f2933; '
             'color:#ffffff; border:1px solid #1f2933;">Status</th>'
+            '<th align="left" style="padding:10px 12px; background-color:#1f2933; '
+            'color:#ffffff; border:1px solid #1f2933;">Needs you</th>'
         "</tr></thead>"
         "<tbody>~NOTE~</tbody>"
       "</table>"
-    + _para("If you have any questions about a specific report, simply reply to this "
-            "email and our team will follow up.")
+    + _para("For the details of one report, send an email with the subject "
+            "<b>CHECK_</b> followed by its Report ID. To ask our team a question "
+            "about a report, use the subject <b>COMMENT_</b> followed by its "
+            "Report ID.")
+    + _SIGNOFF
+)
+
+
+subject_210 = "Gerobug Commands: What You Can Send Us"
+message_210 = _wrap(
+    _HELLO
+    + _para("Here is everything you can ask us by email, with a one line "
+            "description of each command.")
+    + "~NOTE~"
+    + _para("If a command is refused, our reply says why and what to send instead.")
+    + _SIGNOFF
+)
+
+
+subject_211 = "COMMENT_~ID~ | Question Received: Report ~ID~"
+message_211 = _wrap(
+    _HELLO
+    + _para("We received your question about Report ID <b>~ID~</b> (<b>~TITLE~</b>) "
+            "and passed it to the team handling the report.")
+    + _note("Your question:", "~NOTE~")
+    + _para("A question does not use up any of your update allowance, and it does "
+            "not change the stage of your report.")
+    + _para("If you meant to send us new evidence, send it with the subject "
+            "<b>UPDATE_~ID~</b> instead. A PDF attached to a question is not stored.")
+    + _SIGNOFF
+)
+
+subject_212 = "COMMENT_~ID~ | Report Withdrawn: ~ID~"
+message_212 = _wrap(
+    _HELLO
+    + _para("We have withdrawn Report ID <b>~ID~</b> (<b>~TITLE~</b>) at your request. "
+            "It is now closed and our team will take it no further.")
+    + _para("Nothing else is needed from you. If you withdrew it by mistake, reply to "
+            "this email: your reply reaches our team as a question about this "
+            "report, and they can reopen it.")
+    + _para("You are welcome to send the finding again later with the subject "
+            "\"<b>SUBMIT_Your report title</b>\".")
+    + _SIGNOFF
+)
+
+subject_412 = "COMMENT_~ID~ | Withdrawal Not Possible: ~ID~"
+message_412 = _wrap(
+    _HELLO
+    + _para("We received your request to withdraw Report ID <b>~ID~</b>, but it could "
+            "not be carried out: the report has already moved on and is now at "
+            "<b>~STATUS~</b>.")
+    + _para("A report can only be withdrawn while it is still waiting for a triager or "
+            "being reviewed. After that our team has already acted on it.")
+    + _para("If you still want the report closed, reply to this email and tell us "
+            "why. Your reply reaches our team as a question about this report, "
+            "and they will look at it.")
+    + _SIGNOFF
+)
+
+subject_411 = "CHECK_~ID~ | Question Limit Reached: ~ID~"
+message_411 = _wrap(
+    _HELLO
+    + _para("We received your question about Report ID <b>~ID~</b>, but it could not "
+            f"be recorded: you have already sent all <b>{COMMENT_LIMIT}</b> questions "
+            "available to you on this report.")
+    + _para("This is not a refusal of your finding. Our team will contact you directly "
+            "when there is news about the report.")
+    + _para("To see where the report stands, send an email with the subject "
+            "<b>CHECK_~ID~</b>.")
+    + _SIGNOFF
+)
+
+subject_413 = "CHECK_~ID~ | Questions Closed: Report ~ID~"
+message_413 = _wrap(
+    _HELLO
+    + _para("We received your question about Report ID <b>~ID~</b>, but questions are "
+            "closed: the report is at <b>~STATUS~</b>.")
+    + _para("If something is urgent, reply to the last email our team sent you about "
+            "this report.")
     + _SIGNOFF
 )
 
@@ -168,12 +250,12 @@ message_403 = _wrap(
     + _SIGNOFF
 )
 
-subject_404 = "Submission Error: Invalid Report Format"
+subject_404 = "We could not process your email"
 message_404 = _wrap(
     _HELLO
-    + _para("We have received your submission. Regrettably, this report has been marked "
-            "as <b>Invalid</b> and cannot be processed in its current state.")
-    + _note("Reason for rejection:", "~NOTE~")
+    + _para("We received your email, but we could not process it. Nothing has been "
+            "changed on your report.")
+    + _note("What went wrong:", "~NOTE~")
     + _para("Please verify your input and ensure it adheres to the required format as "
             'defined <a href="https://gerobug.gitbook.io/documentation/filter-and-validation" '
             'style="' + _LINK + '" target="_blank">in our documentation</a>.')
@@ -187,6 +269,19 @@ message_405 = _wrap(
             "the submitted Report ID (<b>~ID~</b>) was not found in our system.")
     + _para("Please verify the Report ID against your records to ensure it is correct "
             "and try again.")
+    + _SIGNOFF
+)
+
+subject_410 = "No Reports Yet"
+message_410 = _wrap(
+    _HELLO
+    + _para("We looked for reports submitted from this email address and found none, "
+            "so there is nothing to show yet.")
+    + _para("To submit your first report, send an email with the subject "
+            "\"<b>SUBMIT_Your report title</b>\", put TYPE, ENDPOINT and SUMMARY in the "
+            "body, and attach your full report as a PDF file.")
+    + _para("If you have submitted a report before, send your request from the same "
+            "email address you used then.")
     + _SIGNOFF
 )
 
@@ -227,8 +322,8 @@ message_302 = _wrap(
     + _para('Our bounty calculation for Report ID <b>~ID~</b> ("~TITLE~") was sent to '
             "you 30 days ago and we have not received an appeal within that period.")
     + _para("Determined Severity: <b>~SEVERITY~</b>")
-    + _para("As set out in the bounty decision email, the valuation is therefore "
-            "considered accepted and the report has moved to <b>~STATUS~</b>. No "
+    + _para("As set out in the bounty decision email, the valuation therefore "
+            "counts as agreed and the report has moved to <b>~STATUS~</b>. No "
             "action is required from you at this stage.")
     + _para("We will contact you with the next steps for the reward process.")
     + _SIGNOFF
@@ -239,12 +334,12 @@ subject_409 = "Appeal Limit Reached: Report ~ID~"
 message_409 = _wrap(
     _HELLO
     + _para("We have received your appeal for Report ID <b>~ID~</b>, but it could not "
-            "be recorded: you have already used all <b>3</b> appeals available to you "
-            "on this report.")
+            f"be recorded: you have already used all <b>{APPEAL_LIMIT}</b> appeals "
+            "available to you on this report.")
     + _para("As stated in our bounty decision email, the valuation standing after the "
-            "third appeal is final. It is treated as accepted: you may confirm it now "
-            "by sending an email with the subject \"<b>AGREE_~ID~</b>\", or it will be "
-            "accepted automatically 30 days after the latest bounty decision email. "
+            "third appeal is final. It counts as agreed: you may confirm it now "
+            "by sending an email with the subject \"<b>AGREE_~ID~</b>\", or it is "
+            "treated as agreed 30 days after the latest bounty decision email. "
             "No further action is required from you.")
     + _para("We do appreciate the time you put into the submission, and we hope to see "
             "your next one.")
@@ -270,8 +365,8 @@ subject_407 = "Update Limit Reached: Report ~ID~"
 message_407 = _wrap(
     _HELLO
     + _para("We have received your update for Report ID <b>~ID~</b>, but it could not "
-            "be recorded: you have already used all <b>3</b> updates available to you "
-            "on this report without a request from our team.")
+            f"be recorded: you have already used all <b>{SELF_UPDATE_LIMIT}</b> updates "
+            "available to you on this report without a request from our team.")
     + _para("This is not a rejection of your finding. Our team can invite a further "
             "update at any time, and an update sent in response to such a request "
             "does not count against the limit.")
@@ -279,21 +374,21 @@ message_407 = _wrap(
     + _SIGNOFF
 )
 
-subject_701 = "Action Required: Additional Info for Report ~ID~"
+subject_701 = "UPDATE_~ID~ | Action Required: Additional Info"
 message_701 = _wrap(
     _HELLO
     + _para("Our team requires additional details regarding Report ID <b>~ID~</b> "
             "(~TITLE~) to proceed with the validation process.")
     + _note("Request Details:", "~NOTE~")
-    + _para("Please submit the requested information by replying to this email. "
-            "You must strictly follow this format:")
+    + _para("Reply to this email, or send a new email with the subject "
+            "<b>UPDATE_~ID~</b>. Either way, please include:")
     + _list([
-        'Set the email subject to: "<b>UPDATE_~ID~</b>"',
-        "Include a text-only <b>Summary</b> of the update in the email body.",
-        "Ensure the full detailed report is attached as a <b>PDF file</b>.",
+        "A text-only <b>Summary</b> of the update in the email body.",
+        "The full detailed report attached as a <b>PDF file</b>.",
     ])
+    + "~ACTIONS~"
     + _para("An update sent in reply to this request does <b>not</b> count against "
-            "the 3 updates you may send on your own initiative.")
+            f"the {SELF_UPDATE_LIMIT} updates you may send on your own initiative.")
     + _para("For detailed formatting rules, please refer to our guideline page.")
     + _para("We look forward to your response.")
     + _SIGNOFF
@@ -311,31 +406,32 @@ message_702 = _wrap(
     + _para("<b>Option 2: Appeal the Decision</b><br>"
             'Send an email with the subject "<b>APPEAL_~ID~</b>". You must include your '
             "<b>Reason/Justification</b> in the email body (text only).")
-    + _para("<b>Important:</b> You are limited to a maximum of <b>3 appeals</b>. If this "
-            "limit is exceeded, the current determination will be considered final and "
-            "processed accordingly.")
+    + "~ACTIONS~"
+    + _para(f"<b>Important:</b> You are limited to a maximum of <b>{APPEAL_LIMIT} "
+            "appeals</b>. If this limit is exceeded, the current determination will "
+            "be considered final and processed accordingly.")
     + _para("<b>Please note:</b> if we do not hear from you within <b>30 days</b> of this "
-            "email, the valuation above will be treated as accepted and the report will "
+            "email, the valuation above counts as agreed and the report will "
             "move on to bounty processing automatically.")
     + _para("For detailed formatting rules, please refer to our guideline page.")
     + _para("We look forward to your response.")
     + _SIGNOFF
 )
 
-subject_703 = "Action Required: Bounty Prerequisites for Report ~ID~"
+subject_703 = "DATA_~ID~ | Action Required: Bounty Prerequisites (NDA)"
 message_703 = _wrap(
     _HELLO
     + _para('We are preparing to process the reward payout for Report ID <b>~ID~</b> '
             '("~TITLE~"). Before we can proceed, we require specific documentation '
             "and details.")
     + _note("Requirements / Instructions:", "~NOTE~")
-    + _para("To complete this step, please reply to this email following these "
-            "strict guidelines:")
+    + _para("Reply to this email, or send a new email with the subject "
+            "<b>DATA_~ID~</b>. Either way, please include:")
     + _list([
-        'Set the email subject to: "<b>DATA_~ID~</b>"',
-        "Provide the requested information in the email body (text only).",
-        "You must attach the <b>signed NDA</b> document.",
+        "The requested information in the email body (text only).",
+        "The <b>signed NDA</b> document as an attachment.",
     ])
+    + "~ACTIONS~"
     + _para("For detailed formatting rules, please refer to our guideline page.")
     + _para("We look forward to receiving your documents.")
     + _SIGNOFF
@@ -355,19 +451,19 @@ message_704 = _wrap(
     + _SIGNOFF
 )
 
-subject_705 = "Action Required: Bounty Prerequisites for Report ID ~ID~"
+subject_705 = "DATA_~ID~ | Action Required: Bounty Prerequisites"
 message_705 = _wrap(
     _HELLO
     + _para('We are preparing to process the reward payout for Report ID <b>~ID~</b> '
             '("~TITLE~"). Before we can proceed, we require specific documentation '
             "and details.")
     + _note("Requirements / Instructions:", "~NOTE~")
-    + _para("To complete this step, please reply to this email following these "
-            "strict guidelines:")
+    + _para("Reply to this email, or send a new email with the subject "
+            "<b>DATA_~ID~</b>. Either way, please include:")
     + _list([
-        'Set the email subject to: "<b>DATA_~ID~</b>"',
-        "Provide the requested information in the email body (text only).",
+        "The requested information in the email body (text only).",
     ])
+    + "~ACTIONS~"
     + _para("For detailed formatting rules, please refer to our guideline page.")
     + _para("We look forward to receiving your documents.")
     + _SIGNOFF
@@ -402,6 +498,9 @@ subjectlist = {
     207: subject_207,   # CHECK SCORE (NOTE)
     208: subject_208,   # CHECK ALL STATUS (ID, NOTE)
     209: subject_209,
+    210: subject_210,
+    211: subject_211,
+    212: subject_212,
 
     300: subject_300,   # INVALID NOTIFICATION (TITLE, ID, STATUS, NOTE)
     301: subject_301,   # STATUS UPDATE NOTIFICATION (TITLE, ID, STATUS)
@@ -411,6 +510,10 @@ subjectlist = {
     404: subject_404,   # INVALID FORMAT
     405: subject_405,   # INVALID REPORT ID (ID)
     406: subject_406,   # BLACKLIST (NOTE)
+    410: subject_410,
+    411: subject_411,
+    412: subject_412,
+    413: subject_413,
     407: subject_407,
     408: subject_408,
     409: subject_409,
@@ -434,6 +537,9 @@ messagelist = {
     207: message_207,
     208: message_208,
     209: message_209,
+    210: message_210,
+    211: message_211,
+    212: message_212,
 
     300: message_300,
     301: message_301,
@@ -443,6 +549,10 @@ messagelist = {
     404: message_404,
     405: message_405,
     406: message_406,
+    410: message_410,
+    411: message_411,
+    412: message_412,
+    413: message_413,
     407: message_407,
     408: message_408,
     409: message_409,
