@@ -1,6 +1,6 @@
 # Changelog
 
-## v4.0
+## v4.0 - 29 OCT 2026
 
 Every hunter email action is now correct, forgiving about formatting and able
 to explain itself. CHECK answers with a card that says what the hunter should
@@ -14,23 +14,31 @@ and the Submit page documents all of it.
   still has open. A sender with no reports gets the command list only.
 - **COMMENT_<Report ID>** lets a hunter ask the team a question without
   spending one of their three updates. Text only, 10 per report, allowed while
-  the report is open. Questions show on the report page in the dashboard.
+  the report is open. Questions show on the report page in the dashboard. On a
+  closed or completed report the reply says questions are closed and names the
+  stage, rather than reporting an authorization failure.
 - **WITHDRAW_<Report ID>** closes a report the hunter no longer wants pursued,
-  while it is still waiting for a triager or in review. Later than that the
-  reply names the current stage and offers a plain reply instead. An operator
-  can reverse a withdrawal from Troubleshooting > Override Report Fields.
+  while it is still waiting for a triager or in review. It drops every open
+  grant and is recorded as a withdrawal, not as an invalid report, so
+  Troubleshooting > Resend never replays an "Invalid Report" notice for it.
+  Later than that the reply names the current stage and offers a plain reply
+  instead. An operator can reverse a withdrawal from
+  Troubleshooting > Override Report Fields.
 - **Subjects are forgiving.** `Re:`, `Fwd:`, `[EXT]` and similar prefixes,
-  lower case, spaces inside a Report ID, and a trailing subject suffix are all
-  accepted. Every operator email that asks for something now carries a subject
-  the hunter can simply reply to.
+  lower case, spaces inside a Report ID, and a trailing word or suffix after
+  the Report ID are all accepted, so `CHECK_AB12CD34EF56 thanks` works. Every
+  operator email that asks for something now carries a subject the hunter can
+  simply reply to.
 - **Replies are threaded**, so a hunter's mail client groups all the messages
   about one report into one conversation.
 - **An email is answered once.** Inbound mail is deduplicated by Message-ID,
   so marking the mailbox unread no longer makes Gerobug reply all over again.
-- **Clear refusals.** An oversize PDF states its size, a non-PDF attachment
-  says so, and a short SUBMIT names the field that is too short. Nothing is
-  counted or stored until the submission has passed validation, so a rejected
-  appeal no longer burns an appeal or strands a file.
+- **Clear refusals.** A PDF over 25 MB states its own size (the 25 MB limit
+  itself is accepted), a non-PDF attachment says so, and a short SUBMIT names
+  the field that is too short. Inline signature images, archives and text files
+  are skipped, so the real PDF behind them is still found. Nothing is counted
+  or stored until the submission has passed validation, so a rejected appeal no
+  longer burns an appeal or strands a file.
 - **AGREE is atomic** and sends one confirmation naming the new stage.
 
 ### Status card
@@ -74,24 +82,6 @@ and the Submit page documents all of it.
   and questions. The old cleanup never ran on Django 4.
 - MY_SCORE and STATUS_OVERVIEW from a sender with no reports answer with a
   "no reports yet" reply instead of an authorization failure.
-
-### Upgrade notes
-
-- New tables: `ProcessedMail` (inbound dedupe, swept after 180 days) and
-  `BugReportHunterComment`.
-- New fields on `BugReport`: `report_status_changed_at` and
-  `report_hunter_comment`.
-- Reports that existed before the upgrade show no "since" date on their card
-  until their stage next changes.
-- A Settings > Rules text saved before the upgrade keeps whatever command list
-  it contained until you edit it.
-- New report IDs are random hex. Existing report IDs keep working.
-- MY_SCORE and STATUS_OVERVIEW from a sender with no reports changed from 403
-  to a new "no reports yet" reply.
-- A bounty decision still needs an explicit AGREE or APPEAL. A plain reply to
-  the decision email is not treated as agreement.
-
-## Unreleased
 
 ### Hunter lifecycle
 
@@ -148,15 +138,29 @@ Settings > Troubleshooting gains four tools (superuser only):
 - **Mark as Invalid can name the original** of a duplicate. The report detail
   page shows it as a link.
 
-### Upgrade note
+### Upgrade notes
 
-The submission guidelines gained a bullet asking hunters to share videos,
-archives and exploit code as links inside the PDF. Installations that already
-have their rules saved keep the stored text, so paste the bullet into
-Settings > Rules if you want it. Reports already at Bounty Calculation before
-the upgrade never auto-accept, because their hunters were not told about the
-30-day window; re-send the calculation (report page or Troubleshooting >
-Resend) to start it. Resend only knows about emails sent after the upgrade.
+- New tables: `ProcessedMail` (inbound dedupe, swept after 180 days) and
+  `BugReportHunterComment`.
+- New fields on `BugReport`: `report_status_changed_at` and
+  `report_hunter_comment`.
+- Reports that existed before the upgrade show no "since" date on their card
+  until their stage next changes.
+- A Settings > Rules text saved before the upgrade keeps whatever command list
+  it contained until you edit it.
+- New report IDs are random hex. Existing report IDs keep working.
+- MY_SCORE and STATUS_OVERVIEW from a sender with no reports changed from 403
+  to a new "no reports yet" reply.
+- A bounty decision still needs an explicit AGREE or APPEAL. A plain reply to
+  the decision email is not treated as agreement.
+- The submission guidelines gained a bullet asking hunters to share videos,
+  archives and exploit code as links inside the PDF. Installations that already
+  have their rules saved keep the stored text, so paste the bullet into
+  Settings > Rules if you want it.
+- Reports already at Bounty Calculation before the upgrade never auto-accept,
+  because their hunters were not told about the 30-day window. Re-send the
+  calculation (report page or Troubleshooting > Resend) to start it. Resend
+  only knows about emails sent after the upgrade.
 
 ## v3.1 — 25 OCT 2026
 
