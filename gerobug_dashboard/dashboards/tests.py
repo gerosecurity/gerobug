@@ -1159,4 +1159,4 @@ class HallOfFameAdminTests(TestCase):
     def test_setting_page_shows_the_card(self):
         response = self.client.get("/dashboard/setting")
         self.assertContains(response, "Hall of Fame")
-        self.assertContains(response, "Recompute All")
+        self.assertContains(response, "Recompute all")
