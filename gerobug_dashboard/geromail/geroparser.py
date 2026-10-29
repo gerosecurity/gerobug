@@ -852,6 +852,31 @@ def read_mail(mail, folder_name='inbox'):
                                         logging.getLogger("Gerologger").warning(
                                             f'[ERROR {code}] Comment refused for {report_id} after locking the row')
 
+                            elif(code == 212):
+                                report_id = str(payload[0])
+                                logging.getLogger("Gerologger").info('Report ID : ' + str(report_id))
+
+                                with transaction.atomic():
+                                    report = BugReport.objects.select_for_update().get(report_id=report_id)
+                                    payload[1] = report.report_title
+
+                                    if report.report_status not in gerofilter.WITHDRAW_STATUSES:
+                                        code = 412
+                                        payload[2] = report.report_status
+                                    else:
+                                        report.report_status = 0
+                                        report.last_email_code = 300
+                                        report.last_email_note = "Withdrawn by the hunter"
+                                        report.save()
+                                        payload[2] = report.report_status
+
+                                if code == 212:
+                                    geronotify.notify(report_id, hunter_email, "REPORT_WITHDRAWN")
+                                    logging.getLogger("Gerologger").info('[CODE 212] Report Withdrawn by the Bug Hunter')
+                                else:
+                                    logging.getLogger("Gerologger").warning(
+                                        f'[ERROR 412] Withdraw refused for {report_id} after locking the row')
+
                             elif(code == 210):
                                 payload[3] = payload[0]
                                 payload[0] = ""
@@ -870,6 +895,14 @@ def read_mail(mail, folder_name='inbox'):
                                 payload[1] = report.report_title
                                 logging.getLogger("Gerologger").warning(
                                     f'[ERROR 411] Comment limit reached for {payload[0]}')
+
+                            elif(code == 412):
+                                report = BugReport.objects.get(report_id=payload[0])
+                                payload[1] = report.report_title
+                                payload[2] = report.report_status
+                                logging.getLogger("Gerologger").warning(
+                                    f'[ERROR 412] Withdraw refused for {payload[0]}: '
+                                    'the report has moved past In Review')
 
                             elif(code == 405):
                                 logging.getLogger("Gerologger").warning('[ERROR 405] Report ID not valid')

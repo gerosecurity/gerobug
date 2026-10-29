@@ -2315,3 +2315,84 @@ class CommentFlowTests(MailFlowTestCase):
         code, report_id = gerofilter.classify_action("hunter@example.com",
                                                      "Re: comment_ab12cd34ef56")
         self.assertEqual((code, report_id), (211, "AB12CD34EF56"))
+
+
+class WithdrawFlowTests(MailFlowTestCase):
+
+    def withdraw(self, report_id="AB12CD34EF56", **kwargs):
+        return self.deliver(raw_mail("WITHDRAW_" + report_id, **kwargs))
+
+    def test_withdraw_in_review(self):
+        report = make_report(report_status=2, report_permission=4)
+        self.withdraw()
+        self.assertEqual(self.sent_codes(), [212])
+        report.refresh_from_db()
+        self.assertEqual(report.report_status, 0)
+        self.assertEqual(report.last_email_code, 300)
+        self.assertEqual(report.last_email_note, "Withdrawn by the hunter")
+
+    def test_withdraw_at_received(self):
+        report = make_report(report_status=1)
+        self.withdraw()
+        self.assertEqual(self.sent_codes(), [212])
+        report.refresh_from_db()
+        self.assertEqual(report.report_status, 0)
+
+    def test_withdraw_statuses_are_one_and_two(self):
+        self.assertEqual(gerofilter.WITHDRAW_STATUSES, (1, 2))
+
+    def test_withdraw_notifies_the_team(self):
+        make_report(report_status=2)
+        self.withdraw()
+        self.notify.assert_called_once_with("AB12CD34EF56", "hunter@example.com",
+                                            "REPORT_WITHDRAWN")
+
+    def test_withdraw_after_fixing_refused(self):
+        for status in (3, 4, 5, 6, 7):
+            BugReport.objects.all().delete()
+            self.write_mail.reset_mock()
+            self.notify.reset_mock()
+            report = make_report(report_status=status)
+            self.withdraw(body="please close this, stage " + str(status))
+            self.assertEqual(self.sent_codes(), [412], status)
+            report.refresh_from_db()
+            self.assertEqual(report.report_status, status)
+            self.notify.assert_not_called()
+
+    def test_withdraw_reply_names_the_stage(self):
+        make_report(report_status=4)
+        self.withdraw()
+        self.assertEqual(self.last_payload()[2], 4)
+        self.assertIn("~STATUS~", mail_templates.message_412)
+
+    def test_withdraw_by_other_sender_refused(self):
+        report = make_report(report_status=2)
+        self.deliver(raw_mail("WITHDRAW_AB12CD34EF56", sender="stranger@example.com"))
+        self.assertEqual(self.sent_codes(), [403])
+        report.refresh_from_db()
+        self.assertEqual(report.report_status, 2)
+
+    def test_withdraw_unknown_report_is_405(self):
+        make_report(report_status=2)
+        self.deliver(raw_mail("WITHDRAW_ZZZZZZZZZZZZ"))
+        self.assertEqual(self.sent_codes(), [405])
+
+    def test_withdraw_clears_the_open_grants(self):
+        report = make_report(report_status=2, report_permission=4)
+        self.withdraw()
+        report.refresh_from_db()
+        self.assertEqual(report.report_permission, 4 & BugReport.STATUS_PERMISSIONS[0])
+
+    def test_withdrawn_report_shows_as_closed_on_the_card(self):
+        report = make_report(report_status=2)
+        self.withdraw()
+        report.refresh_from_db()
+        card = gerocard.build_report_card(report)
+        self.assertIn("closed as not valid", card)
+        self.assertIn("Withdrawn by the hunter", card)
+
+    def test_withdraw_subject_classifies_from_a_reply(self):
+        make_report(report_status=2)
+        code, report_id = gerofilter.classify_action("hunter@example.com",
+                                                     "Re: withdraw_ab12cd34ef56")
+        self.assertEqual((code, report_id), (212, "AB12CD34EF56"))

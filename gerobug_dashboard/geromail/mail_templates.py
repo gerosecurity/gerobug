@@ -182,6 +182,31 @@ message_211 = _wrap(
     + _SIGNOFF
 )
 
+subject_212 = "Confirmation: Report ~ID~ Withdrawn"
+message_212 = _wrap(
+    _HELLO
+    + _para("We have withdrawn Report ID <b>~ID~</b> (<b>~TITLE~</b>) at your request. "
+            "It is now closed and our team will take it no further.")
+    + _para("Nothing else is needed from you. If you withdrew it by mistake, reply to "
+            "this email and our team can reopen it.")
+    + _para("You are welcome to send the finding again later with the subject "
+            "\"<b>SUBMIT_Your report title</b>\".")
+    + _SIGNOFF
+)
+
+subject_412 = "Withdrawal Not Possible: Report ~ID~"
+message_412 = _wrap(
+    _HELLO
+    + _para("We received your request to withdraw Report ID <b>~ID~</b>, but it could "
+            "not be carried out: the report has already moved on and is now at "
+            "<b>~STATUS~</b>.")
+    + _para("A report can only be withdrawn while it is still waiting for a triager or "
+            "being reviewed. After that our team has already acted on it.")
+    + _para("If you still want the report closed, reply to this email and tell us why, "
+            "and our team will look at it.")
+    + _SIGNOFF
+)
+
 subject_411 = "Question Limit Reached: Report ~ID~"
 message_411 = _wrap(
     _HELLO
@@ -461,6 +486,7 @@ subjectlist = {
     209: subject_209,
     210: subject_210,
     211: subject_211,
+    212: subject_212,
 
     300: subject_300,   # INVALID NOTIFICATION (TITLE, ID, STATUS, NOTE)
     301: subject_301,   # STATUS UPDATE NOTIFICATION (TITLE, ID, STATUS)
@@ -472,6 +498,7 @@ subjectlist = {
     406: subject_406,   # BLACKLIST (NOTE)
     410: subject_410,
     411: subject_411,
+    412: subject_412,
     407: subject_407,
     408: subject_408,
     409: subject_409,
@@ -497,6 +524,7 @@ messagelist = {
     209: message_209,
     210: message_210,
     211: message_211,
+    212: message_212,
 
     300: message_300,
     301: message_301,
@@ -508,6 +536,7 @@ messagelist = {
     406: message_406,
     410: message_410,
     411: message_411,
+    412: message_412,
     407: message_407,
     408: message_408,
     409: message_409,

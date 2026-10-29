@@ -14,6 +14,8 @@ _MESSAGES = {
                   "\nReport will be automatically moved to the next phase."),
     "NEW_NDA": ("NEW NDA SUBMISSION RECEIVED", "Report ID", ""),
     "NEW_COMMENT": ("NEW HUNTER COMMENT RECEIVED", "Report ID", ""),
+    "REPORT_WITHDRAWN": ("REPORT WITHDRAWN BY HUNTER", "Report ID",
+                         "\nThe report is closed, no further action is needed."),
     "EMAIL_BOUNCED": ("EMAIL DELIVERY FAILED", "Report ID",
                       "\nCheck the mail log and resend once the cause is fixed."),
 }
