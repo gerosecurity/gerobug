@@ -328,7 +328,7 @@ def validate_attachment(msg, id, FILEPATH=None):
 
 
 _FIELD_LINE_RE = re.compile(
-    r'^\s*\**\s*(TYPE|ENDPOINT|SUMMARY)\s*\**\s*[=:\-]\s*(.*)$', re.IGNORECASE)
+    r'^\*{0,2}[ \t]*+(TYPE|ENDPOINT|SUMMARY)[ \t]*+\*{0,2}[ \t]*+[=:-][ \t]*+(.*)$', re.IGNORECASE)
 
 
 # PARSE EMAIL BODY
@@ -338,6 +338,7 @@ def parse_body(body):
 
     try:
         for line in str(body or '').replace('\r\n', '\n').split('\n'):
+            line = line[:10000].strip()
             match = _FIELD_LINE_RE.match(line)
             if match:
                 current = match.group(1).upper()

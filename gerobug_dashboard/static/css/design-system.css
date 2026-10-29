@@ -1490,6 +1490,7 @@ body.gds-public footer #copyright p {
   color: var(--color-dark-200);
 }
 .gds-submit-main .accordion-body b { color: #fff; font-weight: 600; }
+.gds-submit-main .accordion-body label { display: inline; margin: 0; }
 .gds-submit-main .accordion-body a { color: var(--gds-accent-soft); }
 
 /* Protocol field: mono block + copy button */

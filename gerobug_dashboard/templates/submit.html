@@ -87,7 +87,7 @@
             <label for="reportIdInput">Your Report ID</label>
             <input type="text" id="reportIdInput" maxlength="12" autocomplete="off" spellcheck="false"
                 placeholder="AB12CD34EF56" aria-describedby="reportIdHint">
-            <p id="reportIdHint" class="gds-idbox-hint" role="status" aria-live="polite">Type the 12 character Report ID from your confirmation email and every subject and mail button below fills in. Nothing is sent or stored.</p>
+            <output id="reportIdHint" class="gds-idbox-hint" for="reportIdInput" aria-live="polite">Type the 12 character Report ID from your confirmation email and every subject and mail button below fills in. Nothing is sent or stored.</output>
             {% if not mailbox_email %}<p class="gds-idbox-hint">The mail buttons are unavailable until the program mailbox is set up.</p>{% endif %}
         </div>
 
@@ -106,13 +106,13 @@
                 <div id="panelsStayOpen-collapseSubmit" class="accordion-collapse collapse show"
                     aria-labelledby="panelsStayOpen-headingSubmit">
                     <div class="accordion-body">
-                        <b>Subject:</b>
+                        <label for="Subject_submit"><b>Subject:</b></label>
                         <div class="text-wrap">
                         <textarea readonly id="Subject_submit" rows="1">SUBMIT_Report Title</textarea>
                         <button type="button" class="clipboard" aria-label="Copy the SUBMIT subject" onclick="copytext('Subject_submit', this)"><i class="fa fa-copy"></i></button>
                         </div>
 
-                        <b>Body:</b>
+                        <label for="Body_submit"><b>Body:</b></label>
                         <div class="text-wrap">
                         <textarea readonly id="Body_submit" rows="3">
 TYPE= Bug Type (example: XSS, SQL Injection, IDOR)
@@ -161,7 +161,7 @@ SUMMARY= Summary of your finding</textarea>
                 <div id="panelsStayOpen-collapseCheck" class="accordion-collapse collapse"
                     aria-labelledby="panelsStayOpen-headingCheck">
                     <div class="accordion-body">
-                        <b>Subject:</b>
+                        <label for="Subject_check"><b>Subject:</b></label>
                         <div class="text-wrap">
                         <textarea readonly id="Subject_check" data-subject="CHECK" rows="1">CHECK_Report ID</textarea>
                         <button type="button" class="clipboard" aria-label="Copy the CHECK subject" onclick="copytext('Subject_check', this)"><i class="fa fa-copy"></i></button>
@@ -194,7 +194,7 @@ SUMMARY= Summary of your finding</textarea>
                 <div id="panelsStayOpen-collapseOverview" class="accordion-collapse collapse"
                     aria-labelledby="panelsStayOpen-headingOverview">
                     <div class="accordion-body">
-                        <b>Subject:</b>
+                        <label for="Subject_overview"><b>Subject:</b></label>
                         <div class="text-wrap">
                         <textarea readonly id="Subject_overview" rows="1">STATUS_OVERVIEW</textarea>
                         <button type="button" class="clipboard" aria-label="Copy the STATUS_OVERVIEW subject" onclick="copytext('Subject_overview', this)"><i class="fa fa-copy"></i></button>
@@ -224,7 +224,7 @@ SUMMARY= Summary of your finding</textarea>
                 <div id="panelsStayOpen-collapseScore" class="accordion-collapse collapse"
                     aria-labelledby="panelsStayOpen-headingScore">
                     <div class="accordion-body">
-                        <b>Subject:</b>
+                        <label for="Subject_score"><b>Subject:</b></label>
                         <div class="text-wrap">
                         <textarea readonly id="Subject_score" rows="1">MY_SCORE</textarea>
                         <button type="button" class="clipboard" aria-label="Copy the MY_SCORE subject" onclick="copytext('Subject_score', this)"><i class="fa fa-copy"></i></button>
@@ -252,7 +252,7 @@ SUMMARY= Summary of your finding</textarea>
                 <div id="panelsStayOpen-collapseHelp" class="accordion-collapse collapse"
                     aria-labelledby="panelsStayOpen-headingHelp">
                     <div class="accordion-body">
-                        <b>Subject:</b>
+                        <label for="Subject_help"><b>Subject:</b></label>
                         <div class="text-wrap">
                         <textarea readonly id="Subject_help" rows="1">HELP</textarea>
                         <button type="button" class="clipboard" aria-label="Copy the HELP subject" onclick="copytext('Subject_help', this)"><i class="fa fa-copy"></i></button>
@@ -278,7 +278,7 @@ SUMMARY= Summary of your finding</textarea>
                 <div id="panelsStayOpen-collapseUpdate" class="accordion-collapse collapse"
                     aria-labelledby="panelsStayOpen-headingUpdate">
                     <div class="accordion-body">
-                        <b>Subject:</b>
+                        <label for="Subject_update"><b>Subject:</b></label>
                         <div class="text-wrap">
                         <textarea readonly id="Subject_update" data-subject="UPDATE" rows="1">UPDATE_Report ID</textarea>
                         <button type="button" class="clipboard" aria-label="Copy the UPDATE subject" onclick="copytext('Subject_update', this)"><i class="fa fa-copy"></i></button>
@@ -321,7 +321,7 @@ SUMMARY= Summary of your finding</textarea>
                 <div id="panelsStayOpen-collapseComment" class="accordion-collapse collapse"
                     aria-labelledby="panelsStayOpen-headingComment">
                     <div class="accordion-body">
-                        <b>Subject:</b>
+                        <label for="Subject_comment"><b>Subject:</b></label>
                         <div class="text-wrap">
                         <textarea readonly id="Subject_comment" data-subject="COMMENT" rows="1">COMMENT_Report ID</textarea>
                         <button type="button" class="clipboard" aria-label="Copy the COMMENT subject" onclick="copytext('Subject_comment', this)"><i class="fa fa-copy"></i></button>
@@ -355,7 +355,7 @@ SUMMARY= Summary of your finding</textarea>
                 <div id="panelsStayOpen-collapseData" class="accordion-collapse collapse"
                     aria-labelledby="panelsStayOpen-headingData">
                     <div class="accordion-body">
-                        <b>Subject:</b>
+                        <label for="Subject_data"><b>Subject:</b></label>
                         <div class="text-wrap">
                         <textarea readonly id="Subject_data" data-subject="DATA" rows="1">DATA_Report ID</textarea>
                         <button type="button" class="clipboard" aria-label="Copy the DATA subject" onclick="copytext('Subject_data', this)"><i class="fa fa-copy"></i></button>
@@ -399,7 +399,7 @@ SUMMARY= Summary of your finding</textarea>
                 <div id="panelsStayOpen-collapseAgree" class="accordion-collapse collapse"
                     aria-labelledby="panelsStayOpen-headingAgree">
                     <div class="accordion-body">
-                        <b>Subject:</b>
+                        <label for="Subject_agree"><b>Subject:</b></label>
                         <div class="text-wrap">
                         <textarea readonly id="Subject_agree" data-subject="AGREE" rows="1">AGREE_Report ID</textarea>
                         <button type="button" class="clipboard" aria-label="Copy the AGREE subject" onclick="copytext('Subject_agree', this)"><i class="fa fa-copy"></i></button>
@@ -436,7 +436,7 @@ SUMMARY= Summary of your finding</textarea>
                 <div id="panelsStayOpen-collapseAppeal" class="accordion-collapse collapse"
                     aria-labelledby="panelsStayOpen-headingAppeal">
                     <div class="accordion-body">
-                        <b>Subject:</b>
+                        <label for="Subject_appeal"><b>Subject:</b></label>
                         <div class="text-wrap">
                         <textarea readonly id="Subject_appeal" data-subject="APPEAL" rows="1">APPEAL_Report ID</textarea>
                         <button type="button" class="clipboard" aria-label="Copy the APPEAL subject" onclick="copytext('Subject_appeal', this)"><i class="fa fa-copy"></i></button>
@@ -475,7 +475,7 @@ SUMMARY= Summary of your finding</textarea>
                 <div id="panelsStayOpen-collapseWithdraw" class="accordion-collapse collapse"
                     aria-labelledby="panelsStayOpen-headingWithdraw">
                     <div class="accordion-body">
-                        <b>Subject:</b>
+                        <label for="Subject_withdraw"><b>Subject:</b></label>
                         <div class="text-wrap">
                         <textarea readonly id="Subject_withdraw" data-subject="WITHDRAW" rows="1">WITHDRAW_Report ID</textarea>
                         <button type="button" class="clipboard" aria-label="Copy the WITHDRAW subject" onclick="copytext('Subject_withdraw', this)"><i class="fa fa-copy"></i></button>
@@ -553,11 +553,11 @@ SUMMARY= Summary of your finding</textarea>
                 }
 
                 subjects.forEach(function (box) {
-                    box.value = subjectFor(box.getAttribute('data-subject'), value);
+                    box.value = subjectFor(box.dataset.subject, value);
                 });
 
                 buttons.forEach(function (btn) {
-                    var verb = btn.getAttribute('data-verb');
+                    var verb = btn.dataset.verb;
                     var needsId = !NO_ID[verb];
                     if (!mailbox || (needsId && !value)) {
                         btn.setAttribute('href', '#');
@@ -567,7 +567,7 @@ SUMMARY= Summary of your finding</textarea>
                     }
                     var href = 'mailto:' + encodeURIComponent(mailbox).replace(/%40/g, '@')
                         + '?subject=' + encodeURIComponent(subjectFor(verb, value));
-                    if (btn.getAttribute('data-body')) {
+                    if (btn.dataset.body) {
                         href += '&body=' + encodeURIComponent(SUBMIT_BODY);
                     }
                     btn.setAttribute('href', href);
