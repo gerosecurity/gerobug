@@ -1926,3 +1926,63 @@ class StageTextTests(SimpleTestCase):
             self.assertTrue(text.endswith("."), status)
             self.assertNotIn("\u2014", text)
             self.assertNotIn("<", text)
+
+
+class ActionsPlaceholderTests(CardTestCase):
+
+    def setUp(self):
+        super().setUp()
+        MailBox.objects.all().update(email="bounty@example.com")
+
+    def test_actions_placeholder_only_in_action_templates(self):
+        for code, body in mail_templates.messagelist.items():
+            if code in geromailer.ACTION_VERBS:
+                self.assertIn("~ACTIONS~", body, code)
+            else:
+                self.assertNotIn("~ACTIONS~", body, code)
+
+    def test_actions_rendered_for_each_action_code(self):
+        for code, verbs in geromailer.ACTION_VERBS.items():
+            actions = geromailer.render_actions_for(code, "AB12CD34EF56")
+            for verb in verbs:
+                self.assertIn("?subject=" + verb + "_AB12CD34EF56", actions, code)
+
+    def test_actions_empty_for_other_codes(self):
+        self.assertEqual(geromailer.render_actions_for(201, "AB12CD34EF56"), "")
+
+    def test_actions_placeholder_never_left_raw(self):
+        make_report()
+        MailBox.objects.all().update(password="secret")
+        closer = mock.patch.object(geromailer.connection, "close")
+        closer.start()
+        self.addCleanup(closer.stop)
+        sent = []
+
+        class Recorder:
+            def __init__(self, *a, **kw):
+                pass
+
+            def login(self, *a):
+                return None
+
+            def sendmail(self, sender, destination, text):
+                sent.append(text)
+
+            def close(self):
+                return None
+
+        with mock.patch.object(geromailer.smtplib, "SMTP_SSL", Recorder):
+            for code in sorted(mail_templates.messagelist):
+                if code in (703, 704, 9999):
+                    continue
+                payload = ["AB12CD34EF56", "Test finding", 2, "note", "7.5"]
+                geromailer.write_mail(code, payload, "hunter@example.com")
+        self.assertTrue(sent)
+        for text in sent:
+            self.assertNotIn("~ACTIONS~", text)
+            self.assertNotIn("~NOTE~", text)
+            self.assertNotIn("~ID~", text)
+
+    def test_actions_degrade_without_a_mailbox_address(self):
+        MailBox.objects.all().update(email="")
+        self.assertEqual(geromailer.render_actions_for(701, "AB12CD34EF56"), "")

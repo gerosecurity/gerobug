@@ -308,6 +308,7 @@ message_701 = _wrap(
         "A text-only <b>Summary</b> of the update in the email body.",
         "The full detailed report attached as a <b>PDF file</b>.",
     ])
+    + "~ACTIONS~"
     + _para("An update sent in reply to this request does <b>not</b> count against "
             "the 3 updates you may send on your own initiative.")
     + _para("For detailed formatting rules, please refer to our guideline page.")
@@ -327,6 +328,7 @@ message_702 = _wrap(
     + _para("<b>Option 2: Appeal the Decision</b><br>"
             'Send an email with the subject "<b>APPEAL_~ID~</b>". You must include your '
             "<b>Reason/Justification</b> in the email body (text only).")
+    + "~ACTIONS~"
     + _para("<b>Important:</b> You are limited to a maximum of <b>3 appeals</b>. If this "
             "limit is exceeded, the current determination will be considered final and "
             "processed accordingly.")
@@ -351,6 +353,7 @@ message_703 = _wrap(
         "The requested information in the email body (text only).",
         "The <b>signed NDA</b> document as an attachment.",
     ])
+    + "~ACTIONS~"
     + _para("For detailed formatting rules, please refer to our guideline page.")
     + _para("We look forward to receiving your documents.")
     + _SIGNOFF
@@ -382,6 +385,7 @@ message_705 = _wrap(
     + _list([
         "The requested information in the email body (text only).",
     ])
+    + "~ACTIONS~"
     + _para("For detailed formatting rules, please refer to our guideline page.")
     + _para("We look forward to receiving your documents.")
     + _SIGNOFF

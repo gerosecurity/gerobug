@@ -12,6 +12,7 @@ from email.mime.base import MIMEBase
 from email import encoders
 from django.db import connection
 
+from . import gerocard
 from . import mail_templates
 from dashboards.models import ReportStatus, TroubleshootSettings
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
@@ -28,6 +29,27 @@ FREEMAIL = {"gmail.com", "yahoo.com", "outlook.com", "hotmail.com"}
 ALLOWED_TAGS = ["br", "br/", "br /", "b", "/b", "strong", "/strong", "i", "/i"]
 
 REPORT_ID_RE = re.compile(r"^[0-9A-Za-z]{12}$")
+
+PRE_RENDERED_CODES = {202, 208, 210}
+
+ACTION_VERBS = {
+    701: ("UPDATE",),
+    702: ("AGREE", "APPEAL"),
+    703: ("DATA",),
+    705: ("DATA",),
+}
+
+
+def render_actions_for(code, report_id):
+    verbs = ACTION_VERBS.get(code)
+    if not verbs:
+        return ""
+    try:
+        return gerocard.render_actions(report_id, verbs)
+    except Exception as e:
+        logging.getLogger("Gerologger").warning(
+            f"Could not render action buttons for {report_id}: {e}")
+        return ""
 
 
 def clean_header(value):
@@ -118,12 +140,12 @@ def write_mail(code, payload, Destination, in_reply_to=None):
             body = body.replace("~ID~", html.escape(payload[0]))                #REPORT ID
             body = body.replace("~TITLE~", html.escape(payload[1]))             #REPORT TITLE
             body = body.replace("~STATUS~", html.escape(str(status)))           #REPORT STATUS
-            # CODE 208 SUPPLIES HTML TABLE ROWS ALREADY ESCAPED IN GEROFILTER
-            if code == 208:
-                body = body.replace("~NOTE~", str(payload[3]))                  #PRE-ESCAPED HTML ROWS
+            if code in PRE_RENDERED_CODES:
+                body = body.replace("~NOTE~", str(payload[3]))
             else:
                 body = body.replace("~NOTE~", safe_html_format(payload[3]))     #REASON / NOTE
             body = body.replace("~SEVERITY~", html.escape(str(payload[4])))     #SEVERITY
+            body = body.replace("~ACTIONS~", render_actions_for(code, payload[0]))
 
             # BUILD EMAIL MESSAGE (identity fixed above so retries are the same message)
             parent, references = thread_headers(payload[0], sending_domain, in_reply_to)
