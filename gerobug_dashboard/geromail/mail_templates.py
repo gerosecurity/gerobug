@@ -169,6 +169,33 @@ message_210 = _wrap(
 )
 
 
+subject_211 = "Confirmation: Question Received for Report ~ID~"
+message_211 = _wrap(
+    _HELLO
+    + _para("We received your question about Report ID <b>~ID~</b> (<b>~TITLE~</b>) "
+            "and passed it to the team handling the report.")
+    + _note("Your question:", "~NOTE~")
+    + _para("A question does not use up any of your update allowance, and it does "
+            "not change the stage of your report.")
+    + _para("If you meant to send us new evidence, send it with the subject "
+            "<b>UPDATE_~ID~</b> instead. A PDF attached to a question is not stored.")
+    + _SIGNOFF
+)
+
+subject_411 = "Question Limit Reached: Report ~ID~"
+message_411 = _wrap(
+    _HELLO
+    + _para("We received your question about Report ID <b>~ID~</b>, but it could not "
+            "be recorded: you have already sent all <b>10</b> questions available to "
+            "you on this report.")
+    + _para("This is not a refusal of your finding. Our team will contact you directly "
+            "when there is news about the report.")
+    + _para("To see where the report stands, send an email with the subject "
+            "<b>CHECK_~ID~</b>.")
+    + _SIGNOFF
+)
+
+
 subject_403 = "Authorization Failure: Report ~ID~"
 message_403 = _wrap(
     _HELLO
@@ -433,6 +460,7 @@ subjectlist = {
     208: subject_208,   # CHECK ALL STATUS (ID, NOTE)
     209: subject_209,
     210: subject_210,
+    211: subject_211,
 
     300: subject_300,   # INVALID NOTIFICATION (TITLE, ID, STATUS, NOTE)
     301: subject_301,   # STATUS UPDATE NOTIFICATION (TITLE, ID, STATUS)
@@ -443,6 +471,7 @@ subjectlist = {
     405: subject_405,   # INVALID REPORT ID (ID)
     406: subject_406,   # BLACKLIST (NOTE)
     410: subject_410,
+    411: subject_411,
     407: subject_407,
     408: subject_408,
     409: subject_409,
@@ -467,6 +496,7 @@ messagelist = {
     208: message_208,
     209: message_209,
     210: message_210,
+    211: message_211,
 
     300: message_300,
     301: message_301,
@@ -477,6 +507,7 @@ messagelist = {
     405: message_405,
     406: message_406,
     410: message_410,
+    411: message_411,
     407: message_407,
     408: message_408,
     409: message_409,

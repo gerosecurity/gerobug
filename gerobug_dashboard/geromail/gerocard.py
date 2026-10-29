@@ -2,8 +2,8 @@ import html
 import urllib.parse
 
 from dashboards.models import (APPEAL_WINDOW_DAYS, BOUNTY_CALC_STATUS, BugReport,
-                               BugReportAppeal, BugReportNDA, BugReportUpdate,
-                               ReportStatus)
+                               BugReportAppeal, BugReportHunterComment, BugReportNDA,
+                               BugReportUpdate, ReportStatus)
 from prerequisites.models import MailBox
 
 from . import gerofilter
@@ -201,6 +201,10 @@ def allowance_lines(report):
             + ". An update we ask for does not count.")
     lines.append("Appeals left: " + str(appeals_left) + " of "
                  + str(gerofilter.APPEAL_LIMIT) + ".")
+    comments_left = max(0, gerofilter.COMMENT_LIMIT - int(report.report_hunter_comment or 0))
+    lines.append("Questions you can still ask about this report: "
+                 + str(comments_left) + " of " + str(gerofilter.COMMENT_LIMIT)
+                 + ". A question does not use an update.")
     return lines
 
 
@@ -213,6 +217,8 @@ def _submission_rows(report):
         rows.append((appeal.appeal_id, appeal.appeal_datetime, bool(appeal.appeal_file)))
     for nda in BugReportNDA.objects.filter(report_id=report.report_id).order_by("nda_datetime", "nda_id"):
         rows.append((nda.nda_id, nda.nda_datetime, bool(nda.nda_file)))
+    for comment in BugReportHunterComment.objects.filter(report_id=report.report_id).order_by("comment_datetime", "comment_id"):
+        rows.append((comment.comment_id, comment.comment_datetime, False))
 
     head, tail = rows[0], rows[1:]
     tail.sort(key=lambda row: (row[1] is None, row[1]))

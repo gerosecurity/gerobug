@@ -24,7 +24,7 @@ from . import geronotify
 from dashboards.models import (APPEAL_WINDOW_DAYS, BOUNTY_CALC_STATUS,
                                PROCESSED_MAIL_RETENTION_DAYS, BugHunter, BugReport,
                                BugReportUpdate, BugReportAppeal, BugReportNDA,
-                               ProcessedMail)
+                               BugReportHunterComment, ProcessedMail)
 from prerequisites.models import MailBox
 from gerobug.settings import MEDIA_ROOT
 
@@ -260,6 +260,17 @@ def save_uan(type, id, report_id, date, summary, file):
         newNDA.nda_file = file
 
         newNDA.save()
+
+
+def save_comment(comment_id, report_id, date, summary):
+    comment = BugReportHunterComment()
+
+    comment.comment_id = comment_id
+    comment.report_id = report_id
+    comment.comment_datetime = date
+    comment.comment_summary = summary
+
+    comment.save()
 
 
 def mail_header_decode(text):
@@ -801,6 +812,46 @@ def read_mail(mail, folder_name='inbox'):
                                 logging.getLogger("Gerologger").info('Hunter Reports (' + payload[0] + '):\n' + payload[3])
                                 logging.getLogger("Gerologger").info("[CODE 208] Bug Hunter Check All Status Successfully")
 
+                            elif(code == 211):
+                                report_id = str(payload[0])
+                                logging.getLogger("Gerologger").info('Report ID : ' + str(report_id))
+
+                                comment_body = rm_html_tags(extract_email_body(msg)).strip()
+
+                                if len(comment_body) <= 3:
+                                    payload[1] = BugReport.objects.get(report_id=report_id).report_title
+                                    logging.getLogger("Gerologger").warning(
+                                        '[ERROR 404] Comment not valid: '
+                                        + gerofilter.REASON_EMPTY_COMMENT)
+                                    code = 404
+                                    payload[3] = gerofilter.REASON_EMPTY_COMMENT
+
+                                else:
+                                    with transaction.atomic():
+                                        report = BugReport.objects.select_for_update().get(report_id=report_id)
+                                        payload[1] = report.report_title
+
+                                        if report.report_status not in gerofilter.COMMENT_STATUSES:
+                                            code = 403
+                                            payload[2] = report.report_status
+                                        elif report.report_hunter_comment >= gerofilter.COMMENT_LIMIT:
+                                            code = 411
+                                        else:
+                                            report.report_hunter_comment += 1
+                                            comment_id = report_id + "C" + str(report.report_hunter_comment)
+                                            report.save()
+                                            logging.getLogger("Gerologger").info('Comment ID : ' + str(comment_id))
+
+                                            save_comment(comment_id, report_id, email_date, comment_body)
+                                            payload[3] = comment_body
+
+                                    if code == 211:
+                                        geronotify.notify(report_id, hunter_email, "NEW_COMMENT")
+                                        logging.getLogger("Gerologger").info('[CODE 211] Bug Hunter Comment Received Successfully')
+                                    else:
+                                        logging.getLogger("Gerologger").warning(
+                                            f'[ERROR {code}] Comment refused for {report_id} after locking the row')
+
                             elif(code == 210):
                                 payload[3] = payload[0]
                                 payload[0] = ""
@@ -814,6 +865,12 @@ def read_mail(mail, folder_name='inbox'):
                                     f'[CODE 410] No reports on record for {hunter_email}')
 
                             # INVALID REPORT ID
+                            elif(code == 411):
+                                report = BugReport.objects.get(report_id=payload[0])
+                                payload[1] = report.report_title
+                                logging.getLogger("Gerologger").warning(
+                                    f'[ERROR 411] Comment limit reached for {payload[0]}')
+
                             elif(code == 405):
                                 logging.getLogger("Gerologger").warning('[ERROR 405] Report ID not valid')
 

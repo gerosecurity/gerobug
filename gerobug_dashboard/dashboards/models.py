@@ -47,6 +47,7 @@ class BugReport(models.Model):
     report_update_self = models.IntegerField(default=0)
     report_appeal = models.IntegerField(default=0)
     report_nda  = models.IntegerField(default=0)
+    report_hunter_comment = models.IntegerField(default=0)
     report_calc_sent_at = models.DateTimeField(null=True, blank=True)
     report_status_changed_at = models.DateTimeField(null=True, blank=True)
     last_email_code = models.IntegerField(default=0)
@@ -137,6 +138,19 @@ class BugReportNDA(models.Model):
 
     def get_absolute_url(self):
         return reverse('nda_detail', kwargs={'pk':self.nda_id})  
+
+class BugReportHunterComment(models.Model):
+    comment_id = models.CharField(max_length=20,primary_key=True,validators=[alphanumeric])
+    report_id = models.CharField(max_length=15)
+    comment_datetime = models.DateTimeField()
+    comment_summary = models.TextField()
+
+    def __str__(self):
+        return self.comment_id
+
+    def get_absolute_url(self):
+        return reverse('comment_detail', kwargs={'pk':self.comment_id})
+
 
 class BugHunter(models.Model):
     hunter_email = models.EmailField()

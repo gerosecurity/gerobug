@@ -4,8 +4,9 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.utils import timezone
 
-from dashboards.models import (BlacklistRule, BugReport, CertificateData,
-                               Personalization, ReportStatus, StaticRules)
+from dashboards.models import (BlacklistRule, BugReport, BugReportHunterComment,
+                               CertificateData, Personalization, ReportStatus,
+                               StaticRules)
 from prerequisites.models import MailBox
 
 
@@ -587,3 +588,76 @@ class InvalidDuplicateOfTests(TroubleshootFixture):
             "report_id": self.report.report_id, "title": "t", "status": "5"})
         self.report.refresh_from_db()
         self.assertEqual((self.report.report_duplicate, self.report.report_duplicate_of), (0, ""))
+
+
+class HunterCommentDashboardTests(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="reviewer2", password="x")
+        self.client.force_login(self.user)
+        Personalization.objects.create(personalize_id=1)
+        for status_id, name in enumerate(
+                ["Invalid", "Received", "In Review", "Reproduced", "Fixing",
+                 "Bounty Calculation", "Bounty in Process", "Completed"]):
+            ReportStatus.objects.get_or_create(status_id=status_id,
+                                               defaults={"status_name": name})
+        MailBox.objects.create(mailbox_id=1, email="ops@example.com", password="pw",
+                               mailbox_status=1)
+        self.report = BugReport.objects.create(
+            report_id="AB12CD34EF56", report_datetime=timezone.now(),
+            hunter_email="hunter@example.com", report_reviewer="reviewer",
+            report_summary="s", report_severitytype="", report_status=2,
+        )
+        self.comment = BugReportHunterComment.objects.create(
+            comment_id="AB12CD34EF56C1", report_id=self.report.report_id,
+            comment_datetime=timezone.now(),
+            comment_summary="Do you need a retest from me?",
+        )
+
+    def test_comment_is_listed_on_the_report_page(self):
+        response = self.client.get("/dashboard/report-detail/AB12CD34EF56")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Hunter Questions")
+        self.assertContains(response, "Do you need a retest from me?")
+        self.assertContains(response, "comment-detail/AB12CD34EF56C1")
+
+    def test_comment_detail_renders(self):
+        response = self.client.get("/dashboard/comment-detail/AB12CD34EF56C1")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "AB12CD34EF56C1")
+        self.assertContains(response, "Do you need a retest from me?")
+
+    def test_comment_detail_requires_login(self):
+        self.client.logout()
+        response = self.client.get("/dashboard/comment-detail/AB12CD34EF56C1")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login/", response["Location"])
+
+    def test_comment_text_is_escaped_on_the_detail_page(self):
+        BugReportHunterComment.objects.filter(pk=self.comment.pk).update(
+            comment_summary="<img src=x onerror=1>")
+        response = self.client.get("/dashboard/comment-detail/AB12CD34EF56C1")
+        self.assertNotContains(response, "<img src=x onerror=1>")
+        self.assertContains(response, "&lt;img src=x onerror=1&gt;")
+
+    def test_deleting_a_report_deletes_every_child_row(self):
+        from dashboards.models import BugReportAppeal, BugReportNDA, BugReportUpdate
+        BugReportUpdate.objects.create(update_id="AB12CD34EF56U1",
+                                       report_id=self.report.report_id,
+                                       update_datetime=timezone.now(),
+                                       update_summary="u", update_file=0)
+        BugReportAppeal.objects.create(appeal_id="AB12CD34EF56A1",
+                                       report_id=self.report.report_id,
+                                       appeal_datetime=timezone.now(),
+                                       appeal_summary="a", appeal_file=0)
+        BugReportNDA.objects.create(nda_id="AB12CD34EF56N1",
+                                    report_id=self.report.report_id,
+                                    nda_datetime=timezone.now(),
+                                    nda_summary="n", nda_file=0)
+        response = self.client.post("/dashboard/report-detail/AB12CD34EF56/delete/")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(BugReport.objects.count(), 0)
+        self.assertEqual(BugReportUpdate.objects.count(), 0)
+        self.assertEqual(BugReportAppeal.objects.count(), 0)
+        self.assertEqual(BugReportNDA.objects.count(), 0)
+        self.assertEqual(BugReportHunterComment.objects.count(), 0)

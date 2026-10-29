@@ -22,7 +22,8 @@ from email.mime.text import MIMEText
 
 from dashboards.models import (APPEAL_WINDOW_DAYS, PROCESSED_MAIL_RETENTION_DAYS,
                                BlacklistRule, BugHunter, BugReport, BugReportAppeal,
-                               BugReportNDA, BugReportUpdate, ProcessedMail, ReportStatus)
+                               BugReportHunterComment, BugReportNDA, BugReportUpdate,
+                               ProcessedMail, ReportStatus)
 from geromail import (gerocalculator, gerocard, gerofilter, geromailer, geronotify,
                       geroparser, mail_templates)
 from prerequisites.models import MailBox
@@ -2179,3 +2180,138 @@ class HelpFlowTests(MailFlowTestCase):
         self.deliver(raw_mail("Re: help", sender="stranger@example.com"))
         self.assertEqual(self.sent_codes(), [210])
         self.assertNotIn("AB12CD34EF56", self.last_note())
+
+
+class CommentFlowTests(MailFlowTestCase):
+
+    def comment(self, body="Will you need a retest from me?", report_id="AB12CD34EF56",
+                **kwargs):
+        return self.deliver(raw_mail("COMMENT_" + report_id, body=body, **kwargs))
+
+    def test_comment_is_stored_and_confirmed(self):
+        report = make_report(report_status=2)
+        self.comment()
+        self.assertEqual(self.sent_codes(), [211])
+        row = BugReportHunterComment.objects.get(comment_id="AB12CD34EF56C1")
+        self.assertEqual(row.report_id, report.report_id)
+        self.assertIn("retest", row.comment_summary)
+        report.refresh_from_db()
+        self.assertEqual(report.report_hunter_comment, 1)
+        self.assertIn("retest", self.last_note())
+
+    def test_comment_does_not_spend_update_allowance(self):
+        report = make_report(report_status=2, report_permission=4)
+        self.comment()
+        report.refresh_from_db()
+        self.assertEqual(report.report_update_self, 0)
+        self.assertEqual(report.report_update, 0)
+        self.assertEqual(report.report_permission, 4)
+        self.assertEqual(report.report_status, 2)
+
+    def test_comment_notifies_the_team(self):
+        make_report(report_status=2)
+        self.comment()
+        self.notify.assert_called_once_with("AB12CD34EF56", "hunter@example.com",
+                                            "NEW_COMMENT")
+
+    def test_comment_pdf_is_ignored_and_the_reply_points_at_update(self):
+        make_report(report_status=2)
+        self.comment(pdf=MINIMAL_PDF)
+        self.assertEqual(self.sent_codes(), [211])
+        self.assertFalse(os.path.exists(self.pdf_path("AB12CD34EF56", "AB12CD34EF56C1")))
+        self.assertIn("UPDATE_~ID~", mail_templates.message_211)
+
+    def test_comment_limit(self):
+        report = make_report(report_status=2,
+                             report_hunter_comment=gerofilter.COMMENT_LIMIT)
+        self.comment()
+        self.assertEqual(self.sent_codes(), [411])
+        self.assertEqual(BugReportHunterComment.objects.count(), 0)
+        report.refresh_from_db()
+        self.assertEqual(report.report_hunter_comment, gerofilter.COMMENT_LIMIT)
+
+    def test_comment_limit_is_ten(self):
+        self.assertEqual(gerofilter.COMMENT_LIMIT, 10)
+
+    def test_ten_comments_fit_under_the_limit(self):
+        make_report(report_status=2)
+        for n in range(gerofilter.COMMENT_LIMIT):
+            self.write_mail.reset_mock()
+            self.comment(body="question number " + str(n))
+            self.assertEqual(self.sent_codes(), [211], n)
+        self.assertEqual(BugReportHunterComment.objects.count(),
+                         gerofilter.COMMENT_LIMIT)
+
+    def test_comment_on_completed_report_refused(self):
+        for status in (0, 7):
+            BugReportHunterComment.objects.all().delete()
+            BugReport.objects.all().delete()
+            self.write_mail.reset_mock()
+            make_report(report_status=status)
+            self.comment(body="a question at stage " + str(status))
+            self.assertEqual(self.sent_codes(), [403], status)
+            self.assertEqual(BugReportHunterComment.objects.count(), 0)
+
+    def test_comment_allowed_at_every_open_stage(self):
+        for status in gerofilter.COMMENT_STATUSES:
+            BugReportHunterComment.objects.all().delete()
+            BugReport.objects.all().delete()
+            self.write_mail.reset_mock()
+            make_report(report_status=status)
+            self.comment(body="a question at stage " + str(status))
+            self.assertEqual(self.sent_codes(), [211], status)
+
+    def test_comment_by_other_sender_refused(self):
+        make_report(report_status=2)
+        self.deliver(raw_mail("COMMENT_AB12CD34EF56", body="not mine",
+                              sender="stranger@example.com"))
+        self.assertEqual(self.sent_codes(), [403])
+        self.assertEqual(BugReportHunterComment.objects.count(), 0)
+
+    def test_comment_on_an_unknown_report_is_405(self):
+        make_report(report_status=2)
+        self.deliver(raw_mail("COMMENT_ZZZZZZZZZZZZ", body="where is it"))
+        self.assertEqual(self.sent_codes(), [405])
+
+    def test_empty_comment_is_refused_with_a_reason(self):
+        report = make_report(report_status=2)
+        self.comment(body="ok")
+        self.assertEqual(self.sent_codes(), [404])
+        self.assertEqual(self.last_note(), gerofilter.REASON_EMPTY_COMMENT)
+        report.refresh_from_db()
+        self.assertEqual(report.report_hunter_comment, 0)
+        self.assertEqual(BugReportHunterComment.objects.count(), 0)
+
+    def test_comment_ids_increment(self):
+        make_report(report_status=2)
+        self.comment(body="first question here")
+        self.write_mail.reset_mock()
+        self.comment(body="second question here")
+        self.assertEqual(
+            sorted(BugReportHunterComment.objects.values_list("comment_id", flat=True)),
+            ["AB12CD34EF56C1", "AB12CD34EF56C2"])
+
+    def test_comment_listed_in_submissions(self):
+        report = make_report(report_status=2)
+        self.comment(body="a question about scope")
+        report.refresh_from_db()
+        card = gerocard.build_report_card(report)
+        self.assertIn("AB12CD34EF56C1", card)
+
+    def test_comment_text_is_escaped_in_the_card(self):
+        report = make_report(report_status=2)
+        geroparser.save_comment("AB12CD34EF56C1", report.report_id, timezone.now(),
+                                "<img src=x onerror=1>")
+        card = gerocard.build_report_card(report)
+        self.assertNotIn("<img", card)
+
+    def test_card_allowance_counts_the_questions(self):
+        report = make_report(report_status=2, report_hunter_comment=4)
+        card = gerocard.build_report_card(report)
+        self.assertIn("Questions you can still ask about this report: 6 of 10", card)
+
+    def test_comment_subject_classifies_from_a_reply(self):
+        make_report(report_status=2)
+        code, report_id = gerofilter.classify_action("hunter@example.com",
+                                                     "Re: comment_ab12cd34ef56")
+        self.assertEqual((code, report_id), (211, "AB12CD34EF56"))

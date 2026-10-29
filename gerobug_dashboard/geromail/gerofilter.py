@@ -98,6 +98,12 @@ def check_duplicate(id):
 
 APPEAL_LIMIT = 3
 
+COMMENT_LIMIT = 10
+
+COMMENT_STATUSES = (1, 2, 3, 4, 5, 6)
+
+REASON_EMPTY_COMMENT = "Write your question in the email body."
+
 
 # VALIDATE APPEAL LIMIT
 def validate_appeal(id):
@@ -426,6 +432,19 @@ def classify_action(email, subject):
                 return 208, gerocard.build_overview_rows(email)
             else:
                 return 410, " "
+
+        if verb == 'COMMENT':
+            id = rest
+            if not valid_report_id(id):
+                return 405, id
+            if not validate_user(email, id):
+                return 403, id
+            report = BugReport.objects.get(report_id=id)
+            if report.report_status not in COMMENT_STATUSES:
+                return 403, id
+            if report.report_hunter_comment >= COMMENT_LIMIT:
+                return 411, id
+            return 211, id
 
         if verb in ('HELP', 'COMMANDS'):
             from . import gerocard
