@@ -8,6 +8,9 @@ from prerequisites.models import MailBox
 
 from . import gerofilter
 
+TR_OPEN = "<tr>"
+TD_CLOSE = "</td>"
+
 
 STAGE_TEXT = {
     0: "This report was closed and will not be processed further.",
@@ -303,11 +306,11 @@ def build_report_card(report):
     rows = []
     for name, when, has_pdf in _submission_rows(report):
         rows.append(
-            "<tr>"
-            '<td style="' + _TD + " " + _MONO + ' white-space:nowrap;">' + _esc(name) + "</td>"
-            '<td style="' + _TD + ' white-space:nowrap;">' + _esc(_date(when) or "-") + "</td>"
-            '<td style="' + _TD + '">' + ("yes" if has_pdf else "no") + "</td>"
-            "</tr>")
+            TR_OPEN
+            + '<td style="' + _TD + " " + _MONO + ' white-space:nowrap;">' + _esc(name) + TD_CLOSE
+            + '<td style="' + _TD + ' white-space:nowrap;">' + _esc(_date(when) or "-") + TD_CLOSE
+            + '<td style="' + _TD + '">' + ("yes" if has_pdf else "no") + TD_CLOSE
+            + "</tr>")
     parts.append(
         '<table role="presentation" cellpadding="0" cellspacing="0" style="' + _TABLE + '">'
         "<thead><tr>"
@@ -359,12 +362,12 @@ def build_overview_rows(email):
             id_cell = _esc(report.report_id)
         needs_cell = _esc(label) if needs else "-"
         rows.append(
-            "<tr>"
-            '<td style="' + _TD + " " + _MONO + ' white-space:nowrap;">' + id_cell + "</td>"
-            '<td style="' + _TD + '">' + _esc(report.report_title) + "</td>"
-            '<td style="' + _TD + '">' + _esc(_status_name(report.report_status)) + "</td>"
-            '<td style="' + _TD + '">' + needs_cell + "</td>"
-            "</tr>")
+            TR_OPEN
+            + '<td style="' + _TD + " " + _MONO + ' white-space:nowrap;">' + id_cell + TD_CLOSE
+            + '<td style="' + _TD + '">' + _esc(report.report_title) + TD_CLOSE
+            + '<td style="' + _TD + '">' + _esc(_status_name(report.report_status)) + TD_CLOSE
+            + '<td style="' + _TD + '">' + needs_cell + TD_CLOSE
+            + "</tr>")
     return rows
 
 
@@ -372,11 +375,11 @@ def _help_command_rows():
     rows = []
     for _verb, subject, description in COMMAND_HELP:
         rows.append(
-            "<tr>"
-            '<td style="' + _TD + " " + _MONO + ' white-space:nowrap;">'
-            + _esc(subject) + "</td>"
-            '<td style="' + _TD + '">' + _esc(description) + "</td>"
-            "</tr>")
+            TR_OPEN
+            + '<td style="' + _TD + " " + _MONO + ' white-space:nowrap;">'
+            + _esc(subject) + TD_CLOSE
+            + '<td style="' + _TD + '">' + _esc(description) + TD_CLOSE
+            + "</tr>")
     return "".join(rows)
 
 

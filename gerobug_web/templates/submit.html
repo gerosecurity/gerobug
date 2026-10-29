@@ -87,7 +87,7 @@
             <label for="reportIdInput">Your Report ID</label>
             <input type="text" id="reportIdInput" maxlength="12" autocomplete="off" spellcheck="false"
                 placeholder="AB12CD34EF56" aria-describedby="reportIdHint">
-            <p id="reportIdHint" class="gds-idbox-hint" role="status" aria-live="polite">Type the 12 character Report ID from your confirmation email and every subject and mail button below fills in. Nothing is sent or stored.</p>
+            <output id="reportIdHint" class="gds-idbox-hint" for="reportIdInput" aria-live="polite">Type the 12 character Report ID from your confirmation email and every subject and mail button below fills in. Nothing is sent or stored.</output>
             {% if not mailbox_email %}<p class="gds-idbox-hint">The mail buttons are unavailable until the program mailbox is set up.</p>{% endif %}
         </div>
 
@@ -108,13 +108,13 @@
                     <div class="accordion-body">
                         <b>Subject:</b>
                         <div class="text-wrap">
-                        <textarea readonly id="Subject_submit" rows="1">SUBMIT_Report Title</textarea>
+                        <textarea readonly id="Subject_submit" aria-label="SUBMIT subject to copy" rows="1">SUBMIT_Report Title</textarea>
                         <button type="button" class="clipboard" aria-label="Copy the SUBMIT subject" onclick="copytext('Subject_submit', this)"><i class="fa fa-copy"></i></button>
                         </div>
 
                         <b>Body:</b>
                         <div class="text-wrap">
-                        <textarea readonly id="Body_submit" rows="3">
+                        <textarea readonly id="Body_submit" aria-label="SUBMIT body to copy" rows="3">
 TYPE= Bug Type (example: XSS, SQL Injection, IDOR)
 ENDPOINT= Affected Endpoint (example: https://demo.gerobug.com/submit)
 SUMMARY= Summary of your finding</textarea>
@@ -163,7 +163,7 @@ SUMMARY= Summary of your finding</textarea>
                     <div class="accordion-body">
                         <b>Subject:</b>
                         <div class="text-wrap">
-                        <textarea readonly id="Subject_check" data-subject="CHECK" rows="1">CHECK_Report ID</textarea>
+                        <textarea readonly id="Subject_check" aria-label="CHECK subject to copy" data-subject="CHECK" rows="1">CHECK_Report ID</textarea>
                         <button type="button" class="clipboard" aria-label="Copy the CHECK subject" onclick="copytext('Subject_check', this)"><i class="fa fa-copy"></i></button>
                         </div>
 
@@ -196,7 +196,7 @@ SUMMARY= Summary of your finding</textarea>
                     <div class="accordion-body">
                         <b>Subject:</b>
                         <div class="text-wrap">
-                        <textarea readonly id="Subject_overview" rows="1">STATUS_OVERVIEW</textarea>
+                        <textarea readonly id="Subject_overview" aria-label="OVERVIEW subject to copy" rows="1">STATUS_OVERVIEW</textarea>
                         <button type="button" class="clipboard" aria-label="Copy the STATUS_OVERVIEW subject" onclick="copytext('Subject_overview', this)"><i class="fa fa-copy"></i></button>
                         </div>
 
@@ -226,7 +226,7 @@ SUMMARY= Summary of your finding</textarea>
                     <div class="accordion-body">
                         <b>Subject:</b>
                         <div class="text-wrap">
-                        <textarea readonly id="Subject_score" rows="1">MY_SCORE</textarea>
+                        <textarea readonly id="Subject_score" aria-label="SCORE subject to copy" rows="1">MY_SCORE</textarea>
                         <button type="button" class="clipboard" aria-label="Copy the MY_SCORE subject" onclick="copytext('Subject_score', this)"><i class="fa fa-copy"></i></button>
                         </div>
 
@@ -254,7 +254,7 @@ SUMMARY= Summary of your finding</textarea>
                     <div class="accordion-body">
                         <b>Subject:</b>
                         <div class="text-wrap">
-                        <textarea readonly id="Subject_help" rows="1">HELP</textarea>
+                        <textarea readonly id="Subject_help" aria-label="HELP subject to copy" rows="1">HELP</textarea>
                         <button type="button" class="clipboard" aria-label="Copy the HELP subject" onclick="copytext('Subject_help', this)"><i class="fa fa-copy"></i></button>
                         </div>
 
@@ -280,7 +280,7 @@ SUMMARY= Summary of your finding</textarea>
                     <div class="accordion-body">
                         <b>Subject:</b>
                         <div class="text-wrap">
-                        <textarea readonly id="Subject_update" data-subject="UPDATE" rows="1">UPDATE_Report ID</textarea>
+                        <textarea readonly id="Subject_update" aria-label="UPDATE subject to copy" data-subject="UPDATE" rows="1">UPDATE_Report ID</textarea>
                         <button type="button" class="clipboard" aria-label="Copy the UPDATE subject" onclick="copytext('Subject_update', this)"><i class="fa fa-copy"></i></button>
                         </div>
 
@@ -323,7 +323,7 @@ SUMMARY= Summary of your finding</textarea>
                     <div class="accordion-body">
                         <b>Subject:</b>
                         <div class="text-wrap">
-                        <textarea readonly id="Subject_comment" data-subject="COMMENT" rows="1">COMMENT_Report ID</textarea>
+                        <textarea readonly id="Subject_comment" aria-label="COMMENT subject to copy" data-subject="COMMENT" rows="1">COMMENT_Report ID</textarea>
                         <button type="button" class="clipboard" aria-label="Copy the COMMENT subject" onclick="copytext('Subject_comment', this)"><i class="fa fa-copy"></i></button>
                         </div>
 
@@ -357,7 +357,7 @@ SUMMARY= Summary of your finding</textarea>
                     <div class="accordion-body">
                         <b>Subject:</b>
                         <div class="text-wrap">
-                        <textarea readonly id="Subject_data" data-subject="DATA" rows="1">DATA_Report ID</textarea>
+                        <textarea readonly id="Subject_data" aria-label="DATA subject to copy" data-subject="DATA" rows="1">DATA_Report ID</textarea>
                         <button type="button" class="clipboard" aria-label="Copy the DATA subject" onclick="copytext('Subject_data', this)"><i class="fa fa-copy"></i></button>
                         </div>
 
@@ -401,7 +401,7 @@ SUMMARY= Summary of your finding</textarea>
                     <div class="accordion-body">
                         <b>Subject:</b>
                         <div class="text-wrap">
-                        <textarea readonly id="Subject_agree" data-subject="AGREE" rows="1">AGREE_Report ID</textarea>
+                        <textarea readonly id="Subject_agree" aria-label="AGREE subject to copy" data-subject="AGREE" rows="1">AGREE_Report ID</textarea>
                         <button type="button" class="clipboard" aria-label="Copy the AGREE subject" onclick="copytext('Subject_agree', this)"><i class="fa fa-copy"></i></button>
                         </div>
 
@@ -438,7 +438,7 @@ SUMMARY= Summary of your finding</textarea>
                     <div class="accordion-body">
                         <b>Subject:</b>
                         <div class="text-wrap">
-                        <textarea readonly id="Subject_appeal" data-subject="APPEAL" rows="1">APPEAL_Report ID</textarea>
+                        <textarea readonly id="Subject_appeal" aria-label="APPEAL subject to copy" data-subject="APPEAL" rows="1">APPEAL_Report ID</textarea>
                         <button type="button" class="clipboard" aria-label="Copy the APPEAL subject" onclick="copytext('Subject_appeal', this)"><i class="fa fa-copy"></i></button>
                         </div>
 
@@ -477,7 +477,7 @@ SUMMARY= Summary of your finding</textarea>
                     <div class="accordion-body">
                         <b>Subject:</b>
                         <div class="text-wrap">
-                        <textarea readonly id="Subject_withdraw" data-subject="WITHDRAW" rows="1">WITHDRAW_Report ID</textarea>
+                        <textarea readonly id="Subject_withdraw" aria-label="WITHDRAW subject to copy" data-subject="WITHDRAW" rows="1">WITHDRAW_Report ID</textarea>
                         <button type="button" class="clipboard" aria-label="Copy the WITHDRAW subject" onclick="copytext('Subject_withdraw', this)"><i class="fa fa-copy"></i></button>
                         </div>
 
@@ -553,11 +553,11 @@ SUMMARY= Summary of your finding</textarea>
                 }
 
                 subjects.forEach(function (box) {
-                    box.value = subjectFor(box.getAttribute('data-subject'), value);
+                    box.value = subjectFor(box.dataset.subject, value);
                 });
 
                 buttons.forEach(function (btn) {
-                    var verb = btn.getAttribute('data-verb');
+                    var verb = btn.dataset.verb;
                     var needsId = !NO_ID[verb];
                     if (!mailbox || (needsId && !value)) {
                         btn.setAttribute('href', '#');
@@ -567,7 +567,7 @@ SUMMARY= Summary of your finding</textarea>
                     }
                     var href = 'mailto:' + encodeURIComponent(mailbox).replace(/%40/g, '@')
                         + '?subject=' + encodeURIComponent(subjectFor(verb, value));
-                    if (btn.getAttribute('data-body')) {
+                    if (btn.dataset.body) {
                         href += '&body=' + encodeURIComponent(SUBMIT_BODY);
                     }
                     btn.setAttribute('href', href);

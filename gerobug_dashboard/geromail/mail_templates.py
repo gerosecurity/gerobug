@@ -2,6 +2,8 @@
 
 from .gerofilter import APPEAL_LIMIT, COMMENT_LIMIT, SELF_UPDATE_LIMIT
 
+NOTE = "~NOTE~"
+
 _P    = "margin:0 0 16px 0;"
 _LAST = "margin:0;"
 _LIST = "margin:0 0 16px 0; padding-left:22px;"
@@ -65,7 +67,7 @@ subject_202 = "CHECK_~ID~ | Status of Report ~ID~"
 message_202 = _wrap(
     _HELLO
     + _para("Here is where your report stands and what, if anything, we need from you.")
-    + "~NOTE~"
+    + NOTE
     + _SIGNOFF
 )
 
@@ -76,7 +78,7 @@ message_203 = _wrap(
             "(<b>~TITLE~</b>) has been successfully received.")
     + _para("Our team will review the update and follow up if additional "
             "information is required.")
-    + _note("Update Allowance:", "~NOTE~")
+    + _note("Update Allowance:", NOTE)
     + _SIGNOFF
 )
 
@@ -87,7 +89,7 @@ message_204 = _wrap(
             "(<b>~TITLE~</b>) has been successfully received.")
     + _para("Our team will review the appeal and notify you if additional information "
             "is required or once a decision has been made.")
-    + _note("Appeal Allowance:", "~NOTE~")
+    + _note("Appeal Allowance:", NOTE)
     + _SIGNOFF
 )
 
@@ -125,7 +127,7 @@ subject_207 = "Current Score for This Bug Bounty Program"
 message_207 = _wrap(
     _HELLO
     + _para("This is an update regarding your score in the program. "
-            "Your accumulated score currently stands at: <b>~NOTE~</b>.")
+            "Your accumulated score currently stands at: <b>" + NOTE + "</b>.")
     + _para("You may verify your ranking by visiting the Hall of Fame page.")
     + _para("<b>Good luck with your next hunt.</b>")
     + _SIGNOFF
@@ -150,7 +152,7 @@ message_208 = _wrap(
             '<th align="left" style="padding:10px 12px; background-color:#1f2933; '
             'color:#ffffff; border:1px solid #1f2933;">Needs you</th>'
         "</tr></thead>"
-        "<tbody>~NOTE~</tbody>"
+        "<tbody>" + NOTE + "</tbody>"
       "</table>"
     + _para("For the details of one report, send an email with the subject "
             "<b>CHECK_</b> followed by its Report ID. To ask our team a question "
@@ -165,7 +167,7 @@ message_210 = _wrap(
     _HELLO
     + _para("Here is everything you can ask us by email, with a one line "
             "description of each command.")
-    + "~NOTE~"
+    + NOTE
     + _para("If a command is refused, our reply says why and what to send instead.")
     + _SIGNOFF
 )
@@ -176,7 +178,7 @@ message_211 = _wrap(
     _HELLO
     + _para("We received your question about Report ID <b>~ID~</b> (<b>~TITLE~</b>) "
             "and passed it to the team handling the report.")
-    + _note("Your question:", "~NOTE~")
+    + _note("Your question:", NOTE)
     + _para("A question does not use up any of your update allowance, and it does "
             "not change the stage of your report.")
     + _para("If you meant to send us new evidence, send it with the subject "
@@ -255,7 +257,7 @@ message_404 = _wrap(
     _HELLO
     + _para("We received your email, but we could not process it. Nothing has been "
             "changed on your report.")
-    + _note("What went wrong:", "~NOTE~")
+    + _note("What went wrong:", NOTE)
     + _para("Please verify your input and ensure it adheres to the required format as "
             'defined <a href="https://gerobug.gitbook.io/documentation/filter-and-validation" '
             'style="' + _LINK + '" target="_blank">in our documentation</a>.')
@@ -290,7 +292,7 @@ message_406 = _wrap(
     _HELLO
     + _para("Your email address has been temporarily blacklisted due to detected "
             "spam activity.")
-    + _para("This restriction will be lifted in <b>~NOTE~</b> seconds. Please wait for "
+    + _para("This restriction will be lifted in <b>" + NOTE + "</b> seconds. Please wait for "
             "this period to expire before attempting to submit again.")
     + _SIGNOFF
 )
@@ -301,7 +303,7 @@ message_300 = _wrap(
     _HELLO
     + _para("This email is to notify you of a status change regarding your report. "
             'The current status for Report ID <b>~ID~</b> ("~TITLE~") is now: <b>~STATUS~</b>.')
-    + _note("Reason / Additional Notes:", "~NOTE~")
+    + _note("Reason / Additional Notes:", NOTE)
     + _para("Thank you for your continued efforts in helping secure our systems.")
     + _SIGNOFF
 )
@@ -379,7 +381,7 @@ message_701 = _wrap(
     _HELLO
     + _para("Our team requires additional details regarding Report ID <b>~ID~</b> "
             "(~TITLE~) to proceed with the validation process.")
-    + _note("Request Details:", "~NOTE~")
+    + _note("Request Details:", NOTE)
     + _para("Reply to this email, or send a new email with the subject "
             "<b>UPDATE_~ID~</b>. Either way, please include:")
     + _list([
@@ -399,7 +401,7 @@ message_702 = _wrap(
     _HELLO
     + _para('We have completed the bounty calculation for Report ID <b>~ID~</b> ("~TITLE~").')
     + _para("Determined Severity: <b>~SEVERITY~</b>")
-    + _note("Assessment Notes:", "~NOTE~")
+    + _note("Assessment Notes:", NOTE)
     + _para("Please review this valuation and choose one of the following actions:")
     + _para("<b>Option 1: Accept the Bounty</b><br>"
             'Send an email with the subject "<b>AGREE_~ID~</b>". Leave the email body empty.')
@@ -424,7 +426,7 @@ message_703 = _wrap(
     + _para('We are preparing to process the reward payout for Report ID <b>~ID~</b> '
             '("~TITLE~"). Before we can proceed, we require specific documentation '
             "and details.")
-    + _note("Requirements / Instructions:", "~NOTE~")
+    + _note("Requirements / Instructions:", NOTE)
     + _para("Reply to this email, or send a new email with the subject "
             "<b>DATA_~ID~</b>. Either way, please include:")
     + _list([
@@ -442,7 +444,7 @@ message_704 = _wrap(
     _HELLO
     + _para("Congratulations! We are pleased to confirm that the reward processing for "
             "your submission has been completed.")
-    + _note("Notes:", "~NOTE~")
+    + _note("Notes:", NOTE)
     + _para("Your Certificate of Appreciation is attached to this email. Additionally, "
             "your score has been updated on our Hall of Fame to reflect this achievement.")
     + _para("Thank you for your valuable contribution to our security with Report ID "
@@ -457,7 +459,7 @@ message_705 = _wrap(
     + _para('We are preparing to process the reward payout for Report ID <b>~ID~</b> '
             '("~TITLE~"). Before we can proceed, we require specific documentation '
             "and details.")
-    + _note("Requirements / Instructions:", "~NOTE~")
+    + _note("Requirements / Instructions:", NOTE)
     + _para("Reply to this email, or send a new email with the subject "
             "<b>DATA_~ID~</b>. Either way, please include:")
     + _list([
