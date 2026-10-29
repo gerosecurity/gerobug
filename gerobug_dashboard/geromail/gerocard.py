@@ -37,6 +37,7 @@ VERB_LABELS = {
 }
 
 LAST_EMAIL_LABELS = {
+    212: "You withdrew your report",
     300: "We closed your report",
     301: "We changed the stage of your report",
     701: "We asked you for more information",
@@ -61,7 +62,7 @@ COMMAND_HELP = (
     ("UPDATE", "UPDATE_Report ID",
      "Add new information to a report, with text or a PDF."),
     ("COMMENT", "COMMENT_Report ID",
-     "Ask our team a question about a report. Text only."),
+     "Ask our team a question about a report while it is open. Text only."),
     ("DATA", "DATA_Report ID",
      "Send the documents we asked for before a payout."),
     ("AGREE", "AGREE_Report ID",
@@ -150,6 +151,8 @@ def mailto(verb, report_id=None):
     subject = str(verb or "").upper()
     if report_id:
         subject = subject + "_" + str(report_id)
+    elif subject == "SUBMIT":
+        subject = subject + "_"
     return ("mailto:" + urllib.parse.quote(address, safe="@")
             + "?subject=" + urllib.parse.quote(subject, safe=""))
 
@@ -173,17 +176,20 @@ def action_needed(report):
     permission = max(int(report.report_permission or 0), 0)
     status = int(report.report_status or 0)
 
-    if permission & 4:
-        return "update", ACTION_LABELS["update"]
-    if status == BOUNTY_CALC_STATUS and permission & 2:
-        return "decision", ACTION_LABELS["decision"]
-    if permission & 1:
-        return "data", ACTION_LABELS["data"]
     if status == 0:
         return "closed", ACTION_LABELS["closed"]
     if status == 7:
         return "completed", ACTION_LABELS["completed"]
+    if status == BOUNTY_CALC_STATUS and permission & 2:
+        return "decision", ACTION_LABELS["decision"]
+    if permission & 4:
+        return "update", ACTION_LABELS["update"]
+    if permission & 1:
+        return "data", ACTION_LABELS["data"]
     return "none", ACTION_LABELS["none"]
+
+
+CLOSED_ALLOWANCE_LINE = "This report is closed, so nothing further can be sent."
 
 
 def allowance_lines(report):
@@ -191,6 +197,9 @@ def allowance_lines(report):
     updates_left = max(0, gerofilter.SELF_UPDATE_LIMIT - int(report.report_update_self or 0))
     appeals_left = max(0, gerofilter.APPEAL_LIMIT - int(report.report_appeal or 0))
     status = int(report.report_status or 0)
+
+    if status in (0, 7):
+        return [CLOSED_ALLOWANCE_LINE]
 
     if status > BOUNTY_CALC_STATUS:
         lines.append("Updates are closed for this report, the finding is settled.")
@@ -256,7 +265,7 @@ def _action_section(report):
         body.append(render_actions(report_id, ["DATA"]))
     elif key == "closed":
         body.append(_para("This report was closed as not valid for the program."))
-        if int(report.last_email_code or 0) == 300 and report.last_email_note:
+        if int(report.last_email_code or 0) in (300, 212) and report.last_email_note:
             body.append(_para("Reason we gave: " + _esc(report.last_email_note)))
     elif key == "completed":
         body.append(_para("This report is complete and your certificate was emailed to you."))
@@ -330,7 +339,7 @@ def build_report_card(report):
 
 
 def build_overview_rows(email):
-    reports = list(BugReport.objects.filter(hunter_email=email))
+    reports = list(BugReport.objects.filter(hunter_email__iexact=email))
     ordered = []
     for report in reports:
         key, label = action_needed(report)
@@ -387,10 +396,11 @@ def build_help(email):
     if buttons:
         parts.append(buttons)
 
-    reports = list(BugReport.objects.filter(hunter_email=email,
+    reports = list(BugReport.objects.filter(hunter_email__iexact=email,
                                             report_status__in=OPEN_STATUSES))
     reports.sort(key=lambda report: (report.report_datetime is None,
-                                     report.report_datetime))
+                                     -(report.report_datetime.timestamp()
+                                       if report.report_datetime else 0)))
     if reports:
         parts.append(_heading("Your open reports"))
         for report in reports:

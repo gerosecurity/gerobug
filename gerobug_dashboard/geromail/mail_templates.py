@@ -1,5 +1,7 @@
 # MAIL TEMPLATES FOR GEROBUG
 
+from .gerofilter import APPEAL_LIMIT, COMMENT_LIMIT, SELF_UPDATE_LIMIT
+
 _P    = "margin:0 0 16px 0;"
 _LAST = "margin:0;"
 _LIST = "margin:0 0 16px 0; padding-left:22px;"
@@ -169,7 +171,7 @@ message_210 = _wrap(
 )
 
 
-subject_211 = "Confirmation: Question Received for Report ~ID~"
+subject_211 = "COMMENT_~ID~ | Question Received: Report ~ID~"
 message_211 = _wrap(
     _HELLO
     + _para("We received your question about Report ID <b>~ID~</b> (<b>~TITLE~</b>) "
@@ -182,19 +184,20 @@ message_211 = _wrap(
     + _SIGNOFF
 )
 
-subject_212 = "Confirmation: Report ~ID~ Withdrawn"
+subject_212 = "COMMENT_~ID~ | Report Withdrawn: ~ID~"
 message_212 = _wrap(
     _HELLO
     + _para("We have withdrawn Report ID <b>~ID~</b> (<b>~TITLE~</b>) at your request. "
             "It is now closed and our team will take it no further.")
     + _para("Nothing else is needed from you. If you withdrew it by mistake, reply to "
-            "this email and our team can reopen it.")
+            "this email: your reply reaches our team as a question about this "
+            "report, and they can reopen it.")
     + _para("You are welcome to send the finding again later with the subject "
             "\"<b>SUBMIT_Your report title</b>\".")
     + _SIGNOFF
 )
 
-subject_412 = "Withdrawal Not Possible: Report ~ID~"
+subject_412 = "COMMENT_~ID~ | Withdrawal Not Possible: ~ID~"
 message_412 = _wrap(
     _HELLO
     + _para("We received your request to withdraw Report ID <b>~ID~</b>, but it could "
@@ -202,21 +205,32 @@ message_412 = _wrap(
             "<b>~STATUS~</b>.")
     + _para("A report can only be withdrawn while it is still waiting for a triager or "
             "being reviewed. After that our team has already acted on it.")
-    + _para("If you still want the report closed, reply to this email and tell us why, "
-            "and our team will look at it.")
+    + _para("If you still want the report closed, reply to this email and tell us "
+            "why. Your reply reaches our team as a question about this report, "
+            "and they will look at it.")
     + _SIGNOFF
 )
 
-subject_411 = "Question Limit Reached: Report ~ID~"
+subject_411 = "CHECK_~ID~ | Question Limit Reached: ~ID~"
 message_411 = _wrap(
     _HELLO
     + _para("We received your question about Report ID <b>~ID~</b>, but it could not "
-            "be recorded: you have already sent all <b>10</b> questions available to "
-            "you on this report.")
+            f"be recorded: you have already sent all <b>{COMMENT_LIMIT}</b> questions "
+            "available to you on this report.")
     + _para("This is not a refusal of your finding. Our team will contact you directly "
             "when there is news about the report.")
     + _para("To see where the report stands, send an email with the subject "
             "<b>CHECK_~ID~</b>.")
+    + _SIGNOFF
+)
+
+subject_413 = "CHECK_~ID~ | Questions Closed: Report ~ID~"
+message_413 = _wrap(
+    _HELLO
+    + _para("We received your question about Report ID <b>~ID~</b>, but questions are "
+            "closed: the report is at <b>~STATUS~</b>.")
+    + _para("If something is urgent, reply to the last email our team sent you about "
+            "this report.")
     + _SIGNOFF
 )
 
@@ -308,8 +322,8 @@ message_302 = _wrap(
     + _para('Our bounty calculation for Report ID <b>~ID~</b> ("~TITLE~") was sent to '
             "you 30 days ago and we have not received an appeal within that period.")
     + _para("Determined Severity: <b>~SEVERITY~</b>")
-    + _para("As set out in the bounty decision email, the valuation is therefore "
-            "considered accepted and the report has moved to <b>~STATUS~</b>. No "
+    + _para("As set out in the bounty decision email, the valuation therefore "
+            "counts as agreed and the report has moved to <b>~STATUS~</b>. No "
             "action is required from you at this stage.")
     + _para("We will contact you with the next steps for the reward process.")
     + _SIGNOFF
@@ -320,12 +334,12 @@ subject_409 = "Appeal Limit Reached: Report ~ID~"
 message_409 = _wrap(
     _HELLO
     + _para("We have received your appeal for Report ID <b>~ID~</b>, but it could not "
-            "be recorded: you have already used all <b>3</b> appeals available to you "
-            "on this report.")
+            f"be recorded: you have already used all <b>{APPEAL_LIMIT}</b> appeals "
+            "available to you on this report.")
     + _para("As stated in our bounty decision email, the valuation standing after the "
-            "third appeal is final. It is treated as accepted: you may confirm it now "
-            "by sending an email with the subject \"<b>AGREE_~ID~</b>\", or it will be "
-            "accepted automatically 30 days after the latest bounty decision email. "
+            "third appeal is final. It counts as agreed: you may confirm it now "
+            "by sending an email with the subject \"<b>AGREE_~ID~</b>\", or it is "
+            "treated as agreed 30 days after the latest bounty decision email. "
             "No further action is required from you.")
     + _para("We do appreciate the time you put into the submission, and we hope to see "
             "your next one.")
@@ -351,8 +365,8 @@ subject_407 = "Update Limit Reached: Report ~ID~"
 message_407 = _wrap(
     _HELLO
     + _para("We have received your update for Report ID <b>~ID~</b>, but it could not "
-            "be recorded: you have already used all <b>3</b> updates available to you "
-            "on this report without a request from our team.")
+            f"be recorded: you have already used all <b>{SELF_UPDATE_LIMIT}</b> updates "
+            "available to you on this report without a request from our team.")
     + _para("This is not a rejection of your finding. Our team can invite a further "
             "update at any time, and an update sent in response to such a request "
             "does not count against the limit.")
@@ -374,7 +388,7 @@ message_701 = _wrap(
     ])
     + "~ACTIONS~"
     + _para("An update sent in reply to this request does <b>not</b> count against "
-            "the 3 updates you may send on your own initiative.")
+            f"the {SELF_UPDATE_LIMIT} updates you may send on your own initiative.")
     + _para("For detailed formatting rules, please refer to our guideline page.")
     + _para("We look forward to your response.")
     + _SIGNOFF
@@ -393,11 +407,11 @@ message_702 = _wrap(
             'Send an email with the subject "<b>APPEAL_~ID~</b>". You must include your '
             "<b>Reason/Justification</b> in the email body (text only).")
     + "~ACTIONS~"
-    + _para("<b>Important:</b> You are limited to a maximum of <b>3 appeals</b>. If this "
-            "limit is exceeded, the current determination will be considered final and "
-            "processed accordingly.")
+    + _para(f"<b>Important:</b> You are limited to a maximum of <b>{APPEAL_LIMIT} "
+            "appeals</b>. If this limit is exceeded, the current determination will "
+            "be considered final and processed accordingly.")
     + _para("<b>Please note:</b> if we do not hear from you within <b>30 days</b> of this "
-            "email, the valuation above will be treated as accepted and the report will "
+            "email, the valuation above counts as agreed and the report will "
             "move on to bounty processing automatically.")
     + _para("For detailed formatting rules, please refer to our guideline page.")
     + _para("We look forward to your response.")
@@ -499,6 +513,7 @@ subjectlist = {
     410: subject_410,
     411: subject_411,
     412: subject_412,
+    413: subject_413,
     407: subject_407,
     408: subject_408,
     409: subject_409,
@@ -537,6 +552,7 @@ messagelist = {
     410: message_410,
     411: message_411,
     412: message_412,
+    413: message_413,
     407: message_407,
     408: message_408,
     409: message_409,
