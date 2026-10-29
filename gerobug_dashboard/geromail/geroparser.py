@@ -47,8 +47,8 @@ def _get_ssl_context():
 
 def read_submission(msg):
     body = rm_html_tags(extract_email_body(msg)).strip()
-    pdf, reason = gerofilter.extract_pdf(msg)
-    return body, pdf, reason
+    pdf, reason, size = gerofilter.extract_pdf_sized(msg)
+    return body, pdf, gerofilter.pdf_reason_text(reason, size)
 
 
 def parse_raw_message(raw):
@@ -157,11 +157,6 @@ def claim_mail(msg):
     if not created:
         return True, ''
     return False, fingerprint
-
-
-def already_processed(msg):
-    seen, _ = claim_mail(msg)
-    return seen
 
 
 def release_fingerprint(fingerprint):
@@ -554,7 +549,8 @@ def read_mail(mail, folder_name='inbox'):
                                 if inform:
                                     payload = ["","","",str(note),""] # ID, TITLE, STATUS, NOTE, SEVERITY
                                     geromailer.write_mail(406, payload, hunter_email,
-                                                          in_reply_to=msg['Message-ID'])
+                                                          in_reply_to=msg['Message-ID'],
+                                                          references=msg['References'])
                                     
                                 continue
                             
@@ -567,9 +563,7 @@ def read_mail(mail, folder_name='inbox'):
                                 report_title = str(payload[0]).strip()
                                 payload[1] = report_title
 
-                                email_body, report_pdf, pdf_reason = read_submission(msg)
-                                reason = gerofilter.pdf_reason_text(
-                                    pdf_reason, gerofilter.attachment_size(msg))
+                                email_body, report_pdf, reason = read_submission(msg)
                                 if not reason and report_pdf is None:
                                     reason = gerofilter.REASON_SUBMIT_NO_PDF
 
@@ -593,10 +587,18 @@ def read_mail(mail, folder_name='inbox'):
                                     report_id = generate_id()
                                     payload[0] = report_id
 
-                                    saveuser(hunter_email, str(hunter_name), 0)
-                                    savereport(report_id, hunter_email, email_date, report_title,
-                                               atk_type, report_endpoint, report_summary)
-                                    gerofilter.store_pdf(report_id, report_id, report_pdf)
+                                    with transaction.atomic():
+                                        saveuser(hunter_email, str(hunter_name), 0)
+                                        savereport(report_id, hunter_email, email_date,
+                                                   report_title, atk_type,
+                                                   report_endpoint, report_summary)
+                                        stored = gerofilter.store_pdf(
+                                            report_id, report_id, report_pdf)
+                                    claimed = ''
+
+                                    if not stored:
+                                        logging.getLogger("Gerologger").warning(
+                                            f'Could not store the submitted PDF for {report_id}')
 
                                     gerofilter.check_duplicate(report_id)
                                     geronotify.notify(report_title, hunter_email, "NEW_REPORT")
@@ -618,11 +620,9 @@ def read_mail(mail, folder_name='inbox'):
                                 report_id = str(payload[0])
                                 logging.getLogger("Gerologger").info('Report ID : ' + str(report_id))
 
-                                update_summary, update_pdf, pdf_reason = read_submission(msg)
+                                update_summary, update_pdf, reason = read_submission(msg)
                                 logging.getLogger("Gerologger").info('Update Summary : ' + str(update_summary) + '\n')
 
-                                reason = gerofilter.pdf_reason_text(
-                                    pdf_reason, gerofilter.attachment_size(msg))
                                 if not reason and update_pdf is None and len(update_summary) <= 3:
                                     reason = gerofilter.REASON_EMPTY_UPDATE
 
@@ -662,9 +662,15 @@ def read_mail(mail, folder_name='inbox'):
                                                 "self-initiated updates left for this report. Once they are "
                                                 "used up, further updates require a request from our team."
                                             )
+                                            if update_pdf is not None and not stored:
+                                                payload[3] = (payload[3] + " "
+                                                              + gerofilter.REASON_PDF_NOT_STORED_UPDATE)
+                                                logging.getLogger("Gerologger").warning(
+                                                    f'Could not store the update PDF for {update_id}')
                                             save_uan('U', update_id, report_id, email_date, update_summary, update_file_flag)
 
                                     if code == 203:
+                                        claimed = ''
                                         geronotify.notify(report_id, hunter_email, "NEW_UPDATE")
                                         logging.getLogger("Gerologger").info(f'[CODE 203] Bug Hunter Update Saved Successfully (file={update_file_flag})')
                                     else:
@@ -676,11 +682,9 @@ def read_mail(mail, folder_name='inbox'):
                                 report_id = str(payload[0])
                                 logging.getLogger("Gerologger").info('Report ID : ' + str(report_id))
 
-                                appeal_summary, appeal_pdf, pdf_reason = read_submission(msg)
+                                appeal_summary, appeal_pdf, reason = read_submission(msg)
                                 logging.getLogger("Gerologger").info('Appeal Summary : ' + str(appeal_summary) + '\n')
 
-                                reason = gerofilter.pdf_reason_text(
-                                    pdf_reason, gerofilter.attachment_size(msg))
                                 if not reason and appeal_pdf is None and len(appeal_summary) <= 3:
                                     reason = gerofilter.REASON_EMPTY_APPEAL
 
@@ -715,9 +719,15 @@ def read_mail(mail, folder_name='inbox'):
                                                 "left for this report. Once they are used up, our standing "
                                                 "determination becomes final."
                                             )
+                                            if appeal_pdf is not None and not stored:
+                                                payload[3] = (payload[3] + " "
+                                                              + gerofilter.REASON_PDF_NOT_STORED_UPDATE)
+                                                logging.getLogger("Gerologger").warning(
+                                                    f'Could not store the appeal PDF for {appeal_id}')
                                             save_uan('A', appeal_id, report_id, email_date, appeal_summary, appeal_file)
 
                                     if code == 204:
+                                        claimed = ''
                                         geronotify.notify(report_id, hunter_email, "NEW_APPEAL")
                                         logging.getLogger("Gerologger").info('[CODE 204] Bug Hunter Appeal Received Successfully')
                                     else:
@@ -742,6 +752,7 @@ def read_mail(mail, folder_name='inbox'):
                                         report.report_status += 1
                                         report.save()
                                         payload[2] = report.report_status
+                                        claimed = ''
 
                                 if code == 205:
                                     geronotify.notify(report_id, hunter_email, "NEW_AGREE")
@@ -756,11 +767,9 @@ def read_mail(mail, folder_name='inbox'):
                                 report_id = str(payload[0])
                                 logging.getLogger("Gerologger").info('Report ID: ' + str(report_id))
 
-                                nda_summary, nda_pdf, pdf_reason = read_submission(msg)
+                                nda_summary, nda_pdf, reason = read_submission(msg)
                                 logging.getLogger("Gerologger").info('NDA Summary : ' + str(nda_summary) + '\n')
 
-                                reason = gerofilter.pdf_reason_text(
-                                    pdf_reason, gerofilter.attachment_size(msg))
                                 if not reason and nda_pdf is None and len(nda_summary) <= 3:
                                     reason = gerofilter.REASON_EMPTY_UPDATE
 
@@ -788,10 +797,15 @@ def read_mail(mail, folder_name='inbox'):
                                             stored = gerofilter.store_pdf(report_id, nda_id, nda_pdf)
                                             nda_file_flag = 1 if stored else 0
                                             save_uan('N', nda_id, report_id, email_date, nda_summary, nda_file_flag)
-                                            if not stored:
+                                            if nda_pdf is None:
                                                 code = 209
+                                            elif not stored:
+                                                payload[3] = gerofilter.REASON_PDF_NOT_STORED_DATA
+                                                logging.getLogger("Gerologger").warning(
+                                                    f'Could not store the data PDF for {nda_id}')
 
                                     if code in (206, 209):
+                                        claimed = ''
                                         geronotify.notify(report_id, hunter_email, "NEW_NDA")
                                         logging.getLogger("Gerologger").info('[CODE 206] Bug Hunter NDA Received Successfully')
                                     else:
@@ -832,7 +846,7 @@ def read_mail(mail, folder_name='inbox'):
                                         payload[1] = report.report_title
 
                                         if report.report_status not in gerofilter.COMMENT_STATUSES:
-                                            code = 403
+                                            code = 413
                                             payload[2] = report.report_status
                                         elif report.report_hunter_comment >= gerofilter.COMMENT_LIMIT:
                                             code = 411
@@ -846,6 +860,7 @@ def read_mail(mail, folder_name='inbox'):
                                             payload[3] = comment_body
 
                                     if code == 211:
+                                        claimed = ''
                                         geronotify.notify(report_id, hunter_email, "NEW_COMMENT")
                                         logging.getLogger("Gerologger").info('[CODE 211] Bug Hunter Comment Received Successfully')
                                     else:
@@ -865,10 +880,12 @@ def read_mail(mail, folder_name='inbox'):
                                         payload[2] = report.report_status
                                     else:
                                         report.report_status = 0
-                                        report.last_email_code = 300
+                                        report.report_permission = 0
+                                        report.last_email_code = 212
                                         report.last_email_note = "Withdrawn by the hunter"
                                         report.save()
                                         payload[2] = report.report_status
+                                        claimed = ''
 
                                 if code == 212:
                                     geronotify.notify(report_id, hunter_email, "REPORT_WITHDRAWN")
@@ -904,6 +921,14 @@ def read_mail(mail, folder_name='inbox'):
                                     f'[ERROR 412] Withdraw refused for {payload[0]}: '
                                     'the report has moved past In Review')
 
+                            elif(code == 413):
+                                report = BugReport.objects.get(report_id=payload[0])
+                                payload[1] = report.report_title
+                                payload[2] = report.report_status
+                                logging.getLogger("Gerologger").warning(
+                                    f'[ERROR 413] Questions closed for {payload[0]}: '
+                                    f'the report is at stage {report.report_status}')
+
                             elif(code == 405):
                                 logging.getLogger("Gerologger").warning('[ERROR 405] Report ID not valid')
 
@@ -933,8 +958,9 @@ def read_mail(mail, folder_name='inbox'):
 
                             logging.getLogger("Gerologger").info('============================')
                             geromailer.write_mail(code, payload, hunter_email,
-                                                  in_reply_to=msg['Message-ID'])
-                
+                                                  in_reply_to=msg['Message-ID'],
+                                                  references=msg['References'])
+
                 except Exception as e:
                     release_fingerprint(claimed)
                     logging.getLogger("Gerologger").error(f"Error processing email ID {i}: {str(e)}")
@@ -1250,7 +1276,7 @@ def recover_loss_file(id, type, when=None):
 
         id_list = []
         for subject in subjects:
-            if TYPE == "1": # GMAIL
+            if TYPE == "1":
                 SEARCH = "from:" + safe_email + " subject:" + subject
                 data = mail.search(None, r'X-GM-RAW "'+SEARCH+'"')
             else:

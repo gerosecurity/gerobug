@@ -3,8 +3,6 @@ import os
 import PyPDF2
 import logging
 
-from django.db import transaction
-
 from dashboards.models import (BOUNTY_CALC_STATUS, BugHunter, BugReport, BugReportUpdate,
                                BugReportAppeal, BugReportNDA)
 from gerobug.settings import MEDIA_ROOT
@@ -106,6 +104,11 @@ WITHDRAW_STATUSES = (1, 2)
 
 REASON_EMPTY_COMMENT = "Write your question in the email body."
 
+REASON_PDF_NOT_STORED_UPDATE = ("We could not store the attached PDF. "
+                                "Please send it again in a new UPDATE.")
+REASON_PDF_NOT_STORED_DATA = ("We could not store the attached PDF. "
+                              "Please send it again in a new DATA email.")
+
 
 # VALIDATE APPEAL LIMIT
 def validate_appeal(id):
@@ -124,17 +127,6 @@ def validate_update_stage(id):
 def validate_self_update(id):
     report = BugReport.objects.get(report_id=id)
     return report.report_update_self < SELF_UPDATE_LIMIT
-
-
-def consume_update_allowance(id):
-    with transaction.atomic():
-        report = BugReport.objects.select_for_update().get(report_id=id)
-        if report.report_permission >= 4:
-            report.report_permission -= 4
-        else:
-            report.report_update_self += 1
-        report.save()
-        return max(0, SELF_UPDATE_LIMIT - report.report_update_self)
 
 
 # VALIDATE IF CERTAIN OPERATION IS PERMITTED
@@ -174,11 +166,7 @@ def validate_permission(operation, id):
 # VALIDATE USER OWNERSHIP FOR REPORT ID
 def validate_user(email, id):
     report = BugReport.objects.get(report_id=id)
-    
-    if(report.hunter_email == email):
-        return True
-    else:    
-        return False
+    return str(report.hunter_email or '').strip().lower() == str(email or '').strip().lower()
 
 
 _REPORT_ID_RE = re.compile(r'^[0-9A-Za-z]{12}$')
@@ -226,8 +214,18 @@ def check_pdf(file):
         return True
 
 
-def extract_pdf(msg):
-    found = False
+def looks_like_pdf(part, data):
+    if (part.get_content_type() or '').lower() == 'application/pdf':
+        return True
+    if str(part.get_filename() or '').lower().endswith('.pdf'):
+        return True
+    return bool(data) and data[:4] == b'%PDF'
+
+
+def extract_pdf_sized(msg):
+    reason = "none"
+    reason_size = 0
+
     for part in msg.walk():
         if part.get_content_maintype() == 'multipart':
             continue
@@ -239,19 +237,30 @@ def extract_pdf(msg):
         data = part.get_payload(decode=True)
         if not data:
             continue
-        found = True
+        if not looks_like_pdf(part, data):
+            continue
+
         size = len(data)
         logging.getLogger("Gerologger").info('File size = ' + str(size))
 
-        if size >= MAX_PDF_BYTES:
-            return None, "too_large"
+        if size > MAX_PDF_BYTES:
+            if reason in ("none", "not_pdf"):
+                reason, reason_size = "too_large", size
+            continue
         if not check_pdf(data):
             logging.getLogger("Gerologger").warning(
                 'Invalid PDF detected in memory, file not written to disk')
+            if reason == "none":
+                reason, reason_size = "not_pdf", size
             continue
-        return data, ""
+        return data, "", size
 
-    return None, "not_pdf" if found else "none"
+    return None, reason, reason_size
+
+
+def extract_pdf(msg):
+    data, reason, _size = extract_pdf_sized(msg)
+    return data, reason
 
 
 def pdf_reason_text(reason, size=0):
@@ -260,20 +269,6 @@ def pdf_reason_text(reason, size=0):
     if reason == "not_pdf":
         return REASON_PDF_INVALID
     return ""
-
-
-def attachment_size(msg):
-    for part in msg.walk():
-        if part.get_content_maintype() == 'multipart':
-            continue
-        if part.get('Content-Disposition') is None:
-            continue
-        if not part.get_filename():
-            continue
-        data = part.get_payload(decode=True)
-        if data:
-            return len(data)
-    return 0
 
 
 def store_pdf(report_id, file_id, data, base=None):
@@ -364,16 +359,22 @@ def parse_body(body):
     return atk_type, endpoint, summary
 
 
+_SUBJECT_MAX = 500
+
 _REPLY_PREFIX = re.compile(
-    r'^\s*((re|fw|fwd|aw|sv|wg|tr|rif)\s*(\[\d+\])?\s*:\s*|\[[^\]]{1,40}\]\s*)+', re.I)
+    r'^(?:\s*(?:(?:re|fw|fwd|aw|sv|wg|tr|rif)\s?(?:\[\d+\])?\s?:|\[[^\]]{1,40}\]))+\s*',
+    re.I)
 _COMMAND = re.compile(
     r'^(SUBMIT|CHECK|UPDATE|APPEAL|AGREE|DATA|NDA|COMMENT|WITHDRAW)\s*[_:\- ]\s*(.*)$'
     r'|^(STATUS_OVERVIEW|MY_SCORE|HELP|COMMANDS)\b', re.I)
 _REPORT_ID = re.compile(r'^([0-9A-Za-z]{12})(?![0-9A-Za-z])')
 
+_REST_MAX = 64
+
 
 def parse_subject(subject):
-    s = _REPLY_PREFIX.sub('', subject or '').strip()
+    s = str(subject or '')[:_SUBJECT_MAX]
+    s = _REPLY_PREFIX.sub('', s).strip()
     m = _COMMAND.match(s)
     if not m:
         return None, ''
@@ -382,8 +383,8 @@ def parse_subject(subject):
     verb, rest = m.group(1).upper(), m.group(2).strip()
     if verb == 'SUBMIT':
         return verb, rest
-    idm = _REPORT_ID.match(rest.replace(' ', ''))
-    return verb, (idm.group(1).upper() if idm else rest)
+    idm = _REPORT_ID.match(rest) or _REPORT_ID.match(rest.replace(' ', ''))
+    return verb, (idm.group(1).upper() if idm else rest[:_REST_MAX])
 
 
 _SUBJECT_ACTIONS = {
@@ -422,14 +423,15 @@ def classify_action(email, subject):
             return code, id
 
         if verb == 'MY_SCORE':
-            if BugHunter.objects.filter(hunter_email=email).exists():
-                hunter = BugHunter.objects.get(hunter_email=email)
+            hunter = BugHunter.objects.filter(hunter_email__iexact=email).first()
+            if hunter is not None:
                 return 207, str(hunter.hunter_scores)
-            else:
-                return 410, " "
+            if BugReport.objects.filter(hunter_email__iexact=email).exists():
+                return 207, "0"
+            return 410, " "
 
         if verb == 'STATUS_OVERVIEW':
-            if BugReport.objects.filter(hunter_email=email).exists():
+            if BugReport.objects.filter(hunter_email__iexact=email).exists():
                 from . import gerocard
                 return 208, gerocard.build_overview_rows(email)
             else:
@@ -443,7 +445,7 @@ def classify_action(email, subject):
                 return 403, id
             report = BugReport.objects.get(report_id=id)
             if report.report_status not in COMMENT_STATUSES:
-                return 403, id
+                return 413, id
             if report.report_hunter_comment >= COMMENT_LIMIT:
                 return 411, id
             return 211, id

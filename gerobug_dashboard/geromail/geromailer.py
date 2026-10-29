@@ -62,11 +62,28 @@ def report_thread_token(report_id, sending_domain):
     return "<gerobug-report-" + str(report_id) + "@" + str(sending_domain) + ">"
 
 
-def thread_headers(report_id, sending_domain, in_reply_to):
+ANGLE_ADDR_RE = re.compile(r"<[^<>\s]+>")
+
+MAX_INBOUND_REFERENCES = 10
+
+
+def inbound_references(references):
+    found = ANGLE_ADDR_RE.findall(clean_header(references))
+    unique = []
+    for ref in found:
+        if ref not in unique:
+            unique.append(ref)
+    return unique[-MAX_INBOUND_REFERENCES:]
+
+
+def thread_headers(report_id, sending_domain, in_reply_to, references=None):
     parent = clean_header(in_reply_to)
     token = report_thread_token(report_id, sending_domain)
-    references = [ref for ref in (token, parent) if ref]
-    return parent, " ".join(references)
+    chain = inbound_references(references)
+    for ref in (parent, token):
+        if ref and ref not in chain:
+            chain.append(ref)
+    return parent, " ".join(chain)
 
 def safe_html_format(text):
     if text is None:
@@ -78,7 +95,7 @@ def safe_html_format(text):
 
 
 # WRITE EMAIL REPLY (CONFIRMATIONS)
-def write_mail(code, payload, Destination, in_reply_to=None):
+def write_mail(code, payload, Destination, in_reply_to=None, references=None):
     # Close stale DB connections when called from threads
     try:
         connection.close()
@@ -148,7 +165,8 @@ def write_mail(code, payload, Destination, in_reply_to=None):
             body = body.replace("~ACTIONS~", render_actions_for(code, payload[0]))
 
             # BUILD EMAIL MESSAGE (identity fixed above so retries are the same message)
-            parent, references = thread_headers(payload[0], sending_domain, in_reply_to)
+            parent, reference_chain = thread_headers(
+                payload[0], sending_domain, in_reply_to, references)
 
             message = MIMEMultipart("alternative")
             message["From"] = clean_header(mailbox.email)
@@ -158,8 +176,8 @@ def write_mail(code, payload, Destination, in_reply_to=None):
             message["Message-ID"] = clean_header(msg_id)
             if parent:
                 message["In-Reply-To"] = parent
-            if references:
-                message["References"] = references
+            if reference_chain:
+                message["References"] = reference_chain
             # RFC 3834: tells other auto-responders not to reply to us, so a
             # vacation responder or another ticketing system can't start a loop.
             message["Auto-Submitted"] = "auto-generated"
