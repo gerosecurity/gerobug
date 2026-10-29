@@ -84,7 +84,7 @@
         <ul class="gds-submit-rules">
             <li>Subjects are not case sensitive. <code>CHECK_AB12CD34EF56</code> and <code>check_ab12cd34ef56</code> do the same thing.</li>
             <li>Replying to any email we send you works. Our subjects already start with the command your reply needs.</li>
-            <li>One PDF of up to 25 MB per email. Anything larger is refused and we tell you the size.</li>
+            <li>One PDF of up to {{ max_pdf_mb }} MB per email. Anything larger is refused and we tell you the size.</li>
             <li>PoC videos, screenshot bundles, archives (.zip/.rar) and exploit code must <b>not</b> be attached, because mail filters strip them. Upload them to Google Drive, OneDrive, Dropbox, a private GitHub repository or a secret GitHub Gist and put the link, plus the password if there is one, inside the PDF.</li>
         </ul>
         <p class="gds-submit-intro">Join the Gerobug community on <a href="https://discord.gg/VhU4X4TQ5F" target="_blank" rel="noopener">Discord</a></p>
@@ -92,9 +92,9 @@
         <div class="gds-idbox">
             <label for="reportIdInput">Your Report ID</label>
             <input type="text" id="reportIdInput" maxlength="12" autocomplete="off" spellcheck="false"
-                placeholder="AB12CD34EF56" aria-describedby="reportIdHint"
-                {% if not mailbox_email %}disabled{% endif %}>
+                placeholder="AB12CD34EF56" aria-describedby="reportIdHint">
             <p id="reportIdHint" class="gds-idbox-hint" role="status" aria-live="polite">Type the 12 character Report ID from your confirmation email and every subject and mail button below fills in. Nothing is sent or stored.</p>
+            {% if not mailbox_email %}<p class="gds-idbox-hint">The mail buttons are unavailable until the program mailbox is set up.</p>{% endif %}
         </div>
 
         <div class="accordion" id="accordionPanelsStayOpenExample">
@@ -115,7 +115,7 @@
                         <b>Subject:</b>
                         <div class="text-wrap">
                         <textarea readonly id="Subject_submit" rows="1">SUBMIT_Report Title</textarea>
-                        <div class="clipboard" role="button" tabindex="0" aria-label="Copy the SUBMIT subject" onclick="copytext('Subject_submit', this)"><i class="fa fa-copy"></i></div>
+                        <button type="button" class="clipboard" aria-label="Copy the SUBMIT subject" onclick="copytext('Subject_submit', this)"><i class="fa fa-copy"></i></button>
                         </div>
 
                         <b>Body:</b>
@@ -124,7 +124,7 @@
 TYPE= Bug Type (example: XSS, SQL Injection, IDOR)
 ENDPOINT= Affected Endpoint (example: https://demo.gerobug.com/submit)
 SUMMARY= Summary of your finding</textarea>
-                        <div class="clipboard" role="button" tabindex="0" aria-label="Copy the SUBMIT body" onclick="copytext('Body_submit', this)"><i class="fa fa-copy"></i></div>
+                        <button type="button" class="clipboard" aria-label="Copy the SUBMIT body" onclick="copytext('Body_submit', this)"><i class="fa fa-copy"></i></button>
                         </div>
 
                         <b>Attachment:</b>
@@ -134,11 +134,11 @@ SUMMARY= Summary of your finding</textarea>
 
                         <p class="gds-rules-title">Rules for this email</p>
                         <ul class="gds-rules">
-                            <li>Title: 3 to 150 characters, written after <code>SUBMIT_</code> in the subject.</li>
+                            <li>Title: 3 to {{ title_max }} characters, written after <code>SUBMIT_</code> in the subject.</li>
                             <li>TYPE: 1 to 100 characters.</li>
-                            <li>ENDPOINT: 1 to 255 characters.</li>
+                            <li>ENDPOINT: 1 to {{ endpoint_max }} characters.</li>
                             <li>SUMMARY: at least 10 characters.</li>
-                            <li>One PDF, up to 25 MB. A report without a PDF is refused.</li>
+                            <li>One PDF, up to {{ max_pdf_mb }} MB. A report without a PDF is refused.</li>
                         </ul>
 
                         <p class="gds-mail-row"><a class="gds-mail-btn" data-verb="SUBMIT" data-body="1" href="#">Open in mail app</a></p>
@@ -166,7 +166,7 @@ SUMMARY= Summary of your finding</textarea>
                         <b>Subject:</b>
                         <div class="text-wrap">
                         <textarea readonly id="Subject_check" data-subject="CHECK" rows="1">CHECK_Report ID</textarea>
-                        <div class="clipboard" role="button" tabindex="0" aria-label="Copy the CHECK subject" onclick="copytext('Subject_check', this)"><i class="fa fa-copy"></i></div>
+                        <button type="button" class="clipboard" aria-label="Copy the CHECK subject" onclick="copytext('Subject_check', this)"><i class="fa fa-copy"></i></button>
                         </div>
 
                         We reply with a card for that one report: the stage it is at and since when, what we need from you next with a button for it, how many updates and appeals you have left, every submission you have sent us, and the last message we sent.
@@ -176,7 +176,8 @@ SUMMARY= Summary of your finding</textarea>
                             <p><b>Report AB12CD34EF56</b></p>
                             <p>Stage 2 of 7: In Review, since 14 Oct 2026</p>
                             <p><b>What we need from you</b><br>We asked you for more information before we can carry on.</p>
-                            <p><b>Your allowances</b><br>Updates you can send on your own initiative: 2 of 3. Appeals left: 3 of 3.</p>
+                            <p><b>Your allowances</b><br>Updates you can send on your own initiative: 2 of {{ self_update_limit }}. Appeals left: {{ appeal_limit }} of {{ appeal_limit }}.</p>
+                            <p>Questions you can still ask: {{ comment_limit }} of {{ comment_limit }} left.</p>
                         </div>
 
                         <p class="gds-mail-row"><a class="gds-mail-btn" data-verb="CHECK" href="#">Open in mail app</a></p>
@@ -198,7 +199,7 @@ SUMMARY= Summary of your finding</textarea>
                         <b>Subject:</b>
                         <div class="text-wrap">
                         <textarea readonly id="Subject_overview" rows="1">STATUS_OVERVIEW</textarea>
-                        <div class="clipboard" role="button" tabindex="0" aria-label="Copy the STATUS_OVERVIEW subject" onclick="copytext('Subject_overview', this)"><i class="fa fa-copy"></i></div>
+                        <button type="button" class="clipboard" aria-label="Copy the STATUS_OVERVIEW subject" onclick="copytext('Subject_overview', this)"><i class="fa fa-copy"></i></button>
                         </div>
 
                         We reply with an index of every report you have sent us. The ones that need something from you are listed first, and a "Needs you" column says what. Each Report ID is a link that asks for its full card.
@@ -228,7 +229,7 @@ SUMMARY= Summary of your finding</textarea>
                         <b>Subject:</b>
                         <div class="text-wrap">
                         <textarea readonly id="Subject_score" rows="1">MY_SCORE</textarea>
-                        <div class="clipboard" role="button" tabindex="0" aria-label="Copy the MY_SCORE subject" onclick="copytext('Subject_score', this)"><i class="fa fa-copy"></i></div>
+                        <button type="button" class="clipboard" aria-label="Copy the MY_SCORE subject" onclick="copytext('Subject_score', this)"><i class="fa fa-copy"></i></button>
                         </div>
 
                         Your score is the total severity of every report of yours we completed. It is what ranks you on the Hall of Fame.
@@ -256,7 +257,7 @@ SUMMARY= Summary of your finding</textarea>
                         <b>Subject:</b>
                         <div class="text-wrap">
                         <textarea readonly id="Subject_help" rows="1">HELP</textarea>
-                        <div class="clipboard" role="button" tabindex="0" aria-label="Copy the HELP subject" onclick="copytext('Subject_help', this)"><i class="fa fa-copy"></i></div>
+                        <button type="button" class="clipboard" aria-label="Copy the HELP subject" onclick="copytext('Subject_help', this)"><i class="fa fa-copy"></i></button>
                         </div>
 
                         We reply with every command and a one line description of each, plus the remaining allowances of each report you still have open with us. <code>COMMANDS</code> does the same thing.
@@ -282,7 +283,7 @@ SUMMARY= Summary of your finding</textarea>
                         <b>Subject:</b>
                         <div class="text-wrap">
                         <textarea readonly id="Subject_update" data-subject="UPDATE" rows="1">UPDATE_Report ID</textarea>
-                        <div class="clipboard" role="button" tabindex="0" aria-label="Copy the UPDATE subject" onclick="copytext('Subject_update', this)"><i class="fa fa-copy"></i></div>
+                        <button type="button" class="clipboard" aria-label="Copy the UPDATE subject" onclick="copytext('Subject_update', this)"><i class="fa fa-copy"></i></button>
                         </div>
 
                         <b>Body:</b>
@@ -296,10 +297,10 @@ SUMMARY= Summary of your finding</textarea>
 
                         <p class="gds-rules-title">Rules for this email</p>
                         <ul class="gds-rules">
-                            <li>You may send 3 updates on your own initiative per report.</li>
-                            <li>An update we ask you for is free and does not count against those 3.</li>
-                            <li>Updates close once the report passes Bounty Calculation, because the finding is settled by then.</li>
-                            <li>Text, a PDF, or both. One PDF of up to 25 MB.</li>
+                            <li>You may send {{ self_update_limit }} updates on your own initiative per report.</li>
+                            <li>An update we ask you for is free and does not count against those {{ self_update_limit }}.</li>
+                            <li>Updates close once the report moves past Bounty Calculation to Bounty in Process.</li>
+                            <li>Text, a PDF, or both. One PDF of up to {{ max_pdf_mb }} MB.</li>
                         </ul>
 
                         <p class="gds-mail-row"><a class="gds-mail-btn" data-verb="UPDATE" href="#">Open in mail app</a></p>
@@ -325,7 +326,7 @@ SUMMARY= Summary of your finding</textarea>
                         <b>Subject:</b>
                         <div class="text-wrap">
                         <textarea readonly id="Subject_comment" data-subject="COMMENT" rows="1">COMMENT_Report ID</textarea>
-                        <div class="clipboard" role="button" tabindex="0" aria-label="Copy the COMMENT subject" onclick="copytext('Subject_comment', this)"><i class="fa fa-copy"></i></div>
+                        <button type="button" class="clipboard" aria-label="Copy the COMMENT subject" onclick="copytext('Subject_comment', this)"><i class="fa fa-copy"></i></button>
                         </div>
 
                         <b>Body:</b>
@@ -334,9 +335,10 @@ SUMMARY= Summary of your finding</textarea>
 
                         <p class="gds-rules-title">Rules for this email</p>
                         <ul class="gds-rules">
-                            <li>Questions only. This does not use up one of your 3 updates.</li>
-                            <li>10 questions per report.</li>
+                            <li>Questions only. This does not use up one of your {{ self_update_limit }} updates.</li>
+                            <li>{{ comment_limit }} questions per report.</li>
                             <li>Text only. A PDF attached to a question is ignored, so send evidence with UPDATE instead.</li>
+                            <li>Only while the report is open. Once it is closed or complete, reply to our last email about it instead.</li>
                         </ul>
 
                         <p class="gds-mail-row"><a class="gds-mail-btn" data-verb="COMMENT" href="#">Open in mail app</a></p>
@@ -358,7 +360,7 @@ SUMMARY= Summary of your finding</textarea>
                         <b>Subject:</b>
                         <div class="text-wrap">
                         <textarea readonly id="Subject_data" data-subject="DATA" rows="1">DATA_Report ID</textarea>
-                        <div class="clipboard" role="button" tabindex="0" aria-label="Copy the DATA subject" onclick="copytext('Subject_data', this)"><i class="fa fa-copy"></i></div>
+                        <button type="button" class="clipboard" aria-label="Copy the DATA subject" onclick="copytext('Subject_data', this)"><i class="fa fa-copy"></i></button>
                         </div>
 
                         <b>Body:</b>
@@ -373,7 +375,7 @@ SUMMARY= Summary of your finding</textarea>
                         <p class="gds-rules-title">Rules for this email</p>
                         <ul class="gds-rules">
                             <li>Only after we ask. Our request email lists exactly what is needed.</li>
-                            <li>Text, a PDF, or both. One PDF of up to 25 MB.</li>
+                            <li>Text, a PDF, or both. One PDF of up to {{ max_pdf_mb }} MB.</li>
                             <li><code>NDA_</code> works as well as <code>DATA_</code>.</li>
                         </ul>
 
@@ -402,7 +404,7 @@ SUMMARY= Summary of your finding</textarea>
                         <b>Subject:</b>
                         <div class="text-wrap">
                         <textarea readonly id="Subject_agree" data-subject="AGREE" rows="1">AGREE_Report ID</textarea>
-                        <div class="clipboard" role="button" tabindex="0" aria-label="Copy the AGREE subject" onclick="copytext('Subject_agree', this)"><i class="fa fa-copy"></i></div>
+                        <button type="button" class="clipboard" aria-label="Copy the AGREE subject" onclick="copytext('Subject_agree', this)"><i class="fa fa-copy"></i></button>
                         </div>
 
                         <b>Body:</b>
@@ -412,7 +414,7 @@ SUMMARY= Summary of your finding</textarea>
                         <p class="gds-rules-title">Rules for this email</p>
                         <ul class="gds-rules">
                             <li>Only while the report is at Bounty Calculation.</li>
-                            <li>If we hear nothing for 30 days after the decision email, the decision counts as agreed and the report moves on by itself.</li>
+                            <li>If we hear nothing for {{ appeal_window_days }} days after the decision email, the decision counts as agreed and the report moves on by itself.</li>
                             <li>A plain reply to our decision email is not enough. Send AGREE or APPEAL, so there is no doubt which one you meant.</li>
                         </ul>
 
@@ -439,7 +441,7 @@ SUMMARY= Summary of your finding</textarea>
                         <b>Subject:</b>
                         <div class="text-wrap">
                         <textarea readonly id="Subject_appeal" data-subject="APPEAL" rows="1">APPEAL_Report ID</textarea>
-                        <div class="clipboard" role="button" tabindex="0" aria-label="Copy the APPEAL subject" onclick="copytext('Subject_appeal', this)"><i class="fa fa-copy"></i></div>
+                        <button type="button" class="clipboard" aria-label="Copy the APPEAL subject" onclick="copytext('Subject_appeal', this)"><i class="fa fa-copy"></i></button>
                         </div>
 
                         <b>Body:</b>
@@ -448,9 +450,9 @@ SUMMARY= Summary of your finding</textarea>
 
                         <p class="gds-rules-title">Rules for this email</p>
                         <ul class="gds-rules">
-                            <li>3 appeals per report. After the third, the standing decision is final.</li>
-                            <li>Text, a PDF, or both. One PDF of up to 25 MB.</li>
-                            <li>Send it within 30 days of our decision email, because after that the decision counts as agreed.</li>
+                            <li>{{ appeal_limit }} appeals per report. After the third, the standing decision is final.</li>
+                            <li>Text, a PDF, or both. One PDF of up to {{ max_pdf_mb }} MB.</li>
+                            <li>Send it within {{ appeal_window_days }} days of our decision email, because after that the decision counts as agreed.</li>
                         </ul>
 
                         <p class="gds-mail-row"><a class="gds-mail-btn" data-verb="APPEAL" href="#">Open in mail app</a></p>
@@ -478,7 +480,7 @@ SUMMARY= Summary of your finding</textarea>
                         <b>Subject:</b>
                         <div class="text-wrap">
                         <textarea readonly id="Subject_withdraw" data-subject="WITHDRAW" rows="1">WITHDRAW_Report ID</textarea>
-                        <div class="clipboard" role="button" tabindex="0" aria-label="Copy the WITHDRAW subject" onclick="copytext('Subject_withdraw', this)"><i class="fa fa-copy"></i></div>
+                        <button type="button" class="clipboard" aria-label="Copy the WITHDRAW subject" onclick="copytext('Subject_withdraw', this)"><i class="fa fa-copy"></i></button>
                         </div>
 
                         Use this if you realise the finding is wrong, already reported by you, or out of scope. The report is closed right away and we confirm it by email.
@@ -532,7 +534,7 @@ SUMMARY= Summary of your finding</textarea>
 
             function subjectFor(verb, id) {
                 if (NO_ID[verb]) {
-                    return verb === 'SUBMIT' ? 'SUBMIT_Report Title' : verb;
+                    return verb === 'SUBMIT' ? 'SUBMIT_' : verb;
                 }
                 return verb + '_' + (id || 'Report ID');
             }

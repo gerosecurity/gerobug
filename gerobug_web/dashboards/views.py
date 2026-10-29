@@ -13,6 +13,28 @@ def rulescontext(request,):
 
     return render(request,'rules.html',{'RDP':staticrules.rdp,'bountyterms':staticrules.bountyterms,'inscope':staticrules.inscope,'outofscope':staticrules.outofscope,'reportguidelines':staticrules.reportguidelines,'faq':staticrules.faq,'company_name':company_name})
 
+
+COMMENT_LIMIT = 10
+SELF_UPDATE_LIMIT = 3
+APPEAL_LIMIT = 3
+APPEAL_WINDOW_DAYS = 30
+MAX_PDF_BYTES = 25_000_000
+ENDPOINT_MAX = 255
+TITLE_MAX = 150
+
+
+def submit_page_context():
+    return {
+        'comment_limit': COMMENT_LIMIT,
+        'self_update_limit': SELF_UPDATE_LIMIT,
+        'appeal_limit': APPEAL_LIMIT,
+        'appeal_window_days': APPEAL_WINDOW_DAYS,
+        'max_pdf_mb': MAX_PDF_BYTES // 1000000,
+        'endpoint_max': ENDPOINT_MAX,
+        'title_max': TITLE_MAX,
+    }
+
+
 def emailcontext(request,):
     mailbox = PrerequisitesMailbox.objects.filter(mailbox_id=1).first()
     mailbox_email = mailbox.email if mailbox and mailbox.email else ""
@@ -25,9 +47,11 @@ def emailcontext(request,):
     THEME = Personalization.objects.get(personalize_id=1)
     company_name = THEME.company_name
 
-    return render(request, 'submit.html', {'template': template,
-                                           'mailbox_email': mailbox_email,
-                                           'company_name': company_name})
+    context = {'template': template, 'mailbox_email': mailbox_email,
+               'company_name': company_name}
+    context.update(submit_page_context())
+
+    return render(request, 'submit.html', context)
 
 def halloffame(request,):
     bughunters = DashboardsBughunter.objects.alias(

@@ -19,7 +19,7 @@ from django.utils import timezone
 from django.middleware.csrf import get_token
 from django.utils.html import format_html
 from prerequisites.models import MailBox, Webhook
-from .models import BOUNTY_CALC_STATUS, BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, BugReportHunterComment, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization, TroubleshootSettings
+from .models import APPEAL_WINDOW_DAYS, BOUNTY_CALC_STATUS, BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, BugReportHunterComment, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization, TroubleshootSettings
 from .forms import Requestform, RulesGuidelineForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm, WebhookForm, BlacklistForm, TemplateReportForm, TemplateNDAForm, TemplateCertForm, CertDataForm, PersonalizationForm, CompanyIdentityForm, Invalidform, TroubleshootForm
 from geromail import geromailer, gerofilter, geroparser, gerocalculator
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
@@ -166,7 +166,8 @@ class UpdateDetails(LoginRequiredMixin,DetailView):
     def get_context_data(self, **kwargs):
         context = super(UpdateDetails, self).get_context_data(**kwargs)
         context['uan_type'] = self.kwargs.get('pk')[12:13]
-        context['report_title'] = BugReport.objects.get(report_id=self.kwargs.get('pk')[:12]).report_title
+        parent = BugReport.objects.filter(report_id=self.kwargs.get('pk')[:12]).first()
+        context['report_title'] = parent.report_title if parent else ''
 
         # COMPANY NAME
         THEME = Personalization.objects.get(personalize_id=1)
@@ -184,7 +185,8 @@ class AppealDetails(LoginRequiredMixin,DetailView):
     def get_context_data(self, **kwargs):
         context = super(AppealDetails, self).get_context_data(**kwargs)
         context['uan_type'] = self.kwargs.get('pk')[12:13]
-        context['report_title'] = BugReport.objects.get(report_id=self.kwargs.get('pk')[:12]).report_title
+        parent = BugReport.objects.filter(report_id=self.kwargs.get('pk')[:12]).first()
+        context['report_title'] = parent.report_title if parent else ''
 
         # COMPANY NAME
         THEME = Personalization.objects.get(personalize_id=1)
@@ -201,7 +203,8 @@ class CommentDetails(LoginRequiredMixin,DetailView):
 
     def get_context_data(self, **kwargs):
         context = super(CommentDetails, self).get_context_data(**kwargs)
-        context['report_title'] = BugReport.objects.get(report_id=self.kwargs.get('pk')[:12]).report_title
+        parent = BugReport.objects.filter(report_id=self.kwargs.get('pk')[:12]).first()
+        context['report_title'] = parent.report_title if parent else ''
 
         THEME = Personalization.objects.get(personalize_id=1)
         context['company_name'] = THEME.company_name
@@ -218,7 +221,8 @@ class NDADetails(LoginRequiredMixin,DetailView):
     def get_context_data(self, **kwargs):
         context = super(NDADetails, self).get_context_data(**kwargs)
         context['uan_type'] = self.kwargs.get('pk')[12:13]
-        context['report_title'] = BugReport.objects.get(report_id=self.kwargs.get('pk')[:12]).report_title
+        parent = BugReport.objects.filter(report_id=self.kwargs.get('pk')[:12]).first()
+        context['report_title'] = parent.report_title if parent else ''
 
         # COMPANY NAME
         THEME = Personalization.objects.get(personalize_id=1)
@@ -1146,6 +1150,19 @@ def rulescontext(request,):
 
     return render(request,'rules.html',{'RDP':staticrules.RDP,'bountyterms':staticrules.bountyterms,'inscope':staticrules.inscope,'outofscope':staticrules.outofscope,'reportguidelines':staticrules.reportguidelines,'faq':staticrules.faq,'company_name':company_name})
 
+
+def submit_page_context():
+    return {
+        'comment_limit': gerofilter.COMMENT_LIMIT,
+        'self_update_limit': gerofilter.SELF_UPDATE_LIMIT,
+        'appeal_limit': gerofilter.APPEAL_LIMIT,
+        'appeal_window_days': APPEAL_WINDOW_DAYS,
+        'max_pdf_mb': gerofilter.MAX_PDF_BYTES // 1000000,
+        'endpoint_max': gerofilter.FIELD_LIMITS['endpoint'][1],
+        'title_max': gerofilter.FIELD_LIMITS['title'][1],
+    }
+
+
 def emailcontext(request,):
     mailbox = MailBox.objects.filter(mailbox_id=1).first()
     mailbox_email = mailbox.email if mailbox and mailbox.email else ""
@@ -1158,9 +1175,11 @@ def emailcontext(request,):
     THEME = Personalization.objects.get(personalize_id=1)
     company_name = THEME.company_name
 
-    return render(request, 'submit.html', {'template': template,
-                                           'mailbox_email': mailbox_email,
-                                           'company_name': company_name})
+    context = {'template': template, 'mailbox_email': mailbox_email,
+               'company_name': company_name}
+    context.update(submit_page_context())
+
+    return render(request, 'submit.html', context)
 
 def halloffame(request,):
     bughunters = BugHunter.objects.alias(
