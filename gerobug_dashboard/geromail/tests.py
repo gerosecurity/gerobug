@@ -2396,3 +2396,29 @@ class WithdrawFlowTests(MailFlowTestCase):
         code, report_id = gerofilter.classify_action("hunter@example.com",
                                                      "Re: withdraw_ab12cd34ef56")
         self.assertEqual((code, report_id), (212, "AB12CD34EF56"))
+
+
+class SampleRenderTests(CardTestCase):
+
+    def test_write_help_sample(self):
+        if os.environ.get("GB_WRITE_SAMPLES") != "1":
+            self.skipTest("set GB_WRITE_SAMPLES=1 to write the sample HTML")
+
+        out = os.environ.get("GB_SAMPLE_DIR") or "."
+        os.makedirs(out, exist_ok=True)
+
+        make_report(report_id="AB12CD34EF56", report_status=2, report_permission=4,
+                    report_title="Stored XSS in the profile bio field",
+                    report_update_self=1, report_hunter_comment=2,
+                    report_datetime=timezone.now() - timedelta(days=11))
+        make_report(report_id="CCCCCCCCCCCC", report_status=5, report_permission=2,
+                    report_title="IDOR on the invoice download endpoint",
+                    report_datetime=timezone.now() - timedelta(days=30))
+        make_report(report_id="DDDDDDDDDDDD", report_status=7, report_permission=0,
+                    report_title="Open redirect on the login callback",
+                    report_datetime=timezone.now() - timedelta(days=90))
+
+        page = mail_templates.messagelist[210].replace(
+            "~NOTE~", gerocard.build_help("hunter@example.com"))
+        with open(os.path.join(out, "oss-help.html"), "w", encoding="utf-8") as fp:
+            fp.write(page)

@@ -17,6 +17,7 @@ from django.db.models import Sum
 from django.http import FileResponse, JsonResponse
 from django.utils import timezone
 from django.middleware.csrf import get_token
+from django.utils.html import format_html
 from prerequisites.models import MailBox, Webhook
 from .models import BOUNTY_CALC_STATUS, BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, BugReportHunterComment, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization, TroubleshootSettings
 from .forms import Requestform, RulesGuidelineForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm, WebhookForm, BlacklistForm, TemplateReportForm, TemplateNDAForm, TemplateCertForm, CertDataForm, PersonalizationForm, CompanyIdentityForm, Invalidform, TroubleshootForm
@@ -202,7 +203,6 @@ class CommentDetails(LoginRequiredMixin,DetailView):
         context = super(CommentDetails, self).get_context_data(**kwargs)
         context['report_title'] = BugReport.objects.get(report_id=self.kwargs.get('pk')[:12]).report_title
 
-        # COMPANY NAME
         THEME = Personalization.objects.get(personalize_id=1)
         context['company_name'] = THEME.company_name
         return context
@@ -1147,17 +1147,20 @@ def rulescontext(request,):
     return render(request,'rules.html',{'RDP':staticrules.RDP,'bountyterms':staticrules.bountyterms,'inscope':staticrules.inscope,'outofscope':staticrules.outofscope,'reportguidelines':staticrules.reportguidelines,'faq':staticrules.faq,'company_name':company_name})
 
 def emailcontext(request,):
-    if MailBox.objects.filter(mailbox_id=1)[0].email != "":
-        email = MailBox.objects.filter(mailbox_id=1)[0].email
-        template = "Submit your email to <strong>"+ email +"</strong> using the templates below..."
+    mailbox = MailBox.objects.filter(mailbox_id=1).first()
+    mailbox_email = mailbox.email if mailbox and mailbox.email else ""
+    if mailbox_email:
+        template = format_html(
+            "Send your email to {} using the formats below.", mailbox_email)
     else:
         template = "Currently the company hasn't set their email yet. Please contact the admin/wait for the mailbox setup."
 
-    # COMPANY NAME
     THEME = Personalization.objects.get(personalize_id=1)
     company_name = THEME.company_name
 
-    return render(request, 'submit.html',{'template':template, 'company_name':company_name})
+    return render(request, 'submit.html', {'template': template,
+                                           'mailbox_email': mailbox_email,
+                                           'company_name': company_name})
 
 def halloffame(request,):
     bughunters = BugHunter.objects.alias(

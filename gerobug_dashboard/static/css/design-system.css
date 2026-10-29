@@ -1535,6 +1535,134 @@ body.gds-public footer #copyright p {
   margin-top: 6px;
 }
 
+
+.gds-submit-rules {
+  margin: 10px 0 0;
+  padding-left: 20px;
+  color: var(--color-dark-200);
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+.gds-submit-rules code,
+.gds-submit-main .accordion-body code {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--gds-accent-soft);
+  background: var(--color-surface-dark-overlay);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+}
+.gds-idbox {
+  margin: 24px 0 4px;
+  padding: 16px 18px;
+  background: var(--color-surface-dark-raised);
+  border: 1px solid var(--color-surface-dark-border);
+  border-radius: var(--radius-lg);
+  max-width: 520px;
+}
+.gds-idbox label {
+  display: block;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.gds-idbox input {
+  width: 100%;
+  background: var(--gds-canvas);
+  border: 1px solid var(--color-surface-dark-border);
+  border-radius: var(--radius-md);
+  color: var(--color-dark-50);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  letter-spacing: 1px;
+  padding: 10px 12px;
+}
+.gds-idbox input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--gds-focus-ring);
+  border-color: var(--gds-accent);
+}
+.gds-idbox input:disabled { opacity: 0.5; cursor: not-allowed; }
+.gds-idbox-hint {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--color-dark-300);
+}
+.gds-group-heading {
+  margin: 30px 0 12px;
+  color: var(--gds-accent-soft);
+  font-family: var(--font-primary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+}
+.gds-rules-title {
+  margin: 16px 0 6px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+.gds-rules {
+  margin: 0 0 4px;
+  padding-left: 20px;
+  line-height: 1.7;
+}
+.gds-example {
+  margin: 6px 0 0;
+  padding: 12px 14px;
+  background: var(--gds-canvas);
+  border: 1px solid var(--color-surface-dark-border);
+  border-radius: var(--radius-md);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.gds-example p { margin: 0 0 8px; }
+.gds-example p:last-child { margin-bottom: 0; }
+.gds-mail-row { margin: 16px 0 14px; }
+.gds-mail-btn {
+  display: inline-block;
+  padding: 9px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--gds-accent);
+  background: var(--color-surface-dark-overlay);
+  color: #fff !important;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.gds-mail-btn:hover { background: var(--gds-accent); }
+.gds-mail-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--gds-focus-ring);
+}
+.gds-mail-btn.gds-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-color: var(--color-surface-dark-border);
+}
+.gds-submit-main .clipboard:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--gds-focus-ring);
+}
+.gds-stages {
+  margin: 0 0 24px;
+  padding-left: 22px;
+  color: var(--color-dark-200);
+  font-size: 13.5px;
+  line-height: 1.8;
+  max-width: 760px;
+}
+.gds-stages b { color: #fff; }
+
+@media (max-width: 700px) {
+  .gds-submit-main { padding: 24px 18px calc(5vh + 40px); }
+  .gds-idbox { max-width: 100%; }
+  .gds-mail-btn { display: block; text-align: center; }
+}
+
 /* --------------------------------------------------------------------------
    9. HALL OF FAME (public ranked list)
    -------------------------------------------------------------------------- */

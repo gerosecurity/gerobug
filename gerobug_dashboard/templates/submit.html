@@ -41,7 +41,7 @@
         function copytext(id, btn) {
             var copyText = document.getElementById(id);
             copyText.select();
-            copyText.setSelectionRange(0, 99999); // For mobile devices
+            copyText.setSelectionRange(0, 99999);
             navigator.clipboard.writeText(copyText.value);
 
             if (btn) {
@@ -65,7 +65,7 @@
                 <div class="nav-content"><img src="{% static 'logo.png' %}"></div>
             </a></li>
             <li><a href="{% url 'rules' %}">
-                <div class="nav-content">Rules & Guidelines</div>
+                <div class="nav-content">Rules &amp; Guidelines</div>
             </a></li>
             <li><a href="{% url 'halloffame' %}">
                 <div class="nav-content">Hall Of Fame</div>
@@ -80,251 +80,160 @@
     </header>
 
     <main class="gds-submit-main">
-        <p class="gds-submit-intro">{{ template|safe }}</p>
+        <p class="gds-submit-intro">{{ template }}</p>
+        <ul class="gds-submit-rules">
+            <li>Subjects are not case sensitive. <code>CHECK_AB12CD34EF56</code> and <code>check_ab12cd34ef56</code> do the same thing.</li>
+            <li>Replying to any email we send you works. Our subjects already start with the command your reply needs.</li>
+            <li>One PDF of up to 25 MB per email. Anything larger is refused and we tell you the size.</li>
+            <li>PoC videos, screenshot bundles, archives (.zip/.rar) and exploit code must <b>not</b> be attached, because mail filters strip them. Upload them to Google Drive, OneDrive, Dropbox, a private GitHub repository or a secret GitHub Gist and put the link, plus the password if there is one, inside the PDF.</li>
+        </ul>
         <p class="gds-submit-intro">Join the Gerobug community on <a href="https://discord.gg/VhU4X4TQ5F" target="_blank" rel="noopener">Discord</a></p>
 
+        <div class="gds-idbox">
+            <label for="reportIdInput">Your Report ID</label>
+            <input type="text" id="reportIdInput" maxlength="12" autocomplete="off" spellcheck="false"
+                placeholder="AB12CD34EF56" aria-describedby="reportIdHint"
+                {% if not mailbox_email %}disabled{% endif %}>
+            <p id="reportIdHint" class="gds-idbox-hint" role="status" aria-live="polite">Type the 12 character Report ID from your confirmation email and every subject and mail button below fills in. Nothing is sent or stored.</p>
+        </div>
+
         <div class="accordion" id="accordionPanelsStayOpenExample">
+
+            <h2 class="gds-group-heading">Report</h2>
+
             <div class="accordion-item">
-                <h2 class="accordion-header" id="panelsStayOpen-headingOne">
+                <h2 class="accordion-header" id="panelsStayOpen-headingSubmit">
                     <button class="accordion-button" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#panelsStayOpen-collapseOne" aria-expanded="true"
-                        aria-controls="panelsStayOpen-collapseOne">
-                        Submit Bug Bounty Report
+                        data-bs-target="#panelsStayOpen-collapseSubmit" aria-expanded="true"
+                        aria-controls="panelsStayOpen-collapseSubmit">
+                        SUBMIT: send a new report
                     </button>
                 </h2>
-                <div id="panelsStayOpen-collapseOne" class="accordion-collapse collapse show"
-                    aria-labelledby="panelsStayOpen-headingOne">
+                <div id="panelsStayOpen-collapseSubmit" class="accordion-collapse collapse show"
+                    aria-labelledby="panelsStayOpen-headingSubmit">
                     <div class="accordion-body">
                         <b>Subject:</b>
                         <div class="text-wrap">
-                        <textarea readonly id="Subject_1" rows="1">SUBMIT_Report Title</textarea>
-                        <div class="clipboard" role="button" aria-label="Copy subject" onclick="copytext('Subject_1', this)"><i class="fa fa-copy"></i></div>
+                        <textarea readonly id="Subject_submit" rows="1">SUBMIT_Report Title</textarea>
+                        <div class="clipboard" role="button" tabindex="0" aria-label="Copy the SUBMIT subject" onclick="copytext('Subject_submit', this)"><i class="fa fa-copy"></i></div>
                         </div>
 
                         <b>Body:</b>
                         <div class="text-wrap">
-                        <textarea readonly id="Body_1" rows="3">
-TYPE= Bug Type (example: XSS, SQL Injection, IDOR, etc.)
-ENDPOINT= Affected Endpoint (example: https://demo.gerobug.com/submit) [max 100 characters]
+                        <textarea readonly id="Body_submit" rows="3">
+TYPE= Bug Type (example: XSS, SQL Injection, IDOR)
+ENDPOINT= Affected Endpoint (example: https://demo.gerobug.com/submit)
 SUMMARY= Summary of your finding</textarea>
-                        <div class="clipboard" role="button" aria-label="Copy body" onclick="copytext('Body_1', this)"><i class="fa fa-copy"></i></div>
+                        <div class="clipboard" role="button" tabindex="0" aria-label="Copy the SUBMIT body" onclick="copytext('Body_submit', this)"><i class="fa fa-copy"></i></div>
                         </div>
 
                         <b>Attachment:</b>
                         <br>
-                        PDF report file
+                        Your full report as a PDF file
                         (<a href="{% static 'templates/Template_Report.docx' %}">download the report template</a>)
-                        <br>
-                        <br>
-                        <small>
-                        PoC videos, screenshot bundles, archives (.zip/.rar) and exploit code
-                        must <b>not</b> be attached &mdash; mail filters strip them. Upload them to
-                        Google Drive, OneDrive, Dropbox, a private GitHub repository or a secret
-                        GitHub Gist and put the link (and password, if any) inside the PDF.
-                        </small>
-                        <br>
 
-                        <br>
+                        <p class="gds-rules-title">Rules for this email</p>
+                        <ul class="gds-rules">
+                            <li>Title: 3 to 150 characters, written after <code>SUBMIT_</code> in the subject.</li>
+                            <li>TYPE: 1 to 100 characters.</li>
+                            <li>ENDPOINT: 1 to 255 characters.</li>
+                            <li>SUMMARY: at least 10 characters.</li>
+                            <li>One PDF, up to 25 MB. A report without a PDF is refused.</li>
+                        </ul>
+
+                        <p class="gds-mail-row"><a class="gds-mail-btn" data-verb="SUBMIT" data-body="1" href="#">Open in mail app</a></p>
+
                         <b>Sample:</b>
                         <br>
                         <img src="{% static 'sample/submit.png' %}" alt="Sample submission email">
                     </div>
                 </div>
             </div>
+
+            <h2 class="gds-group-heading">Track</h2>
+
             <div class="accordion-item">
-                <h2 class="accordion-header" id="panelsStayOpen-headingTwo">
+                <h2 class="accordion-header" id="panelsStayOpen-headingCheck">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#panelsStayOpen-collapseTwo" aria-expanded="false"
-                        aria-controls="panelsStayOpen-collapseTwo">
-                        Check Report Status
+                        data-bs-target="#panelsStayOpen-collapseCheck" aria-expanded="false"
+                        aria-controls="panelsStayOpen-collapseCheck">
+                        CHECK: the status card for one report
                     </button>
                 </h2>
-                <div id="panelsStayOpen-collapseTwo" class="accordion-collapse collapse"
-                    aria-labelledby="panelsStayOpen-headingTwo">
+                <div id="panelsStayOpen-collapseCheck" class="accordion-collapse collapse"
+                    aria-labelledby="panelsStayOpen-headingCheck">
                     <div class="accordion-body">
                         <b>Subject:</b>
                         <div class="text-wrap">
-                        <textarea readonly id="Subject_2" rows="1">CHECK_Report ID</textarea>
-                        <div class="clipboard" role="button" aria-label="Copy subject" onclick="copytext('Subject_2', this)"><i class="fa fa-copy"></i></div>
+                        <textarea readonly id="Subject_check" data-subject="CHECK" rows="1">CHECK_Report ID</textarea>
+                        <div class="clipboard" role="button" tabindex="0" aria-label="Copy the CHECK subject" onclick="copytext('Subject_check', this)"><i class="fa fa-copy"></i></div>
                         </div>
 
-                        <b>Sample:</b>
-                        <br>
-                        <img src="{% static 'sample/check.png' %}" alt="Sample status check email">
-                    </div>
-                </div>
-            </div>
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="panelsStayOpen-headingTwo1">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#panelsStayOpen-collapseTwo1" aria-expanded="false"
-                        aria-controls="panelsStayOpen-collapseTwo1">
-                        Check All Report Status (Overview)
-                    </button>
-                </h2>
-                <div id="panelsStayOpen-collapseTwo1" class="accordion-collapse collapse"
-                    aria-labelledby="panelsStayOpen-headingTwo1">
-                    <div class="accordion-body">
-                        <b>Subject:</b>
-                        <div class="text-wrap">
-                        <textarea readonly id="Subject_3" rows="1">STATUS_OVERVIEW</textarea>
-                        <div class="clipboard" role="button" aria-label="Copy subject" onclick="copytext('Subject_3', this)"><i class="fa fa-copy"></i></div>
+                        We reply with a card for that one report: the stage it is at and since when, what we need from you next with a button for it, how many updates and appeals you have left, every submission you have sent us, and the last message we sent.
+
+                        <p class="gds-rules-title">What the reply looks like</p>
+                        <div class="gds-example">
+                            <p><b>Report AB12CD34EF56</b></p>
+                            <p>Stage 2 of 7: In Review, since 14 Oct 2026</p>
+                            <p><b>What we need from you</b><br>We asked you for more information before we can carry on.</p>
+                            <p><b>Your allowances</b><br>Updates you can send on your own initiative: 2 of 3. Appeals left: 3 of 3.</p>
                         </div>
 
-                        <b>Sample:</b>
-                        <br>
-                        <img src="{% static 'sample/overview.png' %}" alt="Sample overview email">
-                    </div>
-                </div>
-            </div>
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="panelsStayOpen-headingThree">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#panelsStayOpen-collapseThree" aria-expanded="false"
-                        aria-controls="panelsStayOpen-collapseThree">
-                        Update Report
-                    </button>
-                </h2>
-                <div id="panelsStayOpen-collapseThree" class="accordion-collapse collapse"
-                    aria-labelledby="panelsStayOpen-headingThree">
-                    <div class="accordion-body">
-                        <b>Subject:</b>
-                        <div class="text-wrap">
-                        <textarea readonly id="Subject_4" rows="1">UPDATE_Report ID</textarea>
-                        <div class="clipboard" role="button" aria-label="Copy subject" onclick="copytext('Subject_4', this)"><i class="fa fa-copy"></i></div>
-                        </div>
-
-                        <b>Body:</b>
-                        <br>
-                        Summary of your updates
-                        <br>
-
-                        <br>
-                        <b>Attachment:</b>
-                        <br>
-                        PDF report file
-                        (<a href="{% static 'templates/Template_Report.docx' %}">download the report template</a>)
-                        <br>
-                        <br>
-                        <small>
-                        PoC videos, screenshot bundles, archives (.zip/.rar) and exploit code
-                        must <b>not</b> be attached &mdash; mail filters strip them. Upload them to
-                        Google Drive, OneDrive, Dropbox, a private GitHub repository or a secret
-                        GitHub Gist and put the link (and password, if any) inside the PDF.
-                        </small>
-                        <br>
-
-                        <br>
-                        <b>Sample:</b>
-                        <br>
-                        <img src="{% static 'sample/update.png' %}" alt="Sample update email">
-                    </div>
-                </div>
-            </div>
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="panelsStayOpen-headingFour">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#panelsStayOpen-collapseFour" aria-expanded="false"
-                        aria-controls="panelsStayOpen-collapseFour">
-                        Appeal to Bounty Calculations
-                    </button>
-                </h2>
-                <div id="panelsStayOpen-collapseFour" class="accordion-collapse collapse"
-                    aria-labelledby="panelsStayOpen-headingFour">
-                    <div class="accordion-body">
-                        <b>Subject:</b>
-                        <div class="text-wrap">
-                        <textarea readonly id="Subject_5" rows="1">APPEAL_Report ID</textarea>
-                        <div class="clipboard" role="button" aria-label="Copy subject" onclick="copytext('Subject_5', this)"><i class="fa fa-copy"></i></div>
-                        </div>
-
-                        <b>Body:</b>
-                        <br>
-                        Reason of your appeal
-                        <br>
-
-                        <br>
-                        <b>Sample:</b>
-                        <br>
-                        <img src="{% static 'sample/appeal.png' %}" alt="Sample appeal email">
+                        <p class="gds-mail-row"><a class="gds-mail-btn" data-verb="CHECK" href="#">Open in mail app</a></p>
                     </div>
                 </div>
             </div>
 
             <div class="accordion-item">
-                <h2 class="accordion-header" id="panelsStayOpen-headingFive">
+                <h2 class="accordion-header" id="panelsStayOpen-headingOverview">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#panelsStayOpen-collapseFive" aria-expanded="false"
-                        aria-controls="panelsStayOpen-collapseFive">
-                        Agree to Bounty Calculations
+                        data-bs-target="#panelsStayOpen-collapseOverview" aria-expanded="false"
+                        aria-controls="panelsStayOpen-collapseOverview">
+                        STATUS_OVERVIEW: all of your reports at once
                     </button>
                 </h2>
-                <div id="panelsStayOpen-collapseFive" class="accordion-collapse collapse"
-                    aria-labelledby="panelsStayOpen-headingFive">
+                <div id="panelsStayOpen-collapseOverview" class="accordion-collapse collapse"
+                    aria-labelledby="panelsStayOpen-headingOverview">
                     <div class="accordion-body">
                         <b>Subject:</b>
                         <div class="text-wrap">
-                        <textarea readonly id="Subject_6" rows="1">AGREE_Report ID</textarea>
-                        <div class="clipboard" role="button" aria-label="Copy subject" onclick="copytext('Subject_6', this)"><i class="fa fa-copy"></i></div>
+                        <textarea readonly id="Subject_overview" rows="1">STATUS_OVERVIEW</textarea>
+                        <div class="clipboard" role="button" tabindex="0" aria-label="Copy the STATUS_OVERVIEW subject" onclick="copytext('Subject_overview', this)"><i class="fa fa-copy"></i></div>
                         </div>
 
-                        <b>Sample:</b>
-                        <br>
-                        <img src="{% static 'sample/agree.png' %}" alt="Sample agreement email">
+                        We reply with an index of every report you have sent us. The ones that need something from you are listed first, and a "Needs you" column says what. Each Report ID is a link that asks for its full card.
+
+                        <p class="gds-rules-title">What the reply looks like</p>
+                        <div class="gds-example">
+                            <p>AB12CD34EF56 | Stored XSS in the profile bio | In Review | Send us more information</p>
+                            <p>CD34EF56AB12 | Open redirect on login | Completed | -</p>
+                        </div>
+
+                        <p class="gds-mail-row"><a class="gds-mail-btn" data-verb="STATUS_OVERVIEW" href="#">Open in mail app</a></p>
                     </div>
                 </div>
             </div>
+
             <div class="accordion-item">
-                <h2 class="accordion-header" id="panelsStayOpen-headingSix">
+                <h2 class="accordion-header" id="panelsStayOpen-headingScore">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#panelsStayOpen-collapseSix" aria-expanded="false"
-                        aria-controls="panelsStayOpen-collapseSix">
-                        Submit Data and NDA
+                        data-bs-target="#panelsStayOpen-collapseScore" aria-expanded="false"
+                        aria-controls="panelsStayOpen-collapseScore">
+                        MY_SCORE: your score in this program
                     </button>
                 </h2>
-                <div id="panelsStayOpen-collapseSix" class="accordion-collapse collapse"
-                    aria-labelledby="panelsStayOpen-headingSix">
+                <div id="panelsStayOpen-collapseScore" class="accordion-collapse collapse"
+                    aria-labelledby="panelsStayOpen-headingScore">
                     <div class="accordion-body">
                         <b>Subject:</b>
                         <div class="text-wrap">
-                        <textarea readonly id="Subject_7" rows="1">DATA_Report ID</textarea>
-                        <div class="clipboard" role="button" aria-label="Copy subject" onclick="copytext('Subject_7', this)"><i class="fa fa-copy"></i></div>
+                        <textarea readonly id="Subject_score" rows="1">MY_SCORE</textarea>
+                        <div class="clipboard" role="button" tabindex="0" aria-label="Copy the MY_SCORE subject" onclick="copytext('Subject_score', this)"><i class="fa fa-copy"></i></div>
                         </div>
 
-                        <b>Body:</b>
-                        <br>
-                        Requested Information
-                        <br>
+                        Your score is the total severity of every report of yours we completed. It is what ranks you on the Hall of Fame.
 
-                        <br>
-                        <b>Attachment:</b>
-                        <br>
-                        PDF signed NDA file (optional)
-                        <br>
-
-                        <br>
-                        <b>Sample:</b>
-                        <br>
-                        <img src="{% static 'sample/nda.png' %}" alt="Sample NDA email">
-                    </div>
-                </div>
-            </div>
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="panelsStayOpen-headingSeven">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#panelsStayOpen-collapseSeven" aria-expanded="false"
-                        aria-controls="panelsStayOpen-collapseSeven">
-                        Check Score
-                    </button>
-                </h2>
-                <div id="panelsStayOpen-collapseSeven" class="accordion-collapse collapse"
-                    aria-labelledby="panelsStayOpen-headingSeven">
-                    <div class="accordion-body">
-                        <b>Subject:</b>
-                        <div class="text-wrap">
-                        <textarea readonly id="Subject_8" rows="1">MY_SCORE</textarea>
-                        <div class="clipboard" role="button" aria-label="Copy subject" onclick="copytext('Subject_8', this)"><i class="fa fa-copy"></i></div>
-                        </div>
+                        <p class="gds-mail-row"><a class="gds-mail-btn" data-verb="MY_SCORE" href="#">Open in mail app</a></p>
 
                         <b>Sample:</b>
                         <br>
@@ -333,7 +242,271 @@ SUMMARY= Summary of your finding</textarea>
                 </div>
             </div>
 
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="panelsStayOpen-headingHelp">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#panelsStayOpen-collapseHelp" aria-expanded="false"
+                        aria-controls="panelsStayOpen-collapseHelp">
+                        HELP: this list, by email
+                    </button>
+                </h2>
+                <div id="panelsStayOpen-collapseHelp" class="accordion-collapse collapse"
+                    aria-labelledby="panelsStayOpen-headingHelp">
+                    <div class="accordion-body">
+                        <b>Subject:</b>
+                        <div class="text-wrap">
+                        <textarea readonly id="Subject_help" rows="1">HELP</textarea>
+                        <div class="clipboard" role="button" tabindex="0" aria-label="Copy the HELP subject" onclick="copytext('Subject_help', this)"><i class="fa fa-copy"></i></div>
+                        </div>
+
+                        We reply with every command and a one line description of each, plus the remaining allowances of each report you still have open with us. <code>COMMANDS</code> does the same thing.
+
+                        <p class="gds-mail-row"><a class="gds-mail-btn" data-verb="HELP" href="#">Open in mail app</a></p>
+                    </div>
+                </div>
+            </div>
+
+            <h2 class="gds-group-heading">Respond</h2>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="panelsStayOpen-headingUpdate">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#panelsStayOpen-collapseUpdate" aria-expanded="false"
+                        aria-controls="panelsStayOpen-collapseUpdate">
+                        UPDATE: add information to a report
+                    </button>
+                </h2>
+                <div id="panelsStayOpen-collapseUpdate" class="accordion-collapse collapse"
+                    aria-labelledby="panelsStayOpen-headingUpdate">
+                    <div class="accordion-body">
+                        <b>Subject:</b>
+                        <div class="text-wrap">
+                        <textarea readonly id="Subject_update" data-subject="UPDATE" rows="1">UPDATE_Report ID</textarea>
+                        <div class="clipboard" role="button" tabindex="0" aria-label="Copy the UPDATE subject" onclick="copytext('Subject_update', this)"><i class="fa fa-copy"></i></div>
+                        </div>
+
+                        <b>Body:</b>
+                        <br>
+                        A summary of what is new
+                        <br>
+                        <br>
+                        <b>Attachment:</b>
+                        <br>
+                        A PDF, if you have more evidence (optional)
+
+                        <p class="gds-rules-title">Rules for this email</p>
+                        <ul class="gds-rules">
+                            <li>You may send 3 updates on your own initiative per report.</li>
+                            <li>An update we ask you for is free and does not count against those 3.</li>
+                            <li>Updates close once the report passes Bounty Calculation, because the finding is settled by then.</li>
+                            <li>Text, a PDF, or both. One PDF of up to 25 MB.</li>
+                        </ul>
+
+                        <p class="gds-mail-row"><a class="gds-mail-btn" data-verb="UPDATE" href="#">Open in mail app</a></p>
+
+                        <b>Sample:</b>
+                        <br>
+                        <img src="{% static 'sample/update.png' %}" alt="Sample update email">
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="panelsStayOpen-headingComment">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#panelsStayOpen-collapseComment" aria-expanded="false"
+                        aria-controls="panelsStayOpen-collapseComment">
+                        COMMENT: ask our team a question
+                    </button>
+                </h2>
+                <div id="panelsStayOpen-collapseComment" class="accordion-collapse collapse"
+                    aria-labelledby="panelsStayOpen-headingComment">
+                    <div class="accordion-body">
+                        <b>Subject:</b>
+                        <div class="text-wrap">
+                        <textarea readonly id="Subject_comment" data-subject="COMMENT" rows="1">COMMENT_Report ID</textarea>
+                        <div class="clipboard" role="button" tabindex="0" aria-label="Copy the COMMENT subject" onclick="copytext('Subject_comment', this)"><i class="fa fa-copy"></i></div>
+                        </div>
+
+                        <b>Body:</b>
+                        <br>
+                        Your question
+
+                        <p class="gds-rules-title">Rules for this email</p>
+                        <ul class="gds-rules">
+                            <li>Questions only. This does not use up one of your 3 updates.</li>
+                            <li>10 questions per report.</li>
+                            <li>Text only. A PDF attached to a question is ignored, so send evidence with UPDATE instead.</li>
+                        </ul>
+
+                        <p class="gds-mail-row"><a class="gds-mail-btn" data-verb="COMMENT" href="#">Open in mail app</a></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="panelsStayOpen-headingData">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#panelsStayOpen-collapseData" aria-expanded="false"
+                        aria-controls="panelsStayOpen-collapseData">
+                        DATA: send the documents we asked for
+                    </button>
+                </h2>
+                <div id="panelsStayOpen-collapseData" class="accordion-collapse collapse"
+                    aria-labelledby="panelsStayOpen-headingData">
+                    <div class="accordion-body">
+                        <b>Subject:</b>
+                        <div class="text-wrap">
+                        <textarea readonly id="Subject_data" data-subject="DATA" rows="1">DATA_Report ID</textarea>
+                        <div class="clipboard" role="button" tabindex="0" aria-label="Copy the DATA subject" onclick="copytext('Subject_data', this)"><i class="fa fa-copy"></i></div>
+                        </div>
+
+                        <b>Body:</b>
+                        <br>
+                        The information we asked for
+                        <br>
+                        <br>
+                        <b>Attachment:</b>
+                        <br>
+                        The signed NDA as a PDF, when we asked for one
+
+                        <p class="gds-rules-title">Rules for this email</p>
+                        <ul class="gds-rules">
+                            <li>Only after we ask. Our request email lists exactly what is needed.</li>
+                            <li>Text, a PDF, or both. One PDF of up to 25 MB.</li>
+                            <li><code>NDA_</code> works as well as <code>DATA_</code>.</li>
+                        </ul>
+
+                        <p class="gds-mail-row"><a class="gds-mail-btn" data-verb="DATA" href="#">Open in mail app</a></p>
+
+                        <b>Sample:</b>
+                        <br>
+                        <img src="{% static 'sample/nda.png' %}" alt="Sample NDA email">
+                    </div>
+                </div>
+            </div>
+
+            <h2 class="gds-group-heading">Bounty decision</h2>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="panelsStayOpen-headingAgree">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#panelsStayOpen-collapseAgree" aria-expanded="false"
+                        aria-controls="panelsStayOpen-collapseAgree">
+                        AGREE: accept our bounty decision
+                    </button>
+                </h2>
+                <div id="panelsStayOpen-collapseAgree" class="accordion-collapse collapse"
+                    aria-labelledby="panelsStayOpen-headingAgree">
+                    <div class="accordion-body">
+                        <b>Subject:</b>
+                        <div class="text-wrap">
+                        <textarea readonly id="Subject_agree" data-subject="AGREE" rows="1">AGREE_Report ID</textarea>
+                        <div class="clipboard" role="button" tabindex="0" aria-label="Copy the AGREE subject" onclick="copytext('Subject_agree', this)"><i class="fa fa-copy"></i></div>
+                        </div>
+
+                        <b>Body:</b>
+                        <br>
+                        Leave it empty
+
+                        <p class="gds-rules-title">Rules for this email</p>
+                        <ul class="gds-rules">
+                            <li>Only while the report is at Bounty Calculation.</li>
+                            <li>If we hear nothing for 30 days after the decision email, the decision counts as agreed and the report moves on by itself.</li>
+                            <li>A plain reply to our decision email is not enough. Send AGREE or APPEAL, so there is no doubt which one you meant.</li>
+                        </ul>
+
+                        <p class="gds-mail-row"><a class="gds-mail-btn" data-verb="AGREE" href="#">Open in mail app</a></p>
+
+                        <b>Sample:</b>
+                        <br>
+                        <img src="{% static 'sample/agree.png' %}" alt="Sample agreement email">
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="panelsStayOpen-headingAppeal">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#panelsStayOpen-collapseAppeal" aria-expanded="false"
+                        aria-controls="panelsStayOpen-collapseAppeal">
+                        APPEAL: ask us to reconsider
+                    </button>
+                </h2>
+                <div id="panelsStayOpen-collapseAppeal" class="accordion-collapse collapse"
+                    aria-labelledby="panelsStayOpen-headingAppeal">
+                    <div class="accordion-body">
+                        <b>Subject:</b>
+                        <div class="text-wrap">
+                        <textarea readonly id="Subject_appeal" data-subject="APPEAL" rows="1">APPEAL_Report ID</textarea>
+                        <div class="clipboard" role="button" tabindex="0" aria-label="Copy the APPEAL subject" onclick="copytext('Subject_appeal', this)"><i class="fa fa-copy"></i></div>
+                        </div>
+
+                        <b>Body:</b>
+                        <br>
+                        Why you think the decision should change
+
+                        <p class="gds-rules-title">Rules for this email</p>
+                        <ul class="gds-rules">
+                            <li>3 appeals per report. After the third, the standing decision is final.</li>
+                            <li>Text, a PDF, or both. One PDF of up to 25 MB.</li>
+                            <li>Send it within 30 days of our decision email, because after that the decision counts as agreed.</li>
+                        </ul>
+
+                        <p class="gds-mail-row"><a class="gds-mail-btn" data-verb="APPEAL" href="#">Open in mail app</a></p>
+
+                        <b>Sample:</b>
+                        <br>
+                        <img src="{% static 'sample/appeal.png' %}" alt="Sample appeal email">
+                    </div>
+                </div>
+            </div>
+
+            <h2 class="gds-group-heading">Withdraw</h2>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="panelsStayOpen-headingWithdraw">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#panelsStayOpen-collapseWithdraw" aria-expanded="false"
+                        aria-controls="panelsStayOpen-collapseWithdraw">
+                        WITHDRAW: take a report back
+                    </button>
+                </h2>
+                <div id="panelsStayOpen-collapseWithdraw" class="accordion-collapse collapse"
+                    aria-labelledby="panelsStayOpen-headingWithdraw">
+                    <div class="accordion-body">
+                        <b>Subject:</b>
+                        <div class="text-wrap">
+                        <textarea readonly id="Subject_withdraw" data-subject="WITHDRAW" rows="1">WITHDRAW_Report ID</textarea>
+                        <div class="clipboard" role="button" tabindex="0" aria-label="Copy the WITHDRAW subject" onclick="copytext('Subject_withdraw', this)"><i class="fa fa-copy"></i></div>
+                        </div>
+
+                        Use this if you realise the finding is wrong, already reported by you, or out of scope. The report is closed right away and we confirm it by email.
+
+                        <p class="gds-rules-title">Rules for this email</p>
+                        <ul class="gds-rules">
+                            <li>Only while the report is still waiting for a triager or in review.</li>
+                            <li>Later than that we have already acted on it, so reply to our last email instead and tell us why.</li>
+                            <li>Withdrawing by mistake is fixable: reply to the confirmation and our team can reopen the report.</li>
+                        </ul>
+
+                        <p class="gds-mail-row"><a class="gds-mail-btn" data-verb="WITHDRAW" href="#">Open in mail app</a></p>
+                    </div>
+                </div>
+            </div>
+
         </div>
+
+        <h2 class="gds-group-heading">What happens next</h2>
+        <ol class="gds-stages">
+            <li><b>Received.</b> We received your report and it is waiting for a triager.</li>
+            <li><b>In Review.</b> A triager is reviewing your report and may ask you for more information.</li>
+            <li><b>Confirmed.</b> The issue is confirmed and is being fixed. We may ask you to retest.</li>
+            <li><b>Retest.</b> A fix is in place and is being retested.</li>
+            <li><b>Bounty Calculation.</b> We sent you a bounty decision. Agree or appeal before the deadline.</li>
+            <li><b>Bounty in Process.</b> You agreed to the decision. We may ask for documents before payment.</li>
+            <li><b>Completed.</b> This report is complete. Thank you for your contribution.</li>
+        </ol>
     </main>
 
     <footer>
@@ -343,6 +516,75 @@ SUMMARY= Summary of your finding</textarea>
     </footer>
 
     <div style="display:none;">97de67b8d672c51c158247f398b85d31</div>
+
+    <script id="gds-submit-data" type="application/json">{"mailbox": "{{ mailbox_email|escapejs }}"}</script>
+    <script>
+        (function () {
+            var data = JSON.parse(document.getElementById('gds-submit-data').textContent || '{}');
+            var mailbox = data.mailbox || '';
+            var input = document.getElementById('reportIdInput');
+            var hint = document.getElementById('reportIdHint');
+            var buttons = document.querySelectorAll('.gds-mail-btn');
+            var subjects = document.querySelectorAll('textarea[data-subject]');
+            var VALID = /^[0-9A-Za-z]{12}$/;
+            var NO_ID = {SUBMIT: 1, STATUS_OVERVIEW: 1, MY_SCORE: 1, HELP: 1};
+            var SUBMIT_BODY = 'TYPE=\n' + 'ENDPOINT=\n' + 'SUMMARY=\n';
+
+            function subjectFor(verb, id) {
+                if (NO_ID[verb]) {
+                    return verb === 'SUBMIT' ? 'SUBMIT_Report Title' : verb;
+                }
+                return verb + '_' + (id || 'Report ID');
+            }
+
+            function render() {
+                var id = (input && input.value || '').trim();
+                var ok = VALID.test(id);
+                var value = ok ? id.toUpperCase() : '';
+
+                if (hint && input) {
+                    if (!id) {
+                        hint.textContent = 'Type the 12 character Report ID from your confirmation email and every subject and mail button below fills in. Nothing is sent or stored.';
+                    } else if (ok) {
+                        hint.textContent = 'Using Report ID ' + value + '.';
+                    } else {
+                        hint.textContent = 'A Report ID is exactly 12 letters or digits.';
+                    }
+                }
+
+                subjects.forEach(function (box) {
+                    box.value = subjectFor(box.getAttribute('data-subject'), value);
+                });
+
+                buttons.forEach(function (btn) {
+                    var verb = btn.getAttribute('data-verb');
+                    var needsId = !NO_ID[verb];
+                    if (!mailbox || (needsId && !value)) {
+                        btn.setAttribute('href', '#');
+                        btn.setAttribute('aria-disabled', 'true');
+                        btn.classList.add('gds-disabled');
+                        return;
+                    }
+                    var href = 'mailto:' + encodeURIComponent(mailbox).replace(/%40/g, '@')
+                        + '?subject=' + encodeURIComponent(subjectFor(verb, value));
+                    if (btn.getAttribute('data-body')) {
+                        href += '&body=' + encodeURIComponent(SUBMIT_BODY);
+                    }
+                    btn.setAttribute('href', href);
+                    btn.removeAttribute('aria-disabled');
+                    btn.classList.remove('gds-disabled');
+                });
+            }
+
+            if (input) { input.addEventListener('input', render); }
+            buttons.forEach(function (btn) {
+                btn.addEventListener('click', function (event) {
+                    if (btn.getAttribute('aria-disabled') === 'true') { event.preventDefault(); }
+                });
+            });
+            render();
+        })();
+    </script>
 </body>
 
 </html>

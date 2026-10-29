@@ -661,3 +661,123 @@ class HunterCommentDashboardTests(TestCase):
         self.assertEqual(BugReportAppeal.objects.count(), 0)
         self.assertEqual(BugReportNDA.objects.count(), 0)
         self.assertEqual(BugReportHunterComment.objects.count(), 0)
+
+
+SUBMIT_COMMANDS = ("SUBMIT", "CHECK", "STATUS_OVERVIEW", "MY_SCORE", "HELP",
+                   "UPDATE", "COMMENT", "DATA", "AGREE", "APPEAL", "WITHDRAW")
+
+
+def read_web_submit_template():
+    import os
+    from gerobug.settings import BASE_DIR
+    path = os.path.join(os.path.dirname(BASE_DIR), "gerobug_web", "templates",
+                        "submit.html")
+    with open(path, encoding="utf-8") as fp:
+        return fp.read()
+
+
+class SubmitPageTests(TestCase):
+
+    URL = "/submit/"
+
+    def setUp(self):
+        Personalization.objects.create(personalize_id=1)
+        self.mailbox = MailBox.objects.create(
+            mailbox_id=1, email="bounty@example.com", password="pw", mailbox_status=1)
+
+    def page(self):
+        response = self.client.get(self.URL)
+        self.assertEqual(response.status_code, 200)
+        return response.content.decode()
+
+    def test_submit_page_lists_every_command(self):
+        page = self.page()
+        for command in SUBMIT_COMMANDS:
+            self.assertIn(command, page, command)
+
+    def test_submit_page_mailto_uses_mailbox(self):
+        page = self.page()
+        self.assertIn("bounty@example.com", page)
+        self.assertIn('data-verb="HELP"', page)
+        self.assertIn('id="reportIdInput"', page)
+
+    def test_submit_page_without_mailbox_disables_buttons(self):
+        MailBox.objects.all().update(email="")
+        page = self.page()
+        self.assertIn("set their email yet", page)
+        self.assertIn('id="reportIdInput"', page)
+        self.assertIn("disabled", page)
+        self.assertNotIn("bounty@example.com", page)
+
+    def test_mailbox_address_escaped(self):
+        MailBox.objects.all().update(email='a@b.c"><script>alert(1)</script>')
+        page = self.page()
+        self.assertNotIn("<script>alert(1)</script>", page)
+        self.assertIn("&lt;script&gt;", page)
+
+    def test_submit_pages_in_sync(self):
+        import os
+        from gerobug.settings import BASE_DIR
+        dashboard_path = os.path.join(BASE_DIR, "templates", "submit.html")
+        with open(dashboard_path, encoding="utf-8") as fp:
+            dashboard_template = fp.read()
+        self.assertEqual(dashboard_template, read_web_submit_template())
+        self.assertIn("gds-submit-main", self.page())
+
+    def test_stage_text_matches_submit_page(self):
+        from geromail import gerocard
+        web = read_web_submit_template()
+        for status, text in gerocard.STAGE_TEXT.items():
+            if status == 0:
+                continue
+            self.assertIn(text, web, status)
+
+    def test_submit_page_limits_match_field_limits(self):
+        from geromail import gerofilter
+        web = read_web_submit_template()
+        title_low, title_high = gerofilter.FIELD_LIMITS["title"]
+        self.assertIn(f"{title_low} to {title_high} characters", web)
+        self.assertIn(str(gerofilter.FIELD_LIMITS["type"][1]), web)
+        self.assertIn(str(gerofilter.FIELD_LIMITS["endpoint"][1]), web)
+        self.assertIn(f"at least {gerofilter.FIELD_LIMITS['summary'][0]} characters", web)
+        self.assertIn(f"{gerofilter.MAX_PDF_BYTES // 1000000} MB", web)
+        self.assertIn(f"{gerofilter.SELF_UPDATE_LIMIT} updates", web)
+        self.assertIn(f"{gerofilter.APPEAL_LIMIT} appeals", web)
+        self.assertIn(f"{gerofilter.COMMENT_LIMIT} questions", web)
+        from dashboards.models import APPEAL_WINDOW_DAYS
+        self.assertIn(f"{APPEAL_WINDOW_DAYS} days", web)
+        self.assertIn("ENDPOINT: 1 to 255 characters", web)
+
+    def test_submit_page_has_no_outdated_screenshots(self):
+        web = read_web_submit_template()
+        self.assertNotIn("sample/check.png", web)
+        self.assertNotIn("sample/overview.png", web)
+        self.assertNotIn("max 100 characters", web)
+
+    def test_submit_page_js_validates_the_id(self):
+        web = read_web_submit_template()
+        self.assertIn("^[0-9A-Za-z]{12}$", web)
+        self.assertIn("encodeURIComponent", web)
+        self.assertNotIn("innerHTML = id", web)
+
+    def test_submit_page_has_no_em_dash(self):
+        self.assertNotIn("\u2014", read_web_submit_template())
+
+
+class SubmitSampleRenderTests(TestCase):
+
+    def test_write_submit_sample(self):
+        import os
+        if os.environ.get("GB_WRITE_SAMPLES") != "1":
+            self.skipTest("set GB_WRITE_SAMPLES=1 to write the sample HTML")
+
+        out = os.environ.get("GB_SAMPLE_DIR") or "."
+        os.makedirs(out, exist_ok=True)
+
+        Personalization.objects.create(personalize_id=1)
+        MailBox.objects.create(mailbox_id=1, email="bounty@example.com", password="pw",
+                               mailbox_status=1)
+        response = self.client.get("/submit/")
+        self.assertEqual(response.status_code, 200)
+        with open(os.path.join(out, "oss-submit.html"), "w", encoding="utf-8") as fp:
+            fp.write(response.content.decode())
