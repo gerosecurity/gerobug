@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required,user_passes_test
+from django.views.decorators.http import require_http_methods
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User, Group
 from django.db.models.query_utils import Q
@@ -1112,6 +1113,7 @@ def _hof_recompute(hunter):
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
 def HallOfFameAdmin(request):
     if not request.user.is_superuser:
         if request.method == "GET":

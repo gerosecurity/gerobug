@@ -779,7 +779,7 @@
                                         <p class="small text-muted">Scores update automatically when a report is completed or moved out of Completed. Use this to correct a score, hide a hunter, or recompute from completed reports.</p>
                                         <div class="row g-2 align-items-center mb-2">
                                             <div class="col-md-6 mb-2">
-                                                <input type="text" id="hof_query" class="form-control" placeholder="Hunter email or name (blank = top hunters)">
+                                                <input type="text" id="hof_query" class="form-control" placeholder="Hunter email or name (blank = top hunters)" aria-label="Search hunters by email or name">
                                             </div>
                                             <div class="col-md-3 mb-2">
                                                 <button type="button" id="hof-search" class="btn btn-outline-primary w-100">Search</button>
@@ -809,7 +809,7 @@
                                             <input type="hidden" name="action" value="recompute_all">
                                             <div class="row g-2 align-items-center">
                                                 <div class="col-md-4 mb-2">
-                                                    <input type="text" name="confirm" class="form-control" placeholder="Type RECOMPUTE">
+                                                    <input type="text" name="confirm" class="form-control" placeholder="Type RECOMPUTE" aria-label="Type RECOMPUTE to confirm recomputing every hunter">
                                                 </div>
                                                 <div class="col-md-3 mb-2">
                                                     <button type="submit" class="btn btn-outline-danger w-100">Recompute all</button>
