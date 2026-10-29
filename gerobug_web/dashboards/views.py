@@ -56,7 +56,7 @@ def emailcontext(request,):
 def halloffame(request,):
     bughunters = DashboardsBughunter.objects.alias(
         points=Sum('hunter_scores')
-    ).exclude(hunter_scores=0).order_by('-points')
+    ).exclude(hunter_scores=0).exclude(hunter_hidden=True).order_by('-points')
 
     # COMPANY NAME
     THEME = Personalization.objects.get(personalize_id=1)
