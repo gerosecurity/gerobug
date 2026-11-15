@@ -29,6 +29,10 @@ REASON_EMPTY_UPDATE = "Include a written description in the email body or attach
 REASON_EMPTY_APPEAL = "Include your reasoning in the email body or attach a PDF."
 REASON_UNKNOWN_COMMAND = ("We could not recognise the command in the subject. "
                           "Send an email with the subject HELP for the list of commands.")
+REASON_UNREADABLE_COMMAND = ("We received a subject starting with {verb} but could not read it. "
+                             "Put an underscore straight after the command, for example "
+                             "SUBMIT_<title> or UPDATE_<report ID>, or send an email with the "
+                             "subject HELP for the list of commands.")
 
 
 
@@ -49,6 +53,9 @@ def normalize_attack(value):
     return " ".join((value or "").split()).casefold()
 
 
+REVERSE_DUPLICATE_STATUSES = (1, 2)
+
+
 # CHECK IF POSSIBLE DUPLICATE (ADVISORY BADGE ON THE LATER REPORT)
 def check_duplicate(id):
     report = BugReport.objects.get(report_id=id)
@@ -61,7 +68,7 @@ def check_duplicate(id):
         other
         for other in BugReport.objects.exclude(report_id=id).only(
             "report_id", "report_endpoint", "report_attack",
-            "report_datetime", "report_duplicate",
+            "report_datetime", "report_duplicate", "report_status",
         )
         if normalize_endpoint(other.report_endpoint) == endpoint
         and normalize_attack(other.report_attack) == attack
@@ -84,7 +91,7 @@ def check_duplicate(id):
         return
 
     for later in matches:
-        if later.report_duplicate:
+        if later.report_duplicate or later.report_status not in REVERSE_DUPLICATE_STATUSES:
             continue
         later.report_duplicate = 1
         later.report_duplicate_of = id
@@ -368,13 +375,28 @@ _COMMAND = re.compile(
     r'^(SUBMIT|CHECK|UPDATE|APPEAL|AGREE|DATA|NDA|COMMENT|WITHDRAW)\s*[_:\- ]\s*(.*)$'
     r'|^(STATUS_OVERVIEW|MY_SCORE|HELP|COMMANDS)\b', re.I)
 _REPORT_ID = re.compile(r'^([0-9A-Za-z]{12})(?![0-9A-Za-z])')
+_VERB_PREFIX = re.compile(r'^(SUBMIT|CHECK|UPDATE|APPEAL|AGREE|DATA|NDA|COMMENT|WITHDRAW)', re.I)
 
 _REST_MAX = 64
 
 
+# FOLDED HEADERS CARRY CRLF + WHITESPACE; COLLAPSE IT HERE TOO, SO A CALLER
+# THAT SKIPS mail_header_decode CANNOT BRING BACK THE "UNKNOWN COMMAND" REPLY.
+def _clean_subject(subject):
+    s = ' '.join(str(subject or '')[:_SUBJECT_MAX].split())
+    return _REPLY_PREFIX.sub('', s).strip()
+
+
+# A KNOWN VERB _COMMAND STILL COULD NOT READ ("SUBMITXSS ...") NAMES THE VERB IN THE 404
+def unknown_command_reason(subject):
+    hint = _VERB_PREFIX.match(_clean_subject(subject))
+    if hint:
+        return REASON_UNREADABLE_COMMAND.format(verb=hint.group(1).upper())
+    return REASON_UNKNOWN_COMMAND
+
+
 def parse_subject(subject):
-    s = str(subject or '')[:_SUBJECT_MAX]
-    s = _REPLY_PREFIX.sub('', s).strip()
+    s = _clean_subject(subject)
     m = _COMMAND.match(s)
     if not m:
         return None, ''
@@ -465,7 +487,7 @@ def classify_action(email, subject):
             from . import gerocard
             return 210, gerocard.build_help(email)
 
-        return 404, REASON_UNKNOWN_COMMAND
+        return 404, unknown_command_reason(subject)
 
     except Exception as e:
         logging.getLogger("Gerologger").error(str(e))

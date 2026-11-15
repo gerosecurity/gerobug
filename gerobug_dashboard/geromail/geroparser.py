@@ -57,6 +57,20 @@ def parse_raw_message(raw):
     return email.message_from_string(str(raw))
 
 
+# SERVER RECEIVE TIME (IMAP INTERNALDATE), NEVER THE SENDER-WRITTEN Date:
+# HEADER, WHICH A HUNTER CAN BACKDATE TO WIN DUPLICATE PRECEDENCE OR DODGE
+# THE RATE LIMITER. fetch_response IS imaplib's (typ, data) PAIR.
+def received_timestamp(fetch_response):
+    now = int(time.time())
+    for item in fetch_response[1] or []:
+        envelope = item[0] if isinstance(item, tuple) else item
+        if isinstance(envelope, bytes) and b"INTERNALDATE" in envelope:
+            parsed = imaplib.Internaldate2tuple(envelope)
+            if parsed is not None:
+                return min(int(time.mktime(parsed)), now)
+    return now
+
+
 def message_timestamp(msg):
     parsed = parsedate_tz(msg.get('date') or '')
     if parsed is None:
@@ -187,14 +201,54 @@ def _sanitize_imap_string(value):
     return str(value).replace('"', '').replace('\\', '').replace('\r', '').replace('\n', '')
 
 
+_CONFUSABLES = str.maketrans({
+    "\u0430": "a", "\u0435": "e", "\u043e": "o", "\u0440": "p", "\u0441": "c", "\u0445": "x",
+    "\u0443": "y", "\u0456": "i", "\u0458": "j", "\u0455": "s", "\u0501": "d", "\u04cf": "l",
+    "\u03bf": "o", "\u03b1": "a", "\u03b5": "e", "\u03b9": "i", "\u03ba": "k", "\u03bd": "v",
+    "\u03c1": "p", "\u03c4": "t", "\u03c5": "u", "\u03c7": "x", "0": "o", "1": "l", "3": "e",
+    "5": "s", "_": "", "-": "", ".": "", " ": "",
+})
+
+
+def _name_skeleton(name):
+    return normalize("NFKC", name or "").casefold().translate(_CONFUSABLES)
+
+
+def _reserved_skeletons():
+    from dashboards.validators import RESERVED_USERNAMES
+    return {_name_skeleton(r) for r in RESERVED_USERNAMES}
+
+
+def _brand_skeletons():
+    from dashboards.models import Personalization
+    brands = {"gerobug", "geromin"}
+    company = Personalization.objects.filter(personalize_id=1).values_list("company_name", flat=True).first()
+    if company and len(_name_skeleton(company)) >= 4:
+        brands.add(_name_skeleton(company))
+    return brands
+
+
+def public_hunter_name(email, name):
+    name = (name or "").strip()[:30]
+    skeleton = _name_skeleton(name)
+    reserved = _reserved_skeletons()
+    if len(skeleton) < 3 or skeleton in reserved or any(b in skeleton for b in _brand_skeletons()):
+        name = "hunter-" + hashlib.sha256(email.lower().encode()).hexdigest()[:6]
+        skeleton = _name_skeleton(name)
+    taken = any(_name_skeleton(n) == skeleton for n in
+                BugHunter.objects.exclude(hunter_email__iexact=email).values_list("hunter_username", flat=True))
+    if taken:
+        name = f"{name[:23]}-{hashlib.sha256(email.lower().encode()).hexdigest()[:6]}"
+    return name
+
+
 # INSERT USER TO BUGHUNTER MODEL
 def saveuser(email, name, score):
-    if BugHunter.objects.filter(hunter_email=email).exists():
+    if BugHunter.objects.filter(hunter_email__iexact=email).exists():
         logging.getLogger("Gerologger").warning("User already exists.")
         pass
     else:
-        if len(name) > 30:
-            name = name[:30]
+        name = public_hunter_name(email, name)
 
         newuser = BugHunter()
         newuser.hunter_email = email
@@ -268,15 +322,22 @@ def save_comment(comment_id, report_id, date, summary):
     comment.save()
 
 
+# FOLDING (CRLF + WHITESPACE), BARE CR/LF, TABS AND OTHER CONTROL CHARACTERS,
+# INCLUDING ONES AN ENCODED WORD DECODES TO (=?UTF-8?Q?a=0Ab?=).
+_HEADER_WS = re.compile(r'[\s\x00-\x1f\x7f]+')
+
+
 def mail_header_decode(text):
     if not text:
         return ""
+    text = str(text)
     try:
-        return u"".join([
+        text = u"".join([
             part.decode(encoding or 'utf-8', errors='replace') if isinstance(part, bytes) else part
             for part, encoding in decode_header(text)])
     except Exception:
-        return str(text)
+        pass
+    return _HEADER_WS.sub(' ', text).strip()
 
 
 SENDER_ADDRESS = re.compile(r"(?<![\w.+-])[\w.+-]++@[\w.+-]+\.\w+")
@@ -296,6 +357,23 @@ def parse_sender(raw_from):
     return re.sub(r'[^\w\s\-]', '', name, flags=re.UNICODE).strip(), email_address
 
 
+_RETURN_PATH_MAX = 512   # RFC 5321 CAPS A REVERSE-PATH AT 256 OCTETS
+
+
+# THE ENVELOPE ADDRESS, OR None. THE MATCH MUST BE THE TAIL OF THE PARSED PATH, SO
+# A QUOTED LOCAL PART (<"victim@example.com"@attacker.example>) CANNOT STAND IN FOR
+# THE REAL ENVELOPE DOMAIN, WHILE A BATV TAG (prvs=1234abcd=hunter@example.com) PASSES.
+def return_path_address(value):
+    value = str(value or '')
+    if len(value) > _RETURN_PATH_MAX:
+        return None
+    _, path = parseaddr(value)
+    found = RETURN_PATH_ADDRESS.search(path)
+    if found is None or found.end() != len(path):
+        return None
+    return found.group()
+
+
 def sender_auth_failure(msg, hunter_email):
     auth_results = msg.get('Authentication-Results', '')
     if auth_results:
@@ -304,12 +382,23 @@ def sender_auth_failure(msg, hunter_email):
         if not (spf_pass or dkim_pass):
             return f'Spoofing blocked (SPF/DKIM failed): spf={spf_pass}, dkim={dkim_pass}, from={hunter_email}'
 
-    return_path = RETURN_PATH_ADDRESS.search(str(msg.get('return-path', '')))
-    if return_path is None:
+    found = return_path_address(msg.get('return-path'))
+    if found is None:
         return 'Possible Spoofing Attempt (no Return-Path), Ignoring Mail!'
-    if hunter_email.lower() != return_path.group().lower():
+    if hunter_email.lower() != found.lower():
         return f'Possible Spoofing Attempt (Return-Path mismatch), Ignoring Mail! from={hunter_email}'
     return None
+
+
+_NO_REPLY_LOCAL = re.compile(r"(?:^|[._+-])(?:no|do[._-]?not|dont)[._-]?reply(?:$|[._+-])", re.IGNORECASE)
+
+
+def is_no_reply(address):
+    address = str(address or "")
+    if len(address) > 254:
+        return True
+    local = address.rsplit("@", 1)[0]
+    return len(local) > 64 or _NO_REPLY_LOCAL.search(local) is not None
 
 
 def parse_bounce(msg):
@@ -460,7 +549,7 @@ def read_mail(mail, folder_name='inbox'):
                 claimed = ''
                 try:
                     i = int(i_str)
-                    data = mail.fetch(str(i), '(RFC822)' )
+                    data = mail.fetch(str(i), '(INTERNALDATE RFC822)')
                     for response_part in data:
                         arr = response_part[0]
 
@@ -469,7 +558,7 @@ def read_mail(mail, folder_name='inbox'):
                             msg = parse_raw_message(arr[1])
 
                             # DATETIME FORMATTING
-                            msg_ts = message_timestamp(msg)
+                            msg_ts = received_timestamp(data)
                             email_dt = datetime.fromtimestamp(msg_ts)
                             email_date = email_dt.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -506,14 +595,11 @@ def read_mail(mail, folder_name='inbox'):
                                     f"OriginalMsgID: {b['orig_msg_id']} | "
                                     f"Subject: {email_subject}"
                                 )
-                                blacklisted = bool(hunter_email) and gerosecure.check_blacklist(hunter_email)[0]
-                                if hunter_email:
-                                    gerosecure.monitor(hunter_email, int(msg_ts))
-                                if not blacklisted and bounce_matches_report(b):
+                                if bounce_matches_report(b) and gerosecure.bounce_alert_allowed(b['report_id']):
                                     geronotify.notify(b['report_id'], b['failed_to'], "EMAIL_BOUNCED", detail=b['error'])
                                 else:
                                     logging.getLogger("Gerologger").warning(
-                                        f"Bounce not matched to a report's hunter or sender rate-limited, webhook alert skipped | "
+                                        f"Bounce not matched to a report's hunter or alert throttled, webhook alert skipped | "
                                         f"ReportID: {b['report_id']} | FailedTo: {b['failed_to']}")
                                 continue
 
@@ -525,8 +611,7 @@ def read_mail(mail, folder_name='inbox'):
                                 continue
 
                             # NO-REPLY EXCLUSIONS
-                            no_reply = re.search(r".*n.?t?.*reply.*@(.+\.)+.+", str(hunter_email))
-                            if no_reply != None:
+                            if is_no_reply(hunter_email):
                                 logging.getLogger("Gerologger").warning('No-reply emails, Ignoring Mail!')
                                 continue
 

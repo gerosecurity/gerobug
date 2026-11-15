@@ -12,8 +12,26 @@ from dashboards.models import Blacklist, Watchlist, BlacklistRule
 
 
 
+def _key(email):
+    return str(email or "").strip().lower()
+
+
+_BOUNCE_ALERTS = {}
+BOUNCE_ALERT_COOLDOWN = 3600
+
+
+def bounce_alert_allowed(report_id):
+    now = int(time.time())
+    last = _BOUNCE_ALERTS.get(report_id)
+    if last is not None and now - last < BOUNCE_ALERT_COOLDOWN:
+        return False
+    _BOUNCE_ALERTS[report_id] = now
+    return True
+
+
 # BLACKLIST SPAM EMAIL
 def check_blacklist(email):
+    email = _key(email)
     if Blacklist.objects.filter(email=email).exists():
         BLACKLISTRULE = BlacklistRule.objects.get(rule_id=1)
         blacklisted = Blacklist.objects.get(email=email)
@@ -44,6 +62,7 @@ def check_blacklist(email):
 
 # BLACKLIST SPAM EMAIL
 def blacklist(email):
+    email = _key(email)
     black = Blacklist()
     black.email = email
     black.time = int(time.time())
@@ -51,6 +70,7 @@ def blacklist(email):
 
 # MONITOR SUSPECT EMAIL
 def monitor(email, ts):
+    email = _key(email)
     # IF EMAIL ALREADY BLACKLISTED
     if Blacklist.objects.filter(email=email).exists():
         pass
