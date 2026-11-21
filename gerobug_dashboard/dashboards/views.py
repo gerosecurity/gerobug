@@ -21,7 +21,7 @@ from django.utils import timezone
 from django.middleware.csrf import get_token
 from django.utils.html import format_html
 from prerequisites.models import MailBox, Webhook
-from .models import APPEAL_WINDOW_DAYS, BOUNTY_CALC_STATUS, COMPLETED_STATUS, BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, BugReportHunterComment, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization, TroubleshootSettings
+from .models import APPEAL_WINDOW_DAYS, COMPLETED_STATUS, BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, BugReportHunterComment, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization, TroubleshootSettings
 from .forms import Requestform, RulesGuidelineForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm, WebhookForm, BlacklistForm, TemplateReportForm, TemplateNDAForm, TemplateCertForm, CertDataForm, PersonalizationForm, CompanyIdentityForm, Invalidform, TroubleshootForm
 from geromail import geromailer, gerofilter, geroparser, gerocalculator
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
@@ -874,11 +874,6 @@ def ResendEmail(request):
                 messages.error(request, f"Could not rebuild the certificate for {report_id}: {e}")
                 return redirect(reverse('setting') + '#troubleshoot')
 
-        restarts_window = code == 702 and report.report_status == BOUNTY_CALC_STATUS
-        if restarts_window:
-            report.report_calc_sent_at = timezone.now()
-            report.save(update_fields=['report_calc_sent_at'])
-
         def trigger_resend(report, code, note):
             from django.db import connection as db_connection
             try:
@@ -895,12 +890,7 @@ def ResendEmail(request):
         threading.Thread(target=trigger_resend, args=(report, code, note)).start()
 
         what = RESEND_EMAIL_LABELS[code]
-        if restarts_window:
-            logging.getLogger("Gerologger").info(
-                f"RESEND {report_id}: appeal window restarted by {username}")
-            messages.success(request, f"Resending the {what} email for {report_id} to {report.hunter_email}. The hunter's 30-day appeal window restarts from now. Check the logs below to confirm delivery.")
-        else:
-            messages.success(request, f"Resending the {what} email for {report_id} to {report.hunter_email}. Check the logs below to confirm delivery.")
+        messages.success(request, f"Resending the {what} email for {report_id} to {report.hunter_email}. Check the logs below to confirm delivery.")
 
     return redirect(reverse('setting') + '#troubleshoot')
 

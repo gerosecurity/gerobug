@@ -443,18 +443,17 @@ class TroubleshootTests(TroubleshootFixture):
     def test_nothing_recorded_sends_nothing(self):
         self.assertEqual(self.resend(), (None, None))
 
-    def test_resent_calculation_restarts_the_appeal_window(self):
+    def test_resent_calculation_keeps_the_auto_accept_clock(self):
         from datetime import timedelta
-        from dashboards.models import APPEAL_WINDOW_DAYS
-        self.report.report_calc_sent_at = timezone.now() - timedelta(days=25)
+        stamp = timezone.now() - timedelta(days=25)
+        self.report.report_calc_sent_at = stamp
         self.report.last_email_code, self.report.last_email_note = 702, "7.5 HIGH"
         self.report.save()
 
         code, payload = self.resend()
         self.assertEqual((code, payload[3]), (702, "7.5 HIGH"))
         self.report.refresh_from_db()
-        self.assertGreater(self.report.auto_accept_at,
-                           timezone.now() + timedelta(days=APPEAL_WINDOW_DAYS - 1))
+        self.assertEqual(self.report.report_calc_sent_at, stamp)
         self.assertEqual(self.report.report_permission, 2)
         self.assertEqual(self.report.report_status, 5)
 
