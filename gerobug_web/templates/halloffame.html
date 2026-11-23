@@ -68,6 +68,7 @@
       <img src="{% static 'leaderboard.png' %}">
     </div>
     <p>{{ company_name }} thanks the following researchers for reporting valid security issues</p>
+    <p>Points: each completed report counts its severity score, rounded down, times 1 for Low, 2 for Medium, 3 for High and 4 for Critical.</p>
         
     <div class="gds-hof-list">
       {% for bughunter in bughunters|slice:":1000" %}

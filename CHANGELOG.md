@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Changed
+
+- **Hall of Fame points are weighted by severity.** Each completed report adds
+  its severity score, rounded down, times 1 for Low, 2 for Medium, 3 for High
+  and 4 for Critical. On upgrade every hunter's score is recomputed once from
+  their completed reports, which replaces any manual score correction made in
+  Settings > Hall of Fame.
+
 ### Hall of Fame
 
 - **Scores stay in sync with Completed.** Completing a report awards the hunter

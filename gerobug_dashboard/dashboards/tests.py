@@ -882,6 +882,24 @@ class SubmitPageTests(TestCase):
     def test_submit_page_has_no_em_dash(self):
         self.assertNotIn("\u2014", read_web_submit_template())
 
+    def test_score_card_explains_the_severity_weights(self):
+        sentence = ("Your score: each completed report adds its severity score, rounded "
+                    "down, times a weight (Low 1, Medium 2, High 3, Critical 4). "
+                    "A Critical 9.8 adds 36 points. No Report ID needed.")
+        self.assertIn(sentence, self.page())
+        self.assertIn(sentence, read_web_submit_template())
+
+    def test_hall_of_fame_pages_explain_the_points(self):
+        import os
+        from gerobug.settings import BASE_DIR
+        line = ("<p>Points: each completed report counts its severity score, rounded down, "
+                "times 1 for Low, 2 for Medium, 3 for High and 4 for Critical.</p>")
+        for path in (os.path.join(BASE_DIR, "templates", "halloffame.html"),
+                     os.path.join(os.path.dirname(BASE_DIR), "gerobug_web", "templates",
+                                  "halloffame.html")):
+            with open(path, encoding="utf-8") as fp:
+                self.assertIn(line, fp.read(), path)
+
 
 class SubmitSampleRenderTests(TestCase):
 
@@ -929,7 +947,7 @@ class ScoreSyncTests(TestCase):
 
     def test_override_into_completed_awards(self):
         self._override(7)
-        self.assertEqual((self.hunter.hunter_scores, self.report.report_score_awarded), (17, 7))
+        self.assertEqual((self.hunter.hunter_scores, self.report.report_score_awarded), (31, 21))
 
     def test_override_out_of_completed_revokes(self):
         self._override(7)
@@ -944,7 +962,7 @@ class ScoreSyncTests(TestCase):
     def test_resaving_completed_does_not_award_twice(self):
         self._override(7)
         self._override(7)
-        self.assertEqual((self.hunter.hunter_scores, self.report.report_score_awarded), (17, 7))
+        self.assertEqual((self.hunter.hunter_scores, self.report.report_score_awarded), (31, 21))
 
     def test_company_action_704_awards_exactly_once(self):
         from geromail import geromailer, geroparser
@@ -955,8 +973,8 @@ class ScoreSyncTests(TestCase):
             geroparser.company_action(self.report.report_id, "", 704)
         self.report.refresh_from_db()
         self.hunter.refresh_from_db()
-        self.assertEqual((self.report.report_status, self.report.report_score_awarded), (7, 7))
-        self.assertEqual(self.hunter.hunter_scores, 17)
+        self.assertEqual((self.report.report_status, self.report.report_score_awarded), (7, 21))
+        self.assertEqual(self.hunter.hunter_scores, 31)
 
     def test_revoke_never_goes_below_zero(self):
         self.hunter.hunter_scores = 0
@@ -984,7 +1002,7 @@ class ScoreSyncTests(TestCase):
             hunter_email="HUNTER@Example.COM")
         self.report.refresh_from_db()
         self._override(7)
-        self.assertEqual(self.hunter.hunter_scores, 17)
+        self.assertEqual(self.hunter.hunter_scores, 31)
 
     def test_backfill_fills_awarded_and_keeps_scores(self):
         from dashboards.models import backfill_report_score_awarded
@@ -992,19 +1010,19 @@ class ScoreSyncTests(TestCase):
         self.assertEqual(backfill_report_score_awarded(), 1)
         self.report.refresh_from_db()
         self.hunter.refresh_from_db()
-        self.assertEqual((self.report.report_score_awarded, self.hunter.hunter_scores), (7, 10))
+        self.assertEqual((self.report.report_score_awarded, self.hunter.hunter_scores), (21, 10))
 
         self.assertEqual(backfill_report_score_awarded(), 0)
         self.report.refresh_from_db()
         self.hunter.refresh_from_db()
-        self.assertEqual((self.report.report_score_awarded, self.hunter.hunter_scores), (7, 10))
+        self.assertEqual((self.report.report_score_awarded, self.hunter.hunter_scores), (21, 10))
 
     def test_backfilled_report_revokes_the_right_amount(self):
         from dashboards.models import backfill_report_score_awarded
         BugReport.objects.filter(report_id=self.report.report_id).update(report_status=7)
         backfill_report_score_awarded()
         self._override(6)
-        self.assertEqual((self.hunter.hunter_scores, self.report.report_score_awarded), (3, 0))
+        self.assertEqual((self.hunter.hunter_scores, self.report.report_score_awarded), (0, 0))
 
 
 def read_setting_template():
@@ -1048,7 +1066,7 @@ class HallOfFameAdminTests(TestCase):
         row = data["hunters"][0]
         self.assertEqual((row["email"], row["score"], row["completed_reports"],
                           row["recomputed_score"], row["hidden"]),
-                         ("hunter@example.com", 50, 1, 7, False))
+                         ("hunter@example.com", 50, 1, 21, False))
         self.assertEqual(row["public_key"], self.hunter.pk)
 
     def test_search_matches_name_case_insensitively(self):
@@ -1093,8 +1111,8 @@ class HallOfFameAdminTests(TestCase):
         self.hunter.refresh_from_db()
         self.report.refresh_from_db()
         other.refresh_from_db()
-        self.assertEqual(self.hunter.hunter_scores, 7)
-        self.assertEqual((self.report.report_score_awarded, other.report_score_awarded), (7, 0))
+        self.assertEqual(self.hunter.hunter_scores, 21)
+        self.assertEqual((self.report.report_score_awarded, other.report_score_awarded), (21, 0))
 
     def test_recompute_then_uncomplete_subtracts_correctly(self):
         self.post(hunter_id=self.hunter.pk, action="recompute")
@@ -1120,7 +1138,7 @@ class HallOfFameAdminTests(TestCase):
         self.post(action="recompute_all", confirm="RECOMPUTE")
         self.hunter.refresh_from_db()
         self.orphan.refresh_from_db()
-        self.assertEqual((self.hunter.hunter_scores, self.orphan.hunter_scores), (7, 0))
+        self.assertEqual((self.hunter.hunter_scores, self.orphan.hunter_scores), (21, 0))
 
     def test_unknown_hunter_and_action_are_refused(self):
         self.post(hunter_id=999999, action="set_score", score="1")
@@ -1154,8 +1172,80 @@ class HallOfFameAdminTests(TestCase):
         self.assertIn("td.textContent = text;", template)
         self.assertNotIn("innerHTML", template)
         self.assertIn("Scores update automatically when a report is completed", template)
+        self.assertIn("Points are the severity score, rounded down, times 1 for Low, "
+                      "2 for Medium, 3 for High and 4 for Critical.", template)
 
     def test_setting_page_shows_the_card(self):
         response = self.client.get("/dashboard/setting")
         self.assertContains(response, "Hall of Fame")
         self.assertContains(response, "Recompute all")
+
+
+class SeverityWeightTests(TestCase):
+
+    CASES = ((0.0, 0), (3.9, 3), (4.0, 8), (6.9, 12), (7.0, 21),
+             (8.9, 24), (9.0, 36), (9.8, 36), (10.0, 40))
+
+    def test_severity_points_pins_every_band(self):
+        from dashboards.models import severity_points
+        for score, expected in self.CASES:
+            self.assertEqual(severity_points(score), expected, score)
+
+    def test_weights_are_the_agreed_table(self):
+        from dashboards.models import SEVERITY_WEIGHTS
+        self.assertEqual(SEVERITY_WEIGHTS,
+                         {"Low": 1, "Medium": 2, "High": 3, "Critical": 4})
+
+    def test_report_points_uses_severity_points(self):
+        from dashboards.models import report_points, severity_points
+        for score, expected in self.CASES:
+            report = BugReport(report_id="ZZ00ZZ00ZZ00", report_severity=score)
+            self.assertEqual(report_points(report), expected, score)
+            self.assertEqual(report_points(report), severity_points(score), score)
+
+
+class HallOfFameRescoreTests(TestCase):
+
+    def setUp(self):
+        for i, name in enumerate(PageRenderTests.STATUS_NAMES):
+            ReportStatus.objects.get_or_create(status_id=i, defaults={"status_name": name})
+        self.hunter = BugHunter.objects.create(
+            hunter_email="hunter@example.com", hunter_username="Hunter", hunter_scores=5)
+        self.report = BugReport.objects.create(
+            report_id="AB12CD34EF56", report_datetime=timezone.now(),
+            hunter_email="hunter@example.com", report_reviewer="r",
+            report_title="t", report_summary="s", report_severity=9.8,
+            report_severitytype="", report_status=7, report_score_awarded=9)
+
+    def test_rescore_recomputes_every_hunter_once(self):
+        from dashboards.models import HallOfFameScoring, rescore_hall_of_fame
+        with self.assertLogs("Gerologger", level="INFO") as logs:
+            self.assertEqual(rescore_hall_of_fame(), 1)
+        self.hunter.refresh_from_db()
+        self.report.refresh_from_db()
+        self.assertEqual((self.hunter.hunter_scores, self.report.report_score_awarded), (36, 36))
+        self.assertTrue(any("Hall of Fame: rescored 1 hunter(s) with severity weights" in line
+                            for line in logs.output))
+        self.assertEqual(HallOfFameScoring.objects.get(pk=1).scoring_version, 2)
+
+    def test_a_second_call_keeps_a_manual_correction(self):
+        from dashboards.models import rescore_hall_of_fame
+        rescore_hall_of_fame()
+        self.hunter.hunter_scores = 1234
+        self.hunter.save(update_fields=['hunter_scores'])
+        self.assertEqual(rescore_hall_of_fame(), 0)
+        self.hunter.refresh_from_db()
+        self.assertEqual(self.hunter.hunter_scores, 1234)
+
+    def test_duplicate_hunter_rows_do_not_count_reports_twice(self):
+        from dashboards.models import rescore_hall_of_fame
+        twin = BugHunter.objects.create(
+            hunter_email="HUNTER@Example.com", hunter_username="Twin", hunter_scores=7)
+        self.assertEqual(rescore_hall_of_fame(), 2)
+        self.hunter.refresh_from_db()
+        twin.refresh_from_db()
+        self.assertEqual((self.hunter.hunter_scores, twin.hunter_scores), (36, 0))
+
+    def test_recompute_hunter_score_returns_before_and_total(self):
+        from dashboards.models import recompute_hunter_score
+        self.assertEqual(recompute_hunter_score(self.hunter), (5, 36))

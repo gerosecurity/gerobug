@@ -379,6 +379,12 @@ class MailTemplateTests(SimpleTestCase):
         for code in (302, 407, 408, 409):
             self.assertIn(code, mail_templates.messagelist)
 
+    def test_207_explains_the_severity_weights(self):
+        body = mail_templates.message_207
+        self.assertIn("Your accumulated score currently stands at", body)
+        self.assertIn("Each completed report adds its severity score, rounded down, "
+                      "times a weight: Low 1, Medium 2, High 3, Critical 4.", body)
+
     def test_no_placeholder_the_oss_mailer_does_not_fill(self):
         for code, body in mail_templates.messagelist.items():
             self.assertNotIn("~BOUNTY~", body, code)

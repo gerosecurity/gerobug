@@ -128,6 +128,8 @@ message_207 = _wrap(
     _HELLO
     + _para("This is an update regarding your score in the program. "
             "Your accumulated score currently stands at: <b>" + NOTE + "</b>.")
+    + _para("Each completed report adds its severity score, rounded down, times a "
+            "weight: Low 1, Medium 2, High 3, Critical 4.")
     + _para("You may verify your ranking by visiting the Hall of Fame page.")
     + _para("<b>Good luck with your next hunt.</b>")
     + _SIGNOFF

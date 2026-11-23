@@ -12,7 +12,7 @@ class DashboardsConfig(AppConfig):
             import logging
             from logging.handlers import TimedRotatingFileHandler
             from geromail.thread import RunGeromailThread
-            from dashboards.models import BugReport, BugHunter, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization, UserProfile, BugReportUpdate, BugReportNDA, backfill_report_score_awarded
+            from dashboards.models import BugReport, BugHunter, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization, UserProfile, BugReportUpdate, BugReportNDA, backfill_report_score_awarded, rescore_hall_of_fame
             from django.contrib.auth.models import Group, Permission, User
             from django.core.exceptions import ObjectDoesNotExist
             from prerequisites.models import MailBox
@@ -174,6 +174,12 @@ class DashboardsConfig(AppConfig):
                 if updated:
                     logging.getLogger("Gerologger").info(f"Backfilled awarded points for {updated} completed report(s)")
 
+            def init_hall_of_fame_rescore():
+                try:
+                    rescore_hall_of_fame()
+                except Exception as e:
+                    logging.getLogger("Gerologger").warning(f"Hall of Fame rescore skipped: {e}")
+
             gerologger_config()
             init_status_db(0, "Not Valid")
             init_status_db(1, "Need to Review")
@@ -192,6 +198,7 @@ class DashboardsConfig(AppConfig):
             init_user_profiles()
             init_uan_file_flags()
             init_report_score_awarded()
+            init_hall_of_fame_rescore()
 
             logging.getLogger("Gerologger").info("Number of Status         :"+str(ReportStatus.objects.count()))
             logging.getLogger("Gerologger").info("Number of Report         :"+str(BugReport.objects.count()))

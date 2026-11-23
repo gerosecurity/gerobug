@@ -21,7 +21,7 @@ from django.utils import timezone
 from django.middleware.csrf import get_token
 from django.utils.html import format_html
 from prerequisites.models import MailBox, Webhook
-from .models import APPEAL_WINDOW_DAYS, COMPLETED_STATUS, BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, BugReportHunterComment, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization, TroubleshootSettings
+from .models import APPEAL_WINDOW_DAYS, COMPLETED_STATUS, recompute_hunter_score, severity_points, BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, BugReportHunterComment, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization, TroubleshootSettings
 from .forms import Requestform, RulesGuidelineForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm, WebhookForm, BlacklistForm, TemplateReportForm, TemplateNDAForm, TemplateCertForm, CertDataForm, PersonalizationForm, CompanyIdentityForm, Invalidform, TroubleshootForm
 from geromail import geromailer, gerofilter, geroparser, gerocalculator
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
@@ -1069,7 +1069,7 @@ def _hof_recomputed(hunter):
                     report_status=COMPLETED_STATUS)
             .values_list('report_severity', flat=True))
     severities = list(rows)
-    return len(severities), sum(max(0, int(s or 0)) for s in severities)
+    return len(severities), sum(severity_points(s) for s in severities)
 
 
 def _hof_log(request, action, hunter, score_before, score_after,
@@ -1079,27 +1079,6 @@ def _hof_log(request, action, hunter, score_before, score_after,
         f"HALL OF FAME {action} by {request.user.username} | {email} | "
         f"score {score_before} -> {score_after} | "
         f"hidden {hidden_before} -> {hidden_after}")
-
-
-def _hof_recompute(hunter):
-    with transaction.atomic():
-        locked = BugHunter.objects.select_for_update().get(pk=hunter.pk)
-        reports = (BugReport.objects
-                   .select_for_update()
-                   .filter(hunter_email__iexact=locked.hunter_email))
-        total = 0
-        for report in reports:
-            points = (max(0, int(report.report_severity or 0))
-                      if report.report_status == COMPLETED_STATUS else 0)
-            total += points
-            if report.report_score_awarded != points:
-                BugReport.objects.filter(report_id=report.report_id).update(
-                    report_score_awarded=points)
-        before = locked.hunter_scores
-        locked.hunter_scores = total
-        locked.save(update_fields=['hunter_scores'])
-    hunter.hunter_scores = total
-    return before, total
 
 
 @login_required
@@ -1146,7 +1125,7 @@ def HallOfFameAdmin(request):
             return redirect(target)
         changed = 0
         for hunter in BugHunter.objects.all():
-            before, after = _hof_recompute(hunter)
+            before, after = recompute_hunter_score(hunter)
             if before != after:
                 changed += 1
         _hof_log(request, "recompute_all", None, "-", "-", "-", "-")
@@ -1199,7 +1178,7 @@ def HallOfFameAdmin(request):
         return redirect(target)
 
     if action == "recompute":
-        before, after = _hof_recompute(hunter)
+        before, after = recompute_hunter_score(hunter)
         _hof_log(request, "recompute", hunter, before, after,
                  hidden_before, hidden_before)
         messages.success(request, f"Score for {hunter.hunter_email} recomputed: {before} -> {after}.")

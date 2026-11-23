@@ -113,8 +113,22 @@ class BugReport(models.Model):
         return self.report_calc_sent_at + timedelta(days=APPEAL_WINDOW_DAYS)
 
 
+SEVERITY_WEIGHTS = {"Low": 1, "Medium": 2, "High": 3, "Critical": 4}
+
+HOF_SCORING_VERSION = 2
+
+
+def severity_points(score):
+    try:
+        value = float(score or 0)
+    except (TypeError, ValueError):
+        return 0
+    weight = SEVERITY_WEIGHTS.get(gerocalculator.get_severity_label(value), 0)
+    return max(0, int(value)) * weight
+
+
 def report_points(report):
-    return max(0, int(report.report_severity))
+    return severity_points(report.report_severity)
 
 
 def _locked_hunter(report):
@@ -227,6 +241,58 @@ class BugHunter(models.Model):
 
     def __str__(self):
         return self.hunter_scores
+
+
+class HallOfFameScoring(models.Model):
+    scoring_version = models.IntegerField(default=0)
+
+    def __str__(self):
+        return str(self.scoring_version)
+
+
+def recompute_hunter_score(hunter):
+    with transaction.atomic():
+        locked = BugHunter.objects.select_for_update().get(pk=hunter.pk)
+        primary_pk = (BugHunter.objects
+                      .filter(hunter_email__iexact=locked.hunter_email)
+                      .order_by('pk')
+                      .values_list('pk', flat=True)
+                      .first())
+        reports = (BugReport.objects
+                   .select_for_update()
+                   .filter(hunter_email__iexact=locked.hunter_email))
+        total = 0
+        for report in reports:
+            points = (report_points(report)
+                      if report.report_status == COMPLETED_STATUS else 0)
+            total += points
+            if report.report_score_awarded != points:
+                BugReport.objects.filter(report_id=report.report_id).update(
+                    report_score_awarded=points)
+        if primary_pk is not None and locked.pk != primary_pk:
+            total = 0
+        before = locked.hunter_scores
+        locked.hunter_scores = total
+        locked.save(update_fields=['hunter_scores'])
+    hunter.hunter_scores = total
+    return before, total
+
+
+def rescore_hall_of_fame():
+    with transaction.atomic():
+        HallOfFameScoring.objects.get_or_create(pk=1)
+        state = HallOfFameScoring.objects.select_for_update().get(pk=1)
+        if state.scoring_version >= HOF_SCORING_VERSION:
+            return 0
+        rescored = 0
+        for hunter in BugHunter.objects.order_by('pk'):
+            recompute_hunter_score(hunter)
+            rescored += 1
+        state.scoring_version = HOF_SCORING_VERSION
+        state.save(update_fields=['scoring_version'])
+    logging.getLogger("Gerologger").info(
+        f"Hall of Fame: rescored {rescored} hunter(s) with severity weights")
+    return rescored
 
 
 class ReportStatus(models.Model):
