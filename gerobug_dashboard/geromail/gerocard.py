@@ -1,3 +1,4 @@
+import datetime as dt
 import html
 import urllib.parse
 
@@ -122,6 +123,22 @@ def _date(value):
 
 def _para(text, style=_P):
     return '<p style="' + style + '">' + text + "</p>"
+
+
+def reminder_time_left(deadline, now):
+    remaining = deadline - now
+    if remaining.days >= 1:
+        days = remaining.days
+        left = str(days) + (" day" if days == 1 else " days")
+    else:
+        hours = int(remaining.total_seconds() // 3600)
+        if hours >= 1:
+            left = str(hours) + (" hour" if hours == 1 else " hours")
+        else:
+            left = "less than an hour"
+    due = deadline.astimezone(dt.timezone.utc)
+    stamp = due.strftime("%d %b %Y %H:%M").lstrip("0")
+    return left + ", until " + stamp + " UTC"
 
 
 def _heading(text):

@@ -385,9 +385,44 @@ class MailTemplateTests(SimpleTestCase):
         self.assertIn("Each completed report adds its severity score, rounded down, "
                       "times a weight: Low 1, Medium 2, High 3, Critical 4.", body)
 
+    def test_706_is_the_decision_reminder(self):
+        self.assertEqual(mail_templates.subjectlist[706],
+                         "Reminder: Bounty Decision for Report ~ID~")
+        body = mail_templates.messagelist[706]
+        self.assertIn("This is a reminder about our bounty decision for Report ID", body)
+        self.assertIn("Time left to agree or appeal", body)
+        self.assertIn("AGREE_~ID~", body)
+        self.assertIn("APPEAL_~ID~", body)
+        self.assertIn("CHECK_~ID~", body)
+        self.assertNotIn("~BOUNTY~", body)
+
     def test_no_placeholder_the_oss_mailer_does_not_fill(self):
         for code, body in mail_templates.messagelist.items():
             self.assertNotIn("~BOUNTY~", body, code)
+
+
+class ReminderTimeLeftTests(SimpleTestCase):
+
+    def deadline(self, **kwargs):
+        from datetime import datetime, timedelta, timezone as dt_timezone
+        now = datetime(2026, 11, 23, 14, 30, tzinfo=dt_timezone.utc)
+        return gerocard.reminder_time_left(now + timedelta(**kwargs), now)
+
+    def test_twelve_days(self):
+        self.assertEqual(self.deadline(days=12), "12 days, until 5 Dec 2026 14:30 UTC")
+
+    def test_one_day(self):
+        self.assertEqual(self.deadline(days=1), "1 day, until 24 Nov 2026 14:30 UTC")
+
+    def test_five_hours(self):
+        self.assertEqual(self.deadline(hours=5), "5 hours, until 23 Nov 2026 19:30 UTC")
+
+    def test_one_hour(self):
+        self.assertEqual(self.deadline(hours=1), "1 hour, until 23 Nov 2026 15:30 UTC")
+
+    def test_twenty_minutes(self):
+        self.assertEqual(self.deadline(minutes=20),
+                         "less than an hour, until 23 Nov 2026 14:50 UTC")
 
 
 class ParseSenderTests(SimpleTestCase):

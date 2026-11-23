@@ -14,6 +14,8 @@ from django.views.generic import (
     TemplateView
 )
 from django.urls import reverse, reverse_lazy
+from datetime import timedelta
+from datetime import timezone as dt_timezone
 from django.db import transaction
 from django.db.models import Sum
 from django.http import FileResponse, JsonResponse
@@ -23,7 +25,7 @@ from django.utils.html import format_html
 from prerequisites.models import MailBox, Webhook
 from .models import APPEAL_WINDOW_DAYS, COMPLETED_STATUS, recompute_hunter_score, severity_points, BugHunter, BugReport, BugReportUpdate, BugReportAppeal, BugReportNDA, BugReportHunterComment, ReportStatus, StaticRules, BlacklistRule, CertificateData, Personalization, TroubleshootSettings
 from .forms import Requestform, RulesGuidelineForm, CompleteRequestform, MailboxForm, AccountForm, ReviewerForm, WebhookForm, BlacklistForm, TemplateReportForm, TemplateNDAForm, TemplateCertForm, CertDataForm, PersonalizationForm, CompanyIdentityForm, Invalidform, TroubleshootForm
-from geromail import geromailer, gerofilter, geroparser, gerocalculator
+from geromail import geromailer, gerocard, gerofilter, geroparser, gerocalculator
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
 
 import threading, os, shutil, secrets, uuid, html, gerocert.gerocert
@@ -403,6 +405,64 @@ def FormHandler(request, id, complete):
         messages.error(request,"Something's wrong with form handler. Please report to the Admin for checking the logs.")
         logging.getLogger("Gerologger").error("Something's wrong with form handler: "+str(request))
         return redirect('dashboard')
+
+
+REMINDER_COOLDOWN_HOURS = 24
+
+
+def _reminder_stamp(value):
+    return value.astimezone(dt_timezone.utc).strftime("%d %b %Y %H:%M").lstrip("0") + " UTC"
+
+
+@login_required
+@require_http_methods(["POST"])
+def SendDecisionReminder(request, id):
+    if not gerofilter.validate_id(id):
+        messages.error(request, "Invalid Report ID.")
+        return redirect('dashboard')
+
+    report = BugReport.objects.filter(report_id=id).first()
+    if report is None:
+        messages.error(request, "Invalid Report ID.")
+        return redirect('dashboard')
+
+    target = reverse('report_detail', kwargs={'pk': report.report_id})
+    deadline = report.auto_accept_at
+    now = timezone.now()
+
+    if deadline is None:
+        messages.error(request, "This report is not waiting for the hunter's decision, so there is nothing to remind.")
+        return redirect(target)
+
+    if deadline <= now:
+        messages.error(request, "The decision deadline has passed. The report will be accepted on the next mail check.")
+        return redirect(target)
+
+    last = report.report_reminder_sent_at
+    if last is not None and now - last < timedelta(hours=REMINDER_COOLDOWN_HOURS):
+        messages.error(request, f"A reminder was already sent on {_reminder_stamp(last)}. You can send another after {_reminder_stamp(last + timedelta(hours=REMINDER_COOLDOWN_HOURS))}.")
+        return redirect(target)
+
+    if not geroparser.check_mailbox_status():
+        logging.getLogger("Gerologger").error("Mailbox is not ready.")
+        messages.error(request, "Mailbox is not ready. Please set up the mailbox in Settings before sending emails.")
+        return redirect(target)
+
+    time_left = gerocard.reminder_time_left(deadline, now)
+    payload = [report.report_id, report.report_title, report.report_status,
+               time_left, report.report_severity]
+
+    if geromailer.write_mail(706, payload, report.hunter_email):
+        report.report_reminder_sent_at = now
+        report.save(update_fields=['report_reminder_sent_at'])
+        logging.getLogger("Gerologger").info(
+            f"REMINDER (code=706) for {report.report_id} to {report.hunter_email} "
+            f"by {request.user.username} | time left: {time_left}")
+        messages.success(request, f"Reminder sent to {report.hunter_email}. Time left to agree or appeal: {time_left}.")
+    else:
+        messages.error(request, "The reminder could not be sent. Check the mailbox settings and the logs, then try again.")
+
+    return redirect(target)
 
 
 @login_required

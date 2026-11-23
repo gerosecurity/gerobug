@@ -37,6 +37,7 @@ ACTION_VERBS = {
     702: ("AGREE", "APPEAL"),
     703: ("DATA",),
     705: ("DATA",),
+    706: ("AGREE", "APPEAL"),
 }
 
 

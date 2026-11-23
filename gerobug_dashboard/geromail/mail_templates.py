@@ -422,6 +422,20 @@ message_702 = _wrap(
     + _SIGNOFF
 )
 
+subject_706 = "Reminder: Bounty Decision for Report ~ID~"
+message_706 = _wrap(
+    _HELLO
+    + _para('This is a reminder about our bounty decision for Report ID <b>~ID~</b> ("~TITLE~").')
+    + _para("Determined Severity: <b>~SEVERITY~</b>")
+    + _para("Time left to agree or appeal: <b>~NOTE~</b>")
+    + _para("If we do not hear from you by then, the decision counts as agreed and the report moves on to bounty processing automatically.")
+    + _para('<b>To accept:</b> send an email with the subject "<b>AGREE_~ID~</b>". Leave the email body empty.<br>'
+            '<b>To appeal:</b> send an email with the subject "<b>APPEAL_~ID~</b>" and your reason in the email body (text only).')
+    + "~ACTIONS~"
+    + _para('Our original decision email has the full assessment notes. To see where this report stands, send an email with the subject "<b>CHECK_~ID~</b>".')
+    + _SIGNOFF
+)
+
 subject_703 = "DATA_~ID~ | Action Required: Bounty Prerequisites (NDA)"
 message_703 = _wrap(
     _HELLO
@@ -527,6 +541,7 @@ subjectlist = {
     703: subject_703,
     704: subject_704,   # SEND BOUNTY + PROOF (TITLE, ID)
     705: subject_705,   # REQUEST PREREQUISITES - NO NDA (TITLE, ID, NOTE)
+    706: subject_706,   # DECISION REMINDER (TITLE, ID, NOTE, SEVERITY)
 
     9999: subject_9999
 }
@@ -566,6 +581,7 @@ messagelist = {
     703: message_703,
     704: message_704,
     705: message_705,
+    706: message_706,
 
     9999: message_9999
 }

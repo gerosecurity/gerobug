@@ -149,6 +149,13 @@
                         <i class="bi bi-hourglass-split"></i>
                         Auto-accepts in {{ object.auto_accept_at|timeuntil }}
                         <span class="auto-accept-date">({{ object.auto_accept_at|date:"j M Y, H:i" }})</span>
+                        <form method="POST" action="{% url 'report_send_reminder' object.pk %}">
+                            {% csrf_token %}
+                            <button type="submit" class="amend-btn">Send Reminder</button>
+                        </form>
+                        {% if object.report_reminder_sent_at %}
+                        <div class="auto-accept-date">Last reminder sent {{ object.report_reminder_sent_at|date:"j M Y, H:i" }}</div>
+                        {% endif %}
                     </div>
                     {% endif %}
                 </div>

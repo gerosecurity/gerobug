@@ -1,3 +1,4 @@
+from datetime import timedelta
 from unittest import mock
 
 from django.contrib.auth.models import User
@@ -1179,6 +1180,140 @@ class HallOfFameAdminTests(TestCase):
         response = self.client.get("/dashboard/setting")
         self.assertContains(response, "Hall of Fame")
         self.assertContains(response, "Recompute all")
+
+
+class SendReminderTests(TestCase):
+
+    def setUp(self):
+        for i, name in enumerate(PageRenderTests.STATUS_NAMES):
+            ReportStatus.objects.get_or_create(status_id=i, defaults={"status_name": name})
+        Personalization.objects.get_or_create(personalize_id=1)
+        BlacklistRule.objects.get_or_create(rule_id=1)
+        CertificateData.objects.get_or_create(pk=1)
+        StaticRules.objects.get_or_create(pk=1)
+        MailBox.objects.create(mailbox_id=1, email="ops@example.com", password="pw",
+                              mailbox_status=1)
+        self.report = BugReport.objects.create(
+            report_id="AB12CD34EF56", report_datetime=timezone.now(),
+            hunter_email="hunter@example.com", report_reviewer="reviewer",
+            report_title="Test finding", report_summary="s", report_severity=7.5,
+            report_severitytype="", report_status=5, report_permission=2,
+            report_calc_sent_at=timezone.now() - timedelta(days=18),
+            last_email_code=702, last_email_note="7.5 HIGH")
+        self.user = User.objects.create_user(username="operator", password="x")
+        self.client.force_login(self.user)
+        self.url = reverse("report_send_reminder", kwargs={"id": self.report.report_id})
+
+    def remind(self, mailbox_ready=True, sent=True):
+        with mock.patch("dashboards.views.geroparser.check_mailbox_status",
+                        return_value=mailbox_ready), \
+                mock.patch("dashboards.views.geromailer.write_mail",
+                           return_value=sent) as write_mail:
+            response = self.client.post(self.url)
+        self.report.refresh_from_db()
+        return response, write_mail
+
+    def messages_of(self, response):
+        from django.contrib.messages import get_messages
+        return [str(m) for m in get_messages(response.wsgi_request)]
+
+    def test_success_sends_one_706_and_stamps_the_field(self):
+        before = self.report.auto_accept_at
+        with self.assertLogs("Gerologger", level="INFO") as logs:
+            response, write_mail = self.remind()
+        self.assertEqual(write_mail.call_count, 1)
+        code, payload, destination = write_mail.call_args[0][:3]
+        self.assertEqual(code, 706)
+        self.assertEqual(destination, "hunter@example.com")
+        self.assertEqual(payload[0], self.report.report_id)
+        self.assertIn("11 days", payload[3])
+        self.assertIn("UTC", payload[3])
+        self.assertIsNotNone(self.report.report_reminder_sent_at)
+        self.assertEqual(self.report.auto_accept_at, before)
+        self.assertEqual((self.report.last_email_code, self.report.last_email_note,
+                          self.report.report_permission), (702, "7.5 HIGH", 2))
+        self.assertTrue(any("REMINDER (code=706)" in line for line in logs.output))
+        self.assertTrue(any("Reminder sent to hunter@example.com." in m
+                            for m in self.messages_of(response)))
+
+    def test_706_body_has_the_time_left_and_both_actions(self):
+        from geromail import geromailer, mail_templates
+        body = mail_templates.messagelist[706]
+        self.assertIn("~NOTE~", body)
+        self.assertIn("~ACTIONS~", body)
+        self.assertEqual(geromailer.ACTION_VERBS[706], ("AGREE", "APPEAL"))
+        actions = geromailer.render_actions_for(706, self.report.report_id)
+        self.assertIn("?subject=AGREE_" + self.report.report_id, actions)
+        self.assertIn("?subject=APPEAL_" + self.report.report_id, actions)
+
+    def test_report_not_waiting_is_refused(self):
+        BugReport.objects.filter(report_id=self.report.report_id).update(report_permission=0)
+        self.report.refresh_from_db()
+        response, write_mail = self.remind()
+        write_mail.assert_not_called()
+        self.assertIsNone(self.report.report_reminder_sent_at)
+        self.assertIn("This report is not waiting for the hunter's decision, so there "
+                      "is nothing to remind.", self.messages_of(response))
+
+    def test_passed_deadline_is_refused(self):
+        BugReport.objects.filter(report_id=self.report.report_id).update(
+            report_calc_sent_at=timezone.now() - timedelta(days=31))
+        self.report.refresh_from_db()
+        response, write_mail = self.remind()
+        write_mail.assert_not_called()
+        self.assertIsNone(self.report.report_reminder_sent_at)
+        self.assertIn("The decision deadline has passed. The report will be accepted "
+                      "on the next mail check.", self.messages_of(response))
+
+    def test_second_click_within_24_hours_is_refused(self):
+        self.remind()
+        self.report.refresh_from_db()
+        stamped = self.report.report_reminder_sent_at
+        response, write_mail = self.remind()
+        write_mail.assert_not_called()
+        self.assertEqual(self.report.report_reminder_sent_at, stamped)
+        refusal = [m for m in self.messages_of(response)
+                   if m.startswith("A reminder was already sent on")]
+        self.assertEqual(len(refusal), 1)
+        self.assertIn("You can send another after", refusal[0])
+        self.assertEqual(refusal[0].count("UTC"), 2)
+
+    def test_a_reminder_older_than_24_hours_can_be_repeated(self):
+        BugReport.objects.filter(report_id=self.report.report_id).update(
+            report_reminder_sent_at=timezone.now() - timedelta(hours=25))
+        self.report.refresh_from_db()
+        response, write_mail = self.remind()
+        self.assertEqual(write_mail.call_count, 1)
+
+    def test_write_mail_false_leaves_the_field_none(self):
+        response, write_mail = self.remind(sent=False)
+        self.assertEqual(write_mail.call_count, 1)
+        self.assertIsNone(self.report.report_reminder_sent_at)
+        self.assertIn("The reminder could not be sent. Check the mailbox settings and "
+                      "the logs, then try again.", self.messages_of(response))
+
+    def test_mailbox_not_ready_sends_nothing(self):
+        response, write_mail = self.remind(mailbox_ready=False)
+        write_mail.assert_not_called()
+        self.assertIsNone(self.report.report_reminder_sent_at)
+
+    def test_get_is_not_allowed(self):
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+
+    def test_anonymous_is_redirected_to_login(self):
+        self.client.logout()
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login/", response["Location"])
+
+    def test_detail_page_offers_the_button_and_the_last_reminder_line(self):
+        page = self.client.get("/dashboard/report-detail/" + self.report.report_id).content.decode()
+        self.assertIn(self.url, page)
+        self.assertIn("Send Reminder", page)
+        self.assertNotIn("Last reminder sent", page)
+        self.remind()
+        page = self.client.get("/dashboard/report-detail/" + self.report.report_id).content.decode()
+        self.assertIn("Last reminder sent", page)
 
 
 class SeverityWeightTests(TestCase):

@@ -55,6 +55,7 @@ class BugReport(models.Model):
     last_email_code = models.IntegerField(default=0)
     last_email_note = models.TextField(blank=True, default='')
     report_score_awarded = models.IntegerField(default=0)
+    report_reminder_sent_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
       ordering = ['-report_datetime']
