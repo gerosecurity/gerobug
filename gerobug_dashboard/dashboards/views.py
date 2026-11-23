@@ -1099,7 +1099,10 @@ def ReportOverride(request):
         report.report_duplicate = duplicate
         if not duplicate:
             report.report_duplicate_of = ''
-        report.save(update_fields=['report_title', 'report_status', 'report_endpoint', 'report_attack', 'report_duplicate', 'report_duplicate_of'])
+        if status != old[1]:
+            report.last_email_code = 0
+            report.last_email_note = ''
+        report.save(update_fields=['report_title', 'report_status', 'report_endpoint', 'report_attack', 'report_duplicate', 'report_duplicate_of', 'last_email_code', 'last_email_note'])
 
         hunter_change = ""
         if hunter and hunter_name != hunter.hunter_username:

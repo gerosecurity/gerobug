@@ -1182,6 +1182,44 @@ class HallOfFameAdminTests(TestCase):
         self.assertContains(response, "Recompute all")
 
 
+class OverrideClearsLastEmailTests(TestCase):
+
+    def setUp(self):
+        for i, name in enumerate(PageRenderTests.STATUS_NAMES):
+            ReportStatus.objects.get_or_create(status_id=i, defaults={"status_name": name})
+        Personalization.objects.get_or_create(personalize_id=1)
+        BlacklistRule.objects.get_or_create(rule_id=1)
+        CertificateData.objects.get_or_create(pk=1)
+        StaticRules.objects.get_or_create(pk=1)
+        MailBox.objects.create(mailbox_id=1, email="ops@example.com", password="pw",
+                              mailbox_status=1)
+        self.report = BugReport.objects.create(
+            report_id="AB12CD34EF56", report_datetime=timezone.now(),
+            hunter_email="hunter@example.com", report_reviewer="reviewer",
+            report_title="Test finding", report_summary="s", report_severity=7.5,
+            report_severitytype="", report_status=5, report_permission=2,
+            last_email_code=702, last_email_note="7.5 HIGH")
+        self.admin = User.objects.create_superuser(username="admin9", password="x",
+                                                   email="a@b.c")
+        self.client.force_login(self.admin)
+
+    def override(self, status):
+        self.client.post(reverse("report_override"), {
+            "report_id": self.report.report_id, "title": self.report.report_title,
+            "status": str(status), "endpoint": "", "attack": "", "hunter_name": ""})
+        self.report.refresh_from_db()
+
+    def test_status_change_clears_the_stale_last_email(self):
+        self.override(3)
+        self.assertEqual((self.report.report_status, self.report.last_email_code,
+                          self.report.last_email_note), (3, 0, ""))
+
+    def test_override_that_keeps_the_status_leaves_the_last_email(self):
+        self.override(5)
+        self.assertEqual((self.report.report_status, self.report.last_email_code,
+                          self.report.last_email_note), (5, 702, "7.5 HIGH"))
+
+
 class SendReminderTests(TestCase):
 
     def setUp(self):
