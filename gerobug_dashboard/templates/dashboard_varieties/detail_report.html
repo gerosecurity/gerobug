@@ -149,13 +149,6 @@
                         <i class="bi bi-hourglass-split"></i>
                         Auto-accepts in {{ object.auto_accept_at|timeuntil }}
                         <span class="auto-accept-date">({{ object.auto_accept_at|date:"j M Y, H:i" }})</span>
-                        <form method="POST" action="{% url 'report_send_reminder' object.pk %}">
-                            {% csrf_token %}
-                            <button type="submit" class="amend-btn">Send Reminder</button>
-                        </form>
-                        {% if object.report_reminder_sent_at %}
-                        <div class="auto-accept-date">Last reminder sent {{ object.report_reminder_sent_at|date:"j M Y, H:i" }}</div>
-                        {% endif %}
                     </div>
                     {% endif %}
                 </div>
@@ -362,6 +355,15 @@
                 <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#request_button">Request Amend</button>
                 {% elif reportstatus == 'Bounty Calculation' %}
                 <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#request_button">Send Calculations</button>
+                {% if object.auto_accept_at %}
+                <form method="POST" action="{% url 'report_send_reminder' object.pk %}" style="display:inline">
+                    {% csrf_token %}
+                    <button type="submit" class="amend-btn">Send Reminder</button>
+                </form>
+                {% if object.report_reminder_sent_at %}
+                <div class="auto-accept-date">Last reminder sent {{ object.report_reminder_sent_at|date:"j M Y, H:i" }}</div>
+                {% endif %}
+                {% endif %}
                 {% elif reportstatus == 'Bounty in Process' %}
                 <button class="amend-btn" data-bs-toggle="modal" type="button" data-bs-target="#request_button">Request Prerequisites</button>
                 {% endif %}

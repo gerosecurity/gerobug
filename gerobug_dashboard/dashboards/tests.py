@@ -890,16 +890,14 @@ class SubmitPageTests(TestCase):
         self.assertIn(sentence, self.page())
         self.assertIn(sentence, read_web_submit_template())
 
-    def test_hall_of_fame_pages_explain_the_points(self):
+    def test_hall_of_fame_pages_carry_no_points_formula(self):
         import os
         from gerobug.settings import BASE_DIR
-        line = ("<p>Points: each completed report counts its severity score, rounded down, "
-                "times 1 for Low, 2 for Medium, 3 for High and 4 for Critical.</p>")
         for path in (os.path.join(BASE_DIR, "templates", "halloffame.html"),
                      os.path.join(os.path.dirname(BASE_DIR), "gerobug_web", "templates",
                                   "halloffame.html")):
             with open(path, encoding="utf-8") as fp:
-                self.assertIn(line, fp.read(), path)
+                self.assertNotIn("Points: each completed report", fp.read(), path)
 
 
 class SubmitSampleRenderTests(TestCase):
@@ -1348,6 +1346,9 @@ class SendReminderTests(TestCase):
         page = self.client.get("/dashboard/report-detail/" + self.report.report_id).content.decode()
         self.assertIn(self.url, page)
         self.assertIn("Send Reminder", page)
+        calc = page.index(">Send Calculations</button>")
+        self.assertGreater(page.index(">Send Reminder</button>"), calc)
+        self.assertLess(page.index(">Send Reminder</button>") - calc, 600)
         self.assertNotIn("Last reminder sent", page)
         self.remind()
         page = self.client.get("/dashboard/report-detail/" + self.report.report_id).content.decode()
