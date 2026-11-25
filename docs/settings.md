@@ -14,6 +14,8 @@ Gerobug needs a mailbox to receive reports and send replies. Use a **dedicated**
 
 Gmail and Outlook require an [App Password](https://support.google.com/accounts/answer/185833), not your normal password. The password is stored encrypted.
 
+IMAP connections verify the server certificate, so the IMAP host name must match the certificate the server presents.
+
 When the mailbox connects successfully, its status becomes **ACTIVE**, and the program's address appears automatically on the public Submit Guidelines page.
 
 {% hint style="warning" %}
@@ -27,9 +29,9 @@ Change the email and password of a user account.
 ## Personalization
 
 * **Company identity.** Set the company name and upload a logo (PNG). Both are used on the public pages, the dashboard and generated certificates.
-* **Theme presets.** Pick one of seven themes: Gero Dark (default), Gero Classic, Route, Midnight, Forest, Royal and Graphite. A live preview shows the result. Picking a preset only fills the color pickers; nothing is saved until you click **Update**.
-* **Custom colors.** Six colors drive the whole interface (dashboard and public pages): canvas background, accent, surface, overlay/hover, border and primary button.
-* **Reset** restores the default Gero Dark colors.
+* **Theme presets.** Pick one of seven themes: **Gero Dark** (default), **Gero Classic**, **Route**, **Midnight**, **Forest**, **Royal** and **Graphite**. A live preview shows the result on a sample card. Picking a preset only fills the color pickers; nothing is saved until you click **Update**.
+* **Custom colors.** Six colors drive the whole interface (dashboard, login and public pages): canvas background, accent, surface, overlay/hover, border and primary button.
+* **Reset to Gero Dark** restores the default colors.
 
 ## Edit Rules and Guidelines
 
@@ -74,7 +76,9 @@ A simple rate limit that blocks email addresses sending too many emails.
 | Monitor Buffer | 60 seconds | Length of the monitor window |
 | Blacklist Duration | 3600 seconds | How long an address stays blocked before automatic release |
 
-A blocked hunter is told once that they are temporarily restricted.
+A blocked hunter is told once that they are temporarily restricted. Keys are
+compared without regard to case, and bounce notifications do not count toward a
+sender's rate limit, so a forged bounce cannot get a hunter blacklisted.
 
 ## Report Template
 
@@ -100,4 +104,7 @@ You can also set the officer name, title and signature (`.jpg` or `.png`). A sam
 
 ## Troubleshooting
 
-Admin-only maintenance tools. See [Troubleshooting](troubleshooting.md).
+Admin-only maintenance tools: **Recover Lost Report Files**, **Resend Email**,
+**Override Report Fields**, **Hall of Fame**, **Hunter Email Sinkhole** and
+**Server Logs**. See [Troubleshooting](troubleshooting.md) for each tool, and
+[Hall of Fame](hall-of-fame.md) for how points are awarded.
