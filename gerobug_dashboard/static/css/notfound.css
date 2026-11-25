@@ -212,7 +212,7 @@ html, body {
   letter-spacing: 0.5px;
 }
 .box .box__description .box__description-container .box__description-text {
-  color: #2d2a4d;
+  color: rgba(255, 255, 255, 0.82);
   line-height: 20px;
   margin-top: 20px;
 }

@@ -1,9 +1,10 @@
 import smtplib
 import os
+import html
+import re
 import logging
 import time
 
-from logging.handlers import TimedRotatingFileHandler
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.utils import formatdate, make_msgid
@@ -11,8 +12,9 @@ from email.mime.base import MIMEBase
 from email import encoders
 from django.db import connection
 
+from . import gerocard
 from . import mail_templates
-from dashboards.models import ReportStatus
+from dashboards.models import ReportStatus, TroubleshootSettings
 from gerobug.settings import MEDIA_ROOT, BASE_DIR
 from prerequisites.models import MailBox
 
@@ -23,15 +25,90 @@ RETRY_DELAYS = [0, 2, 4]  # seconds between retries
 # FREEMAIL PROVIDERS (FOR MESSAGE-ID)
 FREEMAIL = {"gmail.com", "yahoo.com", "outlook.com", "hotmail.com"}
 
+# ALLOW A SMALL SET OF FORMATTING TAGS, ESCAPE EVERYTHING ELSE
+ALLOWED_TAGS = ["br", "br/", "br /", "b", "/b", "strong", "/strong", "i", "/i"]
+
+REPORT_ID_RE = re.compile(r"^[0-9A-Za-z]{12}$")
+
+PRE_RENDERED_CODES = {202, 208, 210}
+
+ACTION_VERBS = {
+    701: ("UPDATE",),
+    702: ("AGREE", "APPEAL"),
+    703: ("DATA",),
+    705: ("DATA",),
+    706: ("AGREE", "APPEAL"),
+}
+
+
+def render_actions_for(code, report_id):
+    verbs = ACTION_VERBS.get(code)
+    if not verbs:
+        return ""
+    try:
+        return gerocard.render_actions(report_id, verbs)
+    except Exception as e:
+        logging.getLogger("Gerologger").warning(
+            f"Could not render action buttons for {report_id}: {e}")
+        return ""
+
+
+def clean_header(value):
+    return str(value or "").replace("\r", "").replace("\n", "").strip()
+
+
+def report_thread_token(report_id, sending_domain):
+    if not REPORT_ID_RE.match(str(report_id or "")):
+        return ""
+    return "<gerobug-report-" + str(report_id) + "@" + str(sending_domain) + ">"
+
+
+ANGLE_ADDR_RE = re.compile(r"<[^<>\s]+>")
+
+MAX_INBOUND_REFERENCES = 10
+
+
+def inbound_references(references):
+    found = ANGLE_ADDR_RE.findall(clean_header(references))
+    unique = []
+    for ref in found:
+        if ref not in unique:
+            unique.append(ref)
+    return unique[-MAX_INBOUND_REFERENCES:]
+
+
+def thread_headers(report_id, sending_domain, in_reply_to, references=None):
+    parent = clean_header(in_reply_to)
+    token = report_thread_token(report_id, sending_domain)
+    chain = inbound_references(references)
+    for ref in (parent, token):
+        if ref and ref not in chain:
+            chain.append(ref)
+    return parent, " ".join(chain)
+
+def safe_html_format(text):
+    if text is None:
+        return "-"
+    escaped = "<br>".join(html.escape(str(text)).splitlines())
+    for tag in ALLOWED_TAGS:
+        escaped = escaped.replace("&lt;" + tag + "&gt;", "<" + tag + ">")
+    return escaped
 
 
 # WRITE EMAIL REPLY (CONFIRMATIONS)
-def write_mail(code, payload, Destination):
+def write_mail(code, payload, Destination, in_reply_to=None, references=None):
     # Close stale DB connections when called from threads
     try:
         connection.close()
     except:
         pass
+
+    if TroubleshootSettings.objects.filter(settings_id=1, hunter_email_sinkhole=True).exists():
+        logging.getLogger("Gerologger").warning(
+            f"Email to hunter SUPPRESSED by sinkhole (troubleshooting mode) | "
+            f"To: {Destination} | Template: {code}"
+        )
+        return True
     
     # MINT THE MESSAGE IDENTITY ONCE, OUTSIDE THE RETRY LOOP.
     # A retry has to re-send the *same* message. Without a Message-ID the relay
@@ -76,21 +153,32 @@ def write_mail(code, payload, Destination):
             if payload[3] == None:
                 payload[3] = "-"
 
-            # REPLACE WILD CARDS
-            subject = subject.replace("~ID~", payload[0])       #REPORT ID
-            body = body.replace("~ID~", payload[0])             #REPORT ID
-            body = body.replace("~TITLE~", payload[1])          #REPORT TITLE
-            body = body.replace("~STATUS~", status)             #REPORT STATUS
-            body = body.replace("~NOTE~", payload[3])           #REASON / NOTE
-            body = body.replace("~SEVERITY~", str(payload[4]))  #SEVERITY
+            # REPLACE WILD CARDS (ESCAPED TO PREVENT HTML INJECTION)
+            subject = subject.replace("~ID~", payload[0])                       #REPORT ID
+            body = body.replace("~ID~", html.escape(payload[0]))                #REPORT ID
+            body = body.replace("~TITLE~", html.escape(payload[1]))             #REPORT TITLE
+            body = body.replace("~STATUS~", html.escape(str(status)))           #REPORT STATUS
+            if code in PRE_RENDERED_CODES:
+                body = body.replace("~NOTE~", str(payload[3]))
+            else:
+                body = body.replace("~NOTE~", safe_html_format(payload[3]))     #REASON / NOTE
+            body = body.replace("~SEVERITY~", html.escape(str(payload[4])))     #SEVERITY
+            body = body.replace("~ACTIONS~", render_actions_for(code, payload[0]))
 
             # BUILD EMAIL MESSAGE (identity fixed above so retries are the same message)
+            parent, reference_chain = thread_headers(
+                payload[0], sending_domain, in_reply_to, references)
+
             message = MIMEMultipart("alternative")
-            message["From"] = mailbox.email
-            message["To"] = Destination
-            message["Subject"] = subject
-            message["Date"] = msg_date
-            message["Message-ID"] = msg_id
+            message["From"] = clean_header(mailbox.email)
+            message["To"] = clean_header(Destination)
+            message["Subject"] = clean_header(subject)
+            message["Date"] = clean_header(msg_date)
+            message["Message-ID"] = clean_header(msg_id)
+            if parent:
+                message["In-Reply-To"] = parent
+            if reference_chain:
+                message["References"] = reference_chain
             # RFC 3834: tells other auto-responders not to reply to us, so a
             # vacation responder or another ticketing system can't start a loop.
             message["Auto-Submitted"] = "auto-generated"
@@ -187,8 +275,8 @@ def write_mail_raw(subject, body, destination):
 
         message = MIMEMultipart("alternative")
         message["From"] = EMAIL
-        message["To"] = destination
-        message["Subject"] = subject
+        message["To"] = clean_header(destination)
+        message["Subject"] = clean_header(subject)
         message["Date"] = formatdate(localtime=True)
         message["Message-ID"] = make_msgid()
         message.attach(MIMEText(body, "html"))

@@ -18,36 +18,22 @@
 }
 
 .report-status {
-    padding: 2px 8px;
+    padding: 2px 10px;
     gap: 8px;
-  
-    width: 120px;
-    height: 16px;
-  
+    width: auto;
+    min-width: 70px;
+    height: auto;
     background: var(--secondary-2);
     border-radius: 20px;
-  
-    display: flex;
-	flex-direction: row;
-	flex-wrap: nowrap;
-	justify-content: center;
-	align-items: center;
-	align-content: stretch;
-    /* Subtitle 2 */
-  
-    /* font-family: 'Roboto';
-    font-style: normal; */
-    font-weight: 500;
-    font-size: 10px;
-    line-height: 24px;
-    /* identical to box height, or 171% */
-  
-    display: flex;
+    display: inline-flex;
+    justify-content: center;
     align-items: center;
+    font-weight: 600;
+    font-size: 10px;
+    line-height: 1.5;
     letter-spacing: 0.1px;
-  
     color: black;
-  }
+}
 
   #needreview {
     background: #FFA9B3;
@@ -70,12 +56,25 @@
     ;
   }
 
+/* The status pill sits on its own row below the report id (long names plus
+   the duplicate/robot badges overflowed the shared header row). Capped at
+   the card width with ellipsis for extreme names; full text stays available
+   via the title attribute in kanban_card.html. Higher specificity than the
+   plain .report-status rule (here and in design-system.css, which loads
+   after this file) so it wins regardless of stylesheet order. */
+.gds-kanban-card .report-status {
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .duplicate {
     display: flex;
 	flex-direction: row;
 	flex-wrap: nowrap;
 	justify-content: space-between;
-	align-items: flex-start;
+	align-items: center;
 	align-content: stretch;
 }
 
@@ -83,6 +82,16 @@
     width: 16px;
     height: 16px;
     color: rgb(211, 150, 47);
+}
+
+/* AI triage badge -- "needs human validation", distinct color from the
+   amber duplicate-triangle warning above so operators don't confuse the two.
+   Fixed accent (not --button-1) so the two badges stay visually distinct
+   regardless of a tenant's branding/CTA color. */
+#agent-review-symbol svg {
+    width: 16px;
+    height: 16px;
+    color: #6D4AE0;
 }
 
 .notification svg {
@@ -105,11 +114,22 @@
 .scroll-div {
     overflow-y: auto;
     margin-top: 8px;
-    max-height: 500px;
-    background-color: var(--secondary-1);
+    max-height: calc(100vh - 220px);
+    height: fit-content;
     border-radius: 10px;
-    /* padding: 10px; */
+    padding-bottom: 20px;
 }
+
+.scroll-div-active {
+    background-color: var(--secondary-1);
+}
+
+.severity-critical { color: #dc3545; }
+.severity-high { color: #fd7e14; }
+.severity-medium { color: #ffc107; }
+.severity-low { color: #28a745; }
+.severity-none { color: #6c757d; }
+.severity-unknown { color: #6c757d; }
 
 .scroll-div::-webkit-scrollbar
 {
@@ -154,6 +174,13 @@ a:link, a:visited {
     padding-right: 20px;
     border-radius: 40px;
     text-decoration: none;
+}
+
+
+.kanban-container {
+    width: 90%;
+    max-width: 90%;
+    margin: 0 auto;
 }
 
 .card .card-title {

@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import LogoutForm, ReportFiles, ReportStatusView, ReportUpdateStatus, FormHandler, InvalidHandler, AdminSetting, OWASPCalculator, CVSSCalculator, ReviewerDelete, NotificationDelete, RenderDashboardAdmin, ReportDetails, UpdateDetails, AppealDetails, NDADetails, ReportUpdate, ReportDelete
+from .views import LogoutForm, ReportFiles, ReportStatusView, ReportUpdateStatus, KanbanMove, FormHandler, InvalidHandler, AdminSetting, OWASPCalculator, CVSSCalculator, ReviewerDelete, ResendResetLink, NotificationDelete, WebhookEdit, RenderDashboardAdmin, ReportDetails, UpdateDetails, AppealDetails, NDADetails, CommentDetails, ReportUpdate, ReportDelete, ResendEmail, SendDecisionReminder, ToggleHunterEmailSinkhole, ViewLogs, ReportOverride, HallOfFameAdmin
 
 urlpatterns = [
     path("", RenderDashboardAdmin.as_view(), name="dashboard"),
@@ -11,17 +11,27 @@ urlpatterns = [
     path("update-detail/<str:pk>", UpdateDetails.as_view(), name="update_detail"),
     path("appeal-detail/<str:pk>", AppealDetails.as_view(), name="appeal_detail"),
     path("nda-detail/<str:pk>", NDADetails.as_view(), name="nda_detail"),
+    path("comment-detail/<str:pk>", CommentDetails.as_view(), name="comment_detail"),
     
     path("report-status/<str:id>", ReportStatusView, name="report_status"),
     path("report-detail/<str:id>/move/", ReportUpdateStatus, name="report_updatestatus"),
+    path("report-detail/<str:id>/remind/", SendDecisionReminder, name="report_send_reminder"),
+    path("kanban-move/<str:id>", KanbanMove, name="kanban_move"),
     
     path("report-files/<str:id>", ReportFiles, name="report_files"),
     path("form-handling/<str:id>/<str:complete>", FormHandler, name="form_handler"),
     path("invalid-handling/<str:id>", InvalidHandler, name="invalid_handler"),
     path("review-delete/<str:public_id>", ReviewerDelete,name="reviewer_handler"),
+    path("resend-reset/<str:public_id>", ResendResetLink, name="resend_reset"),
     path("notification-delete/<str:service>", NotificationDelete,name="notification_handler"),
+    path("notification-edit/<str:service>", WebhookEdit, name="webhook_edit"),
     
     path("setting", AdminSetting, name="setting"),
+    path("resend-email", ResendEmail, name="resend_email"),
+    path("view-logs", ViewLogs, name="view_logs"),
+    path("report-override", ReportOverride, name="report_override"),
+    path("hall-of-fame-admin", HallOfFameAdmin, name="hall_of_fame_admin"),
+    path("toggle-hunter-sinkhole", ToggleHunterEmailSinkhole, name="toggle_hunter_sinkhole"),
     path("owasp-calculator", OWASPCalculator, name="owasp-calculator"),
     path("cvss-calculator", CVSSCalculator, name="cvss-calculator"),
     path("logout/", LogoutForm, name="logout"),

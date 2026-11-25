@@ -1,6 +1,5 @@
 body {
   margin: 0;
-  overflow: hidden;
 }
 
 header{
@@ -68,7 +67,14 @@ ul.topnav li.right {float: right;}
 }
 
 @media screen and (max-width: 600px) {
-  ul.topnav.responsive {position: relative;}
+  ul.topnav.responsive {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    max-height: 100vh;
+    overflow-y: auto;
+  }
   ul.topnav.responsive li.icon {
     position: absolute;
     right: 0;
@@ -82,8 +88,9 @@ ul.topnav li.right {float: right;}
 }
 
 footer{
+  box-sizing: border-box;
   background-color: var(--main-1);
-  height: 5vh;	
+  height: 5vh;
   width: 100%;
   display: flex;
   flex-direction: row;

@@ -1,5 +1,4 @@
 {% load static %}
-{% load gerobug_tags %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -9,43 +8,37 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="Gerobug-signature" content="97de67b8d672c51c158247f398b85d31">
-    
+
     <title>{{ company_name }} Bug Bounty</title>
     <link rel="shortcut icon" href='{% static "favicon.ico" %}' type="image/x-icon">
     <link rel="icon" href='{% static "favicon.ico" %}' type="image/x-icon">
 
     <!-- CSS -->
     <link rel="stylesheet" href="{% url 'themes' %}" type="text/css">
-    <link rel="stylesheet" href='{% static "/css/rules.css" %}'>
     <link rel="stylesheet" href='{% static "/css/header.css" %}'>
-
-    <!-- BOOTSTRAP CSS -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
+    <link rel="stylesheet" href='{% static "/css/design-system.css" %}'>
 
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/gh/jitbit/HtmlSanitizer@master/HtmlSanitizer.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"
-    integrity="sha384-OERcA2EqjJCMA+/3y+gxIOqMEjwtxJY7qPCqsdltbNJuaOe923+mo//f6V8Qbsw3"
-    crossorigin="anonymous"></script>
 
     <script>
-        function myFunction() {
-          var x = document.getElementById("navbar");
-          if (x.className === "topnav") {
-            x.className += " responsive";
-          } else {
-            x.className = "topnav";
+        function toggleNav() {
+          var nav = document.getElementById("navbar");
+          var btn = document.getElementById("navToggle");
+          var isOpen = nav.classList.toggle("responsive");
+          if (btn) {
+            btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+            var icon = btn.querySelector("i");
+            if (icon) { icon.classList.toggle("fa-bars", !isOpen); icon.classList.toggle("fa-times", isOpen); }
           }
         }
     </script>
 </head>
 
-<body>
+<body class="gds-public">
+    <img class="gds-wave" src="{% static 'design/wave-lines.svg' %}" alt="">
+
     <header>
         <ul class="topnav" id="navbar">
             <li><a class="logo" href="{% url 'rules' %}">
@@ -60,96 +53,157 @@
             <li><a href="{% url 'submit' %}">
                 <div class="nav-content">Submit</div>
             </a></li>
-            <li class="icon"><a href="javascript:void(0);" onclick="myFunction()">
+            <li class="icon"><a id="navToggle" href="javascript:void(0);" role="button" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="navbar" onclick="toggleNav()">
                 <div class="nav-content"><i class="fa fa-bars"></i></div>
             </a></li>
         </ul>
     </header>
 
-    <main>
-        <div class="row">
-            <div class="col-4">
-                <div id="simple-list-example"
-                    class="d-flex flex-column gap-4 simple-list-example-scrollspy text-left">
-                    <a class="p-1 rounded" href="#1">Bounty Terms</a>
-                    <a class="p-1 rounded" href="#2">In Scope</a>
-                    <a class="p-1 rounded" href="#3">Out Of Scope</a>
-                    <a class="p-1 rounded" href="#4">Responsible Disclosure Policy</a>
-                    <a class="p-1 rounded" href="#5">Report Guidelines</a>
-                    <a class="p-1 rounded" href="#6">FAQ</a>
+    <main class="gds-rules-layout">
+        <nav class="gds-rules-nav" id="rules-nav">
+            <a href="#1">Bounty Terms</a>
+            <a href="#2">In Scope</a>
+            <a href="#3">Out of Scope</a>
+            <a href="#4">Responsible Disclosure Policy</a>
+            <a href="#5">Report Guidelines</a>
+            <a href="#6">FAQ</a>
+        </nav>
+
+        <div class="gds-rules-content">
+            <section class="gds-rules-section" id="1">
+                <h2>Bounty Terms</h2>
+                <div class="gds-prose">
+                {% block bountyterms %}
+                {% if bountyterms %}
+                {{ bountyterms.html|safe }}
+                {% endif %}
+                {% endblock bountyterms %}
                 </div>
-            </div>
+            </section>
 
-            <div class="col-8">
-                <div data-bs-spy="scroll" data-bs-target="#simple-list-example" data-bs-offset="0"
-                    data-bs-smooth-scroll="true" class="scrollspy-example" tabindex="0">
-                    <h3>[INTERNAL VIEW ONLY]</h3>
-                    <br>
-                    <h4 id="1">Bounty Terms</h4>
-                    {% block bountyterms %}
-                    {% if bountyterms %}
-                    {{ bountyterms.html|safe }}
-                    {% else %}
-                    
-                    {% endif %}
-                    {% endblock bountyterms %}
-
-                    <h4 id="2">In Scope</h4>
-                    {% block inscope %}
-                    {% if inscope %}
-                    {{ inscope.html|safe }}
-                    {% else %}
-                    
-                    {% endif %}
-                    {% endblock inscope %}
-
-                    <h4 id="3">Out Of Scope</h4>
-                    {% block outofscope %}
-                    {% if outofscope %}
-                    {{ outofscope.html|safe }}
-                    {% else %}
-
-                    {% endif %}
-                    {% endblock outofscope %}
-
-                    <h4 id="4">Responsible Disclosure Policy</h4>
-                    {% block RDP %}
-                    {% if RDP %}
-                    {{ RDP.html|safe }}
-                    {% else %}
-                    
-                    {% endif %}
-                    {% endblock RDP %}
-
-                    <h4 id="5">Report Guidelines</h4>
-                    {% block reportguidelines %}
-                    {% if reportguidelines %}
-                    {{ reportguidelines.html|safe }}
-                    {% else %}
-                    
-                    {% endif %}
-                    {% endblock reportguidelines %}
-                    
-                    <h4 id="6">FAQ</h4>
-                    {% block faq %}
-                    {% if faq %}
-                    {{ faq.html|safe }}
-                    {% else %}
-
-                    {% endif %}
-                    {% endblock faq %}
+            <section class="gds-rules-section" id="2">
+                <h2>In Scope</h2>
+                <div class="gds-prose">
+                {% block inscope %}
+                {% if inscope %}
+                {{ inscope.html|safe }}
+                {% endif %}
+                {% endblock inscope %}
                 </div>
-            </div>
+            </section>
+
+            <section class="gds-rules-section" id="3">
+                <h2>Out of Scope</h2>
+                <div class="gds-prose">
+                {% block outofscope %}
+                {% if outofscope %}
+                {{ outofscope.html|safe }}
+                {% endif %}
+                {% endblock outofscope %}
+                </div>
+            </section>
+
+            <section class="gds-rules-section" id="4">
+                <h2>Responsible Disclosure Policy</h2>
+                <div class="gds-prose">
+                {% block RDP %}
+                {% if RDP %}
+                {{ RDP.html|safe }}
+                {% endif %}
+                {% endblock RDP %}
+                </div>
+            </section>
+
+            <section class="gds-rules-section" id="5">
+                <h2>Report Guidelines</h2>
+                <div class="gds-prose">
+                {% block reportguidelines %}
+                {% if reportguidelines %}
+                {{ reportguidelines.html|safe }}
+                {% endif %}
+                {% endblock reportguidelines %}
+                </div>
+            </section>
+
+            <section class="gds-rules-section" id="6">
+                <h2>FAQ</h2>
+                <div class="gds-prose">
+                {% block faq %}
+                {% if faq %}
+                {{ faq.html|safe }}
+                {% endif %}
+                {% endblock faq %}
+                </div>
+            </section>
         </div>
     </main>
-
 
     <footer>
         <div id="copyright">
             <p>&copy; {%now "Y"%} {{ company_name }}</p>
         </div>
     </footer>
-    
+
+    <script>
+        // Highlight the section currently in view in the side navigation.
+        // The reading line sits just below the sticky header — the same spot
+        // anchor jumps land on (scroll-margin-top) — so the clicked section is
+        // always the one that lights up, even when it is shorter than the viewport.
+        (function () {
+            var links = Array.prototype.slice.call(document.querySelectorAll('#rules-nav a'));
+            var sections = Array.prototype.slice.call(document.querySelectorAll('.gds-rules-section'));
+            if (!links.length || !sections.length) return;
+            var byId = {};
+            links.forEach(function (a) { byId[a.getAttribute('href').slice(1)] = a; });
+
+            function setActive(id) {
+                links.forEach(function (a) { a.classList.toggle('active', a === byId[id]); });
+            }
+
+            function readingLine() {
+                var header = document.querySelector('header');
+                return (header ? header.offsetHeight : 0) + 40;
+            }
+
+            function update() {
+                var line = readingLine();
+                var current = sections[0];
+                sections.forEach(function (s) {
+                    if (s.getBoundingClientRect().top <= line) current = s;
+                });
+                // At the very bottom the last section may be too short to reach the line.
+                if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
+                    current = sections[sections.length - 1];
+                }
+                setActive(current.id);
+            }
+
+            // Clicking a link wins immediately; hold that choice until the jump's
+            // scroll events settle so the spy doesn't overrule the user.
+            var locked = false, settle;
+            links.forEach(function (a) {
+                a.addEventListener('click', function () {
+                    locked = true;
+                    setActive(a.getAttribute('href').slice(1));
+                });
+            });
+
+            var ticking = false;
+            window.addEventListener('scroll', function () {
+                if (locked) {
+                    clearTimeout(settle);
+                    settle = setTimeout(function () { locked = false; }, 150);
+                    return;
+                }
+                if (ticking) return;
+                ticking = true;
+                requestAnimationFrame(function () { ticking = false; update(); });
+            }, { passive: true });
+            window.addEventListener('resize', update);
+            update();
+        })();
+    </script>
+
     <div style="display:none;">97de67b8d672c51c158247f398b85d31</div>
 </body>
 

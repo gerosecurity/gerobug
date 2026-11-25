@@ -63,6 +63,7 @@ reportguidelines_templates = json.dumps({
     "html": """
     <ul>
         <li><strong>Proof of Concept (PoC):</strong> Reports must include clear, reproducible steps. We prefer text-based steps or scripts (e.g., HTTP requests, curl commands) over video/screenshots alone. If a video is necessary for complex reproduction, please include it via a private link.</li>
+        <li><strong>Supporting Files:</strong> The only attachment the submission email should carry is the PDF report itself. Do <strong>not</strong> email videos, screenshot bundles, archives or exploit code as attachments &mdash; large or archived attachments are routinely stripped or quarantined by mail filters and the report may reach us incomplete. Upload those artefacts to Google Drive, OneDrive, Dropbox, a private GitHub repository or a secret GitHub Gist instead, and put the link (plus the password, if the share is protected) inside the PDF. Please keep the link live until the report is closed.</li>
         <li><strong>Impact Analysis:</strong> Clearly articulate the security impact. Describe the specific scenario: Who is the victim? What can the attacker gain?</li>
         <li><strong>Remediation:</strong> Including suggested fixes or mitigation steps is highly appreciated and demonstrates a deeper understanding of the issue.</li>
         <li><strong>Incident Reporting:</strong> If you unintentionally access sensitive data or disrupt a service during testing, you must cease testing immediately and disclose this incident within the report.</li>

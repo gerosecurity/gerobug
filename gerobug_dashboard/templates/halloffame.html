@@ -18,15 +18,15 @@
   <link rel="stylesheet" href="{% url 'themes' %}" type="text/css">
   <link rel="stylesheet" href='{% static "/css/hall.css" %}'>
   <link rel="stylesheet" href='{% static "/css/header.css" %}'>
+  <link rel="stylesheet" href='{% static "/css/design-system.css" %}'>
 
   <!-- BOOTSTRAP CSS -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet"
-  integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+  integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
   
   <script>
     function myFunction() {
@@ -40,7 +40,8 @@
   </script>
 </head>
 
-<body>
+<body class="gds-public gds-gradient gds-hof">
+  <img class="gds-wave" src="{% static 'design/wave-lines.svg' %}" alt="">
   <header>
     <ul class="topnav" id="navbar">
         <li><a class="logo" href="{% url 'rules' %}">
@@ -68,26 +69,14 @@
     </div>
     <p>{{ company_name }} thanks the following researchers for reporting valid security issues</p>
         
-    <table id="leaderboard">
-      <thead>
-        <tr>
-          <th style="width:20%">Rank</th>
-          <th style="width:50%">Bounty Hunter</th>
-          <th style="width:30%">Points</th>
-        </tr>
-      </thead>
-    </table>
-
-    <div id="table-scroll">
-      <table id="leaderboard">
-        {% for bughunter in bughunters|slice:":1000" %}
-        <tr>
-          <td style="width:20%">{{ forloop.counter }}</td>
-          <td style="width:52%">{{ bughunter.hunter_username }}</td>
-          <td style="width:28%">{{ bughunter.hunter_scores }}</td>
-        </tr>
-        {% endfor %}
-      </table>
+    <div class="gds-hof-list">
+      {% for bughunter in bughunters|slice:":1000" %}
+      <div class="gds-hof-row gds-rank-{{ forloop.counter }}">
+        <div class="gds-hof-rank">#{{ forloop.counter }}</div>
+        <div class="gds-hof-name">{{ bughunter.hunter_username }}</div>
+        <div class="gds-hof-points">{{ bughunter.hunter_scores }} pts</div>
+      </div>
+      {% endfor %}
     </div>
   </div>
 

@@ -1,12 +1,16 @@
+import logging
 import uuid
+from datetime import timedelta
 from email.policy import default
 from random import choices
 from unittest.util import _MAX_LENGTH
-from django.db import models
+from django.db import models, transaction
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.core.validators import RegexValidator, MaxValueValidator, MinValueValidator, MinLengthValidator
+from django.utils import timezone
 from django_quill.fields import QuillField
+from geromail import gerocalculator
 from .rulestemplate import *
 from colorfield.fields import ColorField
 
@@ -20,24 +24,38 @@ class UserProfile(models.Model):
     def __str__(self):
         return f"{self.user.username} ({self.public_id})"
 
+BOUNTY_CALC_STATUS = 5
+COMPLETED_STATUS = 7
+APPEAL_WINDOW_DAYS = 30
+
+
 class BugReport(models.Model):
     report_id = models.CharField(max_length=15,primary_key=True,validators=[alphanumeric])
     report_datetime = models.DateTimeField()
     hunter_email = models.EmailField()
-    report_reviewer = models.CharField(max_length=25, verbose_name="Report Reviewer")
-    report_title = models.CharField(max_length=150, default='NO TITLE')
-    report_endpoint = models.CharField(max_length=150, default='NO ENDPOINT')
-    report_attack = models.CharField(max_length=100, default='NO ATTACK TYPE')
+    report_reviewer = models.CharField(max_length=50, verbose_name="Report Reviewer")
+    report_title = models.CharField(max_length=255, default='NO TITLE')
+    report_endpoint = models.CharField(max_length=255, default='NO ENDPOINT')
+    report_attack = models.CharField(max_length=255, default='NO ATTACK TYPE')
     report_summary = models.TextField()
     report_severity = models.FloatField(default=0, verbose_name="Report Severity", validators=[MinValueValidator(0.0), MaxValueValidator(10.0)])
     report_severitystring = models.CharField(default="", max_length=255, verbose_name="Severity String", validators=[RegexValidator(regex='(^\(SL:[0-9]\/M:[0-9]\/O:[0-9]\/S:[0-9]\/ED:[0-9]\/EE:[0-9]\/A:[0-9]\/ID:[0-9]\/LC:[0-9]\/LI:[0-9]\/LAV:[0-9]\/LAC:[0-9]\/FD:[0-9]\/RD:[0-9]\/NC:[0-9]\/PV:[0-9]\)$)|(^CVSS:3\.1\/AV:[NALP]\/AC:[LH]\/PR:[NLH]\/UI:[NR]\/S:[UC]\/C:[NLH]\/I:[NLH]\/A:[N|L|H](\/E:[UPFH])?(\/RL:[OTWU])?(\/RC:[URC])?(\/CR:[LMH])?(\/IR:[LMH])?(\/AR:[LMH])?(\/MAV:[NALP])?(\/MAC:[LH])?(\/MPR:[NLH])?(\/MUI:[NR])?(\/MS:[UC])?(\/MC:[NLH])?(\/MI:[NLH])?(\/MA:[NLH])?$)|(^CVSS:4\.0\/AV:[NALP]\/AC:[LH]\/AT:[NP]\/PR:[NLH]\/UI:[NPA]\/VC:[NLH]\/VI:[NLH]\/VA:[NLH]\/SC:[NLH]\/SI:[NLH]\/SA:[NLH].*$)', message='Use OWASP Risk Rating / CVSS 3.1 / CVSS 4.0 Base Vector String')])
     report_severitytype = models.TextField()
     report_status = models.IntegerField(default=1)
     report_duplicate = models.IntegerField(default=0)
+    report_duplicate_of = models.CharField(max_length=15, blank=True, default='', verbose_name="Duplicate Of")
     report_permission = models.IntegerField(default=0) # 4 (Update) 2 (Appeal) 1 (NDA) --> UAN --> Similar to RWX System
     report_update = models.IntegerField(default=0)
+    report_update_self = models.IntegerField(default=0)
     report_appeal = models.IntegerField(default=0)
     report_nda  = models.IntegerField(default=0)
+    report_hunter_comment = models.IntegerField(default=0)
+    report_calc_sent_at = models.DateTimeField(null=True, blank=True)
+    report_status_changed_at = models.DateTimeField(null=True, blank=True)
+    last_email_code = models.IntegerField(default=0)
+    last_email_note = models.TextField(blank=True, default='')
+    report_score_awarded = models.IntegerField(default=0)
+    report_reminder_sent_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
       ordering = ['-report_datetime']
@@ -48,6 +66,119 @@ class BugReport(models.Model):
     
     def get_absolute_url(self):
         return reverse('report_detail', kwargs={'pk':self.report_id})
+
+    STATUS_PERMISSIONS = {0: 4, 1: 4, 2: 4, 3: 4, 4: 4, 5: 4 | 2, 6: 1, 7: 0}
+
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        instance = super().from_db(db, field_names, values)
+        instance._loaded_status = instance.report_status if 'report_status' in field_names else None
+        return instance
+
+    def save(self, *args, **kwargs):
+        loaded = getattr(self, '_loaded_status', None)
+        if loaded is not None and self.report_status != loaded:
+            allowed = self.STATUS_PERMISSIONS.get(self.report_status, 0)
+            self.report_permission = max(self.report_permission, 0) & allowed
+            self.report_status_changed_at = timezone.now()
+            score_changed = False
+            if loaded != COMPLETED_STATUS and self.report_status == COMPLETED_STATUS \
+                    and self.report_score_awarded == 0:
+                award_points(self)
+                score_changed = True
+            elif loaded == COMPLETED_STATUS and self.report_status != COMPLETED_STATUS \
+                    and self.report_score_awarded > 0:
+                revoke_points(self)
+                score_changed = True
+            update_fields = kwargs.get('update_fields')
+            if update_fields is not None:
+                candidates = ['report_permission', 'report_status_changed_at']
+                if score_changed:
+                    candidates.append('report_score_awarded')
+                extra = [f for f in candidates if f not in update_fields]
+                if extra:
+                    kwargs['update_fields'] = list(update_fields) + extra
+        super().save(*args, **kwargs)
+        self._loaded_status = self.report_status
+
+    @property
+    def severity_label(self):
+        return gerocalculator.get_severity_label(self.report_severity)
+
+    @property
+    def auto_accept_at(self):
+        if self.report_status != BOUNTY_CALC_STATUS or not self.report_permission & 2:
+            return None
+        if self.report_calc_sent_at is None:
+            return None
+        return self.report_calc_sent_at + timedelta(days=APPEAL_WINDOW_DAYS)
+
+
+SEVERITY_WEIGHTS = {"Low": 1, "Medium": 2, "High": 3, "Critical": 4}
+
+HOF_SCORING_VERSION = 2
+
+
+def severity_points(score):
+    try:
+        value = float(score or 0)
+    except (TypeError, ValueError):
+        return 0
+    weight = SEVERITY_WEIGHTS.get(gerocalculator.get_severity_label(value), 0)
+    return max(0, int(value)) * weight
+
+
+def report_points(report):
+    return severity_points(report.report_severity)
+
+
+def _locked_hunter(report):
+    return BugHunter.objects.select_for_update().filter(
+        hunter_email__iexact=report.hunter_email).first()
+
+
+def award_points(report):
+    points = report_points(report)
+    with transaction.atomic():
+        hunter = _locked_hunter(report)
+        if hunter is None:
+            logging.getLogger("Gerologger").warning(
+                f"HALL OF FAME award skipped for {report.report_id}: "
+                f"no bug hunter row for {report.hunter_email}")
+            report.report_score_awarded = 0
+            return 0
+        hunter.hunter_scores = max(0, hunter.hunter_scores or 0) + points
+        hunter.save(update_fields=['hunter_scores'])
+    report.report_score_awarded = points
+    return points
+
+
+def revoke_points(report):
+    points = max(0, int(report.report_score_awarded))
+    with transaction.atomic():
+        hunter = _locked_hunter(report)
+        if hunter is None:
+            logging.getLogger("Gerologger").warning(
+                f"HALL OF FAME revoke skipped for {report.report_id}: "
+                f"no bug hunter row for {report.hunter_email}")
+            report.report_score_awarded = 0
+            return 0
+        hunter.hunter_scores = max(0, (hunter.hunter_scores or 0) - points)
+        hunter.save(update_fields=['hunter_scores'])
+    report.report_score_awarded = 0
+    return points
+
+
+def backfill_report_score_awarded():
+    updated = 0
+    for report in BugReport.objects.filter(report_status=COMPLETED_STATUS,
+                                           report_score_awarded=0):
+        points = report_points(report)
+        if points:
+            BugReport.objects.filter(report_id=report.report_id).update(
+                report_score_awarded=points)
+            updated += 1
+    return updated
 
 
 class BugReportUpdate(models.Model):
@@ -90,13 +221,79 @@ class BugReportNDA(models.Model):
     def get_absolute_url(self):
         return reverse('nda_detail', kwargs={'pk':self.nda_id})  
 
+class BugReportHunterComment(models.Model):
+    comment_id = models.CharField(max_length=20,primary_key=True,validators=[alphanumeric])
+    report_id = models.CharField(max_length=15)
+    comment_datetime = models.DateTimeField()
+    comment_summary = models.TextField()
+
+    def __str__(self):
+        return self.comment_id
+
+    def get_absolute_url(self):
+        return reverse('comment_detail', kwargs={'pk':self.comment_id})
+
+
 class BugHunter(models.Model):
     hunter_email = models.EmailField()
     hunter_username = models.CharField(max_length=50)
     hunter_scores = models.IntegerField()
+    hunter_hidden = models.BooleanField(default=False)
 
     def __str__(self):
         return self.hunter_scores
+
+
+class HallOfFameScoring(models.Model):
+    scoring_version = models.IntegerField(default=0)
+
+    def __str__(self):
+        return str(self.scoring_version)
+
+
+def recompute_hunter_score(hunter):
+    with transaction.atomic():
+        locked = BugHunter.objects.select_for_update().get(pk=hunter.pk)
+        primary_pk = (BugHunter.objects
+                      .filter(hunter_email__iexact=locked.hunter_email)
+                      .order_by('pk')
+                      .values_list('pk', flat=True)
+                      .first())
+        reports = (BugReport.objects
+                   .select_for_update()
+                   .filter(hunter_email__iexact=locked.hunter_email))
+        total = 0
+        for report in reports:
+            points = (report_points(report)
+                      if report.report_status == COMPLETED_STATUS else 0)
+            total += points
+            if report.report_score_awarded != points:
+                BugReport.objects.filter(report_id=report.report_id).update(
+                    report_score_awarded=points)
+        if primary_pk is not None and locked.pk != primary_pk:
+            total = 0
+        before = locked.hunter_scores
+        locked.hunter_scores = total
+        locked.save(update_fields=['hunter_scores'])
+    hunter.hunter_scores = total
+    return before, total
+
+
+def rescore_hall_of_fame():
+    with transaction.atomic():
+        HallOfFameScoring.objects.get_or_create(pk=1)
+        state = HallOfFameScoring.objects.select_for_update().get(pk=1)
+        if state.scoring_version >= HOF_SCORING_VERSION:
+            return 0
+        rescored = 0
+        for hunter in BugHunter.objects.order_by('pk'):
+            recompute_hunter_score(hunter)
+            rescored += 1
+        state.scoring_version = HOF_SCORING_VERSION
+        state.save(update_fields=['scoring_version'])
+    logging.getLogger("Gerologger").info(
+        f"Hall of Fame: rescored {rescored} hunter(s) with severity weights")
+    return rescored
 
 
 class ReportStatus(models.Model):
@@ -155,14 +352,142 @@ class CertificateData(models.Model):
         return self.rule_id
     
 class Personalization(models.Model):
+    # ROLES: main_1 CANVAS BG, main_2 ACCENT, secondary_1 SURFACE,
+    # secondary_2 OVERLAY/HOVER, secondary_3 BORDER, button_1 PRIMARY CTA.
+    BRAND_DEFAULTS = {
+        'main_1':      '#1A1A1A',
+        'main_2':      '#C41230',
+        'secondary_1': '#171717',
+        'secondary_2': '#2F2F2F',
+        'secondary_3': '#3A3A3A',
+        'button_1':    '#C41230',
+    }
+
+    # THE PALETTE USED BEFORE THE DESIGN SYSTEM LANDED. KEPT SO apps.py CAN
+    # RECOGNISE AN UNCUSTOMISED LEGACY INSTALL AND MOVE IT ONTO A PALETTE THE
+    # SKIN CAN RENDER LEGIBLY -- secondary_2/3 WERE LIGHT PINKS, AND THE DESIGN
+    # SYSTEM PUTS WHITE TEXT ON BOTH.
+    LEGACY_DEFAULTS = {
+        'main_1':      '#171717',
+        'main_2':      '#E8596A',
+        'secondary_1': '#C82A3D',
+        'secondary_2': '#FA8997',
+        'secondary_3': '#FFE0E0',
+        'button_1':    '#48409E',
+    }
+
+    # SELECTABLE FROM SETTINGS > PERSONALIZATION. ALL ARE DARK-CANVAS THEMES:
+    # THE DESIGN SYSTEM HARDCODES LIGHT TEXT. CONSTRAINTS (ENFORCED BY
+    # ThemePresetTests): button_1 MUST CARRY WHITE BUTTON TEXT AT >=4.5:1, AND
+    # main_2 MUST STAY READABLE AFTER THE --gds-accent-soft MIX
+    # (55% ACCENT / 45% WHITE) ON secondary_2.
+    THEME_PRESETS = {
+        'gero-dark': {
+            'name': 'Gero Dark',
+            'description': 'The Gero brand default - near-black with crimson.',
+            'colors': BRAND_DEFAULTS,
+        },
+        'gero-classic': {
+            'name': 'Gero Classic',
+            'description': 'The original Gerobug identity - signature red with purple actions.',
+            'colors': {
+                'main_1': '#26050C', 'main_2': '#DA0037',
+                'secondary_1': '#3A0A16', 'secondary_2': '#4A101E',
+                'secondary_3': '#5C1A28', 'button_1': '#48409E',
+            },
+        },
+        'route': {
+            'name': 'Route',
+            'description': 'Warm plum darks with a pale-aqua highlight and teal actions.',
+            'colors': {
+                'main_1': '#1A1618', 'main_2': '#9EF5F5',
+                'secondary_1': '#241F22', 'secondary_2': '#322A2F',
+                'secondary_3': '#453A41', 'button_1': '#0F766E',
+            },
+        },
+        'midnight': {
+            'name': 'Midnight',
+            'description': 'Deep navy with an electric blue accent.',
+            'colors': {
+                'main_1': '#10141C', 'main_2': '#3B82F6',
+                'secondary_1': '#171C26', 'secondary_2': '#1F2634',
+                'secondary_3': '#2A3242', 'button_1': '#2563EB',
+            },
+        },
+        'forest': {
+            'name': 'Forest',
+            'description': 'Green-tinted darks with an emerald accent.',
+            'colors': {
+                'main_1': '#0F1512', 'main_2': '#2FA36B',
+                'secondary_1': '#16201B', 'secondary_2': '#1D2A23',
+                'secondary_3': '#2A3A31', 'button_1': '#1C7F53',
+            },
+        },
+        'royal': {
+            'name': 'Royal',
+            'description': 'Violet darks with a bright purple accent.',
+            'colors': {
+                'main_1': '#14101C', 'main_2': '#8B5CF6',
+                'secondary_1': '#1B1626', 'secondary_2': '#241D33',
+                'secondary_3': '#322A44', 'button_1': '#6D4AE0',
+            },
+        },
+        'graphite': {
+            'name': 'Graphite',
+            'description': 'Pure monochrome - no accent color at all.',
+            'colors': {
+                'main_1': '#161616', 'main_2': '#8F8F8F',
+                'secondary_1': '#202020', 'secondary_2': '#2A2A2A',
+                'secondary_3': '#383838', 'button_1': '#5A5A5A',
+            },
+        },
+    }
+
     personalize_id = models.IntegerField(default=1)
     company_name = models.CharField(max_length=30, default="GEROBUG")
-    main_1      = ColorField(default='#DA0037')
-    main_2      = ColorField(default='#E8596A')
-    secondary_1 = ColorField(default='#C82A3D')
-    secondary_2 = ColorField(default='#FA8997')
-    secondary_3 = ColorField(default='#FFE0E0')
-    button_1    = ColorField(default='#48409E')
+    main_1      = ColorField(default=BRAND_DEFAULTS['main_1'])
+    main_2      = ColorField(default=BRAND_DEFAULTS['main_2'])
+    secondary_1 = ColorField(default=BRAND_DEFAULTS['secondary_1'])
+    secondary_2 = ColorField(default=BRAND_DEFAULTS['secondary_2'])
+    secondary_3 = ColorField(default=BRAND_DEFAULTS['secondary_3'])
+    button_1    = ColorField(default=BRAND_DEFAULTS['button_1'])
+
+    @classmethod
+    def migrate_legacy_palette(cls):
+        # MOVE AN UNCUSTOMISED PRE-DESIGN-SYSTEM INSTALL ONTO THE BRAND
+        # DEFAULTS. ONLY AN EXACT MATCH ON EVERY LEGACY COLOR IS MIGRATED, SO
+        # AN OPERATOR WHO PICKED THEIR OWN COLORS KEEPS THEM.
+        theme = cls.objects.filter(personalize_id=1).first()
+        if not theme:
+            return False
+        current = {f: getattr(theme, f).upper() for f in cls.LEGACY_DEFAULTS}
+        if current != {k: v.upper() for k, v in cls.LEGACY_DEFAULTS.items()}:
+            return False
+        for field, value in cls.BRAND_DEFAULTS.items():
+            setattr(theme, field, value)
+        theme.save()
+        return True
 
     def __str__(self):
         return self.personalize_id
+
+
+class TroubleshootSettings(models.Model):
+    settings_id = models.IntegerField(default=1, unique=True)
+    hunter_email_sinkhole = models.BooleanField(default=False)
+    sinkhole_enabled_by = models.CharField(max_length=150, blank=True, default='')
+    sinkhole_enabled_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"TroubleshootSettings (sinkhole={'on' if self.hunter_email_sinkhole else 'off'})"
+
+
+PROCESSED_MAIL_RETENTION_DAYS = 180
+
+
+class ProcessedMail(models.Model):
+    fingerprint = models.CharField(max_length=128, unique=True)
+    received_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    def __str__(self):
+        return self.fingerprint

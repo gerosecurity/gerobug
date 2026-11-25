@@ -1,3 +1,1643 @@
-from django.test import TestCase
+import os
+import tempfile
+from datetime import timedelta
+from unittest import mock
 
-# Create your tests here.
+from django.contrib.auth.models import Group, User
+from django.test import TestCase
+from django.utils import timezone
+
+from django.urls import reverse
+
+from dashboards.models import (BlacklistRule, BugHunter, BugReport,
+                               BugReportHunterComment, CertificateData,
+                               Personalization, ReportStatus, StaticRules)
+from prerequisites.models import MailBox
+
+
+class KanbanMoveTests(TestCase):
+    """Drag-and-drop status transitions on the dashboard board."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="reviewer1", password="x")
+        self.client.force_login(self.user)
+        MailBox.objects.create(
+            mailbox_id=1, email="ops@example.com", password="pw", mailbox_status=1,
+        )
+        self.report = BugReport.objects.create(
+            report_id="AB12CD34EF56",
+            report_datetime=timezone.now(),
+            hunter_email="hunter@example.com",
+            report_reviewer="reviewer",
+            report_summary="s",
+            report_severitytype="",
+            report_status=1,
+        )
+
+    def move(self, new_status, report_id="AB12CD34EF56", mailbox_ready=True):
+        # check_mailbox_status() reflects the live mail thread (module global),
+        # so it is patched explicitly. The notification thread is patched out:
+        # these tests only assert the state transition.
+        with mock.patch("dashboards.views.geroparser.check_mailbox_status",
+                        return_value=mailbox_ready), \
+                mock.patch("dashboards.views.threading.Thread") as thread:
+            response = self.client.post(f"/dashboard/kanban-move/{report_id}",
+                                        {"new_status": new_status})
+        return response, thread
+
+    def test_move_updates_status_and_notifies(self):
+        response, thread = self.move(3)
+        self.assertEqual(response.status_code, 200)
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.report_status, 3)
+        thread.assert_called_once()
+
+    def test_rejects_offboard_target(self):
+        for bad in (0, 7, 9):
+            response, _ = self.move(bad)
+            self.assertEqual(response.status_code, 400, bad)
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.report_status, 1)
+
+    def test_rejects_non_numeric_target(self):
+        response, _ = self.move("sideways")
+        self.assertEqual(response.status_code, 400)
+
+    def test_rejects_move_from_terminal_status(self):
+        self.report.report_status = 7
+        self.report.save()
+        response, _ = self.move(2)
+        self.assertEqual(response.status_code, 400)
+
+    def test_unchanged_move_is_a_noop(self):
+        response, thread = self.move(1)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "unchanged")
+        thread.assert_not_called()
+
+    def test_unknown_report_404(self):
+        response, _ = self.move(2, report_id="ZZ99ZZ99ZZ99")
+        self.assertEqual(response.status_code, 404)
+
+    def test_requires_configured_mailbox(self):
+        response, _ = self.move(2, mailbox_ready=False)
+        self.assertEqual(response.status_code, 409)
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.report_status, 1)
+
+    def test_get_not_allowed(self):
+        response = self.client.get("/dashboard/kanban-move/AB12CD34EF56")
+        self.assertEqual(response.status_code, 405)
+
+    def test_requires_login(self):
+        self.client.logout()
+        response = self.client.post("/dashboard/kanban-move/AB12CD34EF56", {"new_status": 2})
+        self.assertIn(response.status_code, (302, 403))
+
+    def test_moving_back_revokes_permissions_of_the_later_stage(self):
+        self.report.report_status = 5
+        self.report.report_permission = 2
+        self.report.save()
+        response, _ = self.move(2)
+        self.assertEqual(response.status_code, 200)
+        self.report.refresh_from_db()
+        self.assertEqual((self.report.report_status, self.report.report_permission), (2, 0))
+
+    def test_moving_keeps_an_open_amend_request(self):
+        self.report.report_status = 2
+        self.report.report_permission = 4
+        self.report.save()
+        self.move(3)
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.report_permission, 4)
+
+
+class StatusPermissionTests(TestCase):
+    def setUp(self):
+        self.report = BugReport.objects.create(
+            report_id="AB12CD34EF56", report_datetime=timezone.now(),
+            hunter_email="hunter@example.com", report_reviewer="reviewer",
+            report_summary="s", report_severitytype="", report_status=5, report_permission=4 | 2,
+        )
+
+    def test_unchanged_status_never_touches_permissions(self):
+        report = BugReport.objects.get(report_id="AB12CD34EF56")
+        report.report_permission = 7
+        report.save()
+        report.refresh_from_db()
+        self.assertEqual(report.report_permission, 7)
+
+    def test_each_stage_keeps_only_its_own_grants(self):
+        for status, expected in ((6, 0), (4, 0), (0, 0)):
+            report = BugReport.objects.get(report_id="AB12CD34EF56")
+            report.report_status, report.report_permission = 5, 7
+            report.save()
+            report.report_status = status
+            report.save()
+            report.refresh_from_db()
+            self.assertEqual(report.report_permission, 7 & BugReport.STATUS_PERMISSIONS[status], status)
+        self.assertEqual(BugReport.STATUS_PERMISSIONS[5], 6)
+        self.assertEqual(BugReport.STATUS_PERMISSIONS[6], 1)
+
+    def test_update_fields_save_still_persists_the_revocation(self):
+        report = BugReport.objects.get(report_id="AB12CD34EF56")
+        report.report_status = 2
+        report.save(update_fields=["report_status"])
+        report.refresh_from_db()
+        self.assertEqual(report.report_permission, 4)
+
+    def test_hunter_agree_advances_without_leaking_the_appeal_bit(self):
+        report = BugReport.objects.get(report_id="AB12CD34EF56")
+        report.report_permission = 2
+        report.save()
+        report.report_permission -= 2
+        report.save()
+        report.report_status += 1
+        report.save()
+        report.refresh_from_db()
+        self.assertEqual((report.report_status, report.report_permission), (6, 0))
+
+
+class PageRenderTests(TestCase):
+    """Every dashboard page must render. The templates share base.html and the
+    design system, so a bad block, a missing context key or an unreversible
+    url breaks a whole page rather than one widget."""
+
+    STATUS_NAMES = ["Not Valid", "Need To Review", "In Review", "Fixing", "Retest",
+                    "Bounty Calculation", "Bounty in Process", "Completed"]
+
+    def setUp(self):
+        for i, name in enumerate(self.STATUS_NAMES):
+            ReportStatus.objects.get_or_create(status_id=i, defaults={"status_name": name})
+        # Singletons that apps.py ready() seeds in a real deployment.
+        Personalization.objects.get_or_create(personalize_id=1)
+        BlacklistRule.objects.get_or_create(rule_id=1)
+        for model in (CertificateData, StaticRules):
+            model.objects.get_or_create(pk=1)
+        MailBox.objects.create(
+            mailbox_id=1, email="ops@example.com", password="pw", mailbox_status=1,
+        )
+        BugReport.objects.create(
+            report_id="AB12CD34EF56",
+            report_datetime=timezone.now(),
+            hunter_email="hunter@example.com",
+            report_reviewer="reviewer",
+            report_title="Test finding",
+            report_summary="s",
+            report_severity=7.5,
+            report_severitytype="",
+            report_status=1,
+        )
+        self.user = User.objects.create_superuser(
+            username="geromin-test", password="x", email="a@b.c")
+        self.client.force_login(self.user)
+
+    def test_pages_render(self):
+        for url in ("/dashboard/",
+                    "/dashboard/report-detail/AB12CD34EF56",
+                    "/dashboard/setting",
+                    "/dashboard/report-status/1",
+                    "/dashboard/owasp-calculator",
+                    "/dashboard/cvss-calculator"):
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_report_detail_uses_the_dark_panel(self):
+        html = self.client.get("/dashboard/report-detail/AB12CD34EF56").content.decode()
+        self.assertIn('<main class="gds-panel">', html)
+        self.assertNotIn("        <main>", html)
+
+
+class ThemePresetTests(TestCase):
+    """The design system puts light text on secondary_1/secondary_2 and white
+    text on button_1, so every selectable palette has to clear AA on those
+    pairings or the skin ships unreadable."""
+
+    FIELDS = ['main_1', 'main_2', 'secondary_1', 'secondary_2', 'secondary_3', 'button_1']
+
+    @staticmethod
+    def _luminance(hex_):
+        channels = [int(hex_[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+        channels = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+                    for c in channels]
+        return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+
+    @classmethod
+    def _contrast(cls, a, b):
+        la, lb = cls._luminance(a), cls._luminance(b)
+        return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+    @staticmethod
+    def _soften(hex_):
+        """Approximates --gds-accent-soft: color-mix(accent 55%, white 45%)."""
+        channels = [int(hex_[i:i + 2], 16) for i in (1, 3, 5)]
+        return '#%02X%02X%02X' % tuple(round(c * 0.55 + 255 * 0.45) for c in channels)
+
+    def test_presets_well_formed(self):
+        import re
+        hexpat = re.compile(r'^#[0-9A-Fa-f]{6}$')
+        self.assertEqual(len(Personalization.THEME_PRESETS), 7)
+        for key, preset in Personalization.THEME_PRESETS.items():
+            self.assertTrue(preset['name'], key)
+            self.assertTrue(preset['description'], key)
+            self.assertEqual(set(preset['colors']), set(self.FIELDS), key)
+            for field in self.FIELDS:
+                self.assertRegex(preset['colors'][field], hexpat)
+
+    def test_gero_dark_matches_brand_defaults(self):
+        self.assertEqual(Personalization.THEME_PRESETS['gero-dark']['colors'],
+                         Personalization.BRAND_DEFAULTS)
+
+    def test_preset_contrast_constraints(self):
+        for key, preset in Personalization.THEME_PRESETS.items():
+            colors = preset['colors']
+            self.assertGreaterEqual(
+                self._contrast(colors['button_1'], '#FFFFFF'), 4.5,
+                f"{key}: CTA fails white-text contrast")
+            self.assertGreaterEqual(
+                self._contrast(self._soften(colors['main_2']), colors['secondary_2']), 4.5,
+                f"{key}: softened accent fails on overlay")
+
+    def test_legacy_palette_would_fail_the_same_check(self):
+        """Why the backfill exists: the pre-design-system palette put white
+        text on a pale pink overlay."""
+        legacy = Personalization.LEGACY_DEFAULTS
+        self.assertLess(self._contrast(legacy['secondary_2'], '#FFFFFF'), 4.5)
+
+
+class LegacyPaletteMigrationTests(TestCase):
+    """Settings > Personalization colors predate the design system. An install
+    still on the old palette has to move, but an operator's own colors must
+    never be overwritten."""
+
+    def _theme(self, **colors):
+        Personalization.objects.all().delete()
+        return Personalization.objects.create(
+            personalize_id=1, company_name="GEROBUG", **colors)
+
+    def test_untouched_legacy_install_is_migrated(self):
+        self._theme(**Personalization.LEGACY_DEFAULTS)
+        self.assertTrue(Personalization.migrate_legacy_palette())
+        theme = Personalization.objects.get(personalize_id=1)
+        for field, value in Personalization.BRAND_DEFAULTS.items():
+            self.assertEqual(getattr(theme, field).upper(), value.upper(), field)
+
+    def test_migration_is_idempotent(self):
+        self._theme(**Personalization.LEGACY_DEFAULTS)
+        self.assertTrue(Personalization.migrate_legacy_palette())
+        self.assertFalse(Personalization.migrate_legacy_palette())
+
+    def test_customized_palette_is_left_alone(self):
+        colors = dict(Personalization.LEGACY_DEFAULTS, main_2="#00FF00")
+        self._theme(**colors)
+        self.assertFalse(Personalization.migrate_legacy_palette())
+        theme = Personalization.objects.get(personalize_id=1)
+        self.assertEqual(theme.main_2.upper(), "#00FF00")
+        self.assertEqual(theme.secondary_2.upper(),
+                         Personalization.LEGACY_DEFAULTS["secondary_2"].upper())
+
+    def test_no_theme_row_is_safe(self):
+        Personalization.objects.all().delete()
+        self.assertFalse(Personalization.migrate_legacy_palette())
+
+
+class ReportDetailLifecycleTests(PageRenderTests):
+
+    URL = "/dashboard/report-detail/AB12CD34EF56"
+
+    def setUp(self):
+        super().setUp()
+        self.report = BugReport.objects.get(report_id="AB12CD34EF56")
+
+    def test_pages_render(self):
+        pass
+
+
+    def _await_auto_accept(self, days_ago):
+        from datetime import timedelta
+        self.report.report_status = 5
+        self.report.report_permission = 2
+        self.report.report_calc_sent_at = timezone.now() - timedelta(days=days_ago)
+        self.report.save()
+
+    def test_detail_page_shows_the_auto_accept_deadline(self):
+        from django.template.defaultfilters import date as date_filter
+        self._await_auto_accept(days_ago=10)
+        response = self.client.get(self.URL)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Auto-accepts in")
+        self.assertContains(response, date_filter(self.report.auto_accept_at, "j M Y, H:i"))
+
+    def test_detail_page_hides_the_deadline_once_appealed(self):
+        self._await_auto_accept(days_ago=10)
+        self.report.report_permission = 0
+        self.report.save()
+        self.assertNotContains(self.client.get(self.URL), "Auto-accepts in")
+
+    def test_detail_page_has_no_deadline_before_a_calculation(self):
+        self.assertNotContains(self.client.get(self.URL), "Auto-accepts in")
+
+    def test_kanban_card_shows_the_deadline(self):
+        self._await_auto_accept(days_ago=10)
+        self.assertContains(self.client.get("/dashboard/"), "auto-accepts in")
+
+
+    def _submit(self, kind, n, days_ago, summary, has_file=0):
+        from datetime import timedelta
+        from dashboards.models import BugReportAppeal, BugReportNDA, BugReportUpdate
+        model, prefix = {'U': (BugReportUpdate, 'update'),
+                         'A': (BugReportAppeal, 'appeal'),
+                         'N': (BugReportNDA, 'nda')}[kind]
+        ident = self.report.report_id + kind + str(n)
+        return model.objects.create(**{
+            prefix + '_id': ident,
+            'report_id': self.report.report_id,
+            prefix + '_datetime': timezone.now() - timedelta(days=days_ago),
+            prefix + '_summary': summary,
+            prefix + '_file': has_file,
+        })
+
+    def test_every_submission_is_listed_newest_first(self):
+        from dashboards.views import build_hunter_submissions
+        self._submit('U', 1, days_ago=9, summary="first update")
+        self._submit('U', 2, days_ago=5, summary="second update")
+        self._submit('U', 3, days_ago=1, summary="third update")
+        self._submit('A', 1, days_ago=3, summary="appealing the valuation")
+        self._submit('N', 1, days_ago=2, summary="bank details")
+
+        subs = build_hunter_submissions(self.report)
+        self.assertEqual([r['tag'] for r in subs['updates']], ['U3', 'U2', 'U1'])
+        self.assertEqual([r['tag'] for r in subs['appeals']], ['A1'])
+        self.assertEqual([r['tag'] for r in subs['data']], ['N1'])
+
+        response = self.client.get(self.URL)
+        self.assertEqual(response.status_code, 200)
+        for summary in ("first update", "second update", "third update",
+                        "appealing the valuation", "bank details"):
+            self.assertContains(response, summary)
+        for tag in ("U1", "U2", "U3"):
+            self.assertContains(response, f"update-detail/{self.report.report_id}{tag}")
+
+    def test_download_link_only_when_the_pdf_is_really_there(self):
+        import os
+        from dashboards.views import build_hunter_submissions
+        from gerobug.settings import MEDIA_ROOT
+        self._submit('U', 1, days_ago=1, summary="claims a file", has_file=1)
+        self.assertFalse(build_hunter_submissions(self.report)['updates'][0]['has_file'])
+
+        os.makedirs(os.path.join(MEDIA_ROOT, self.report.report_id), exist_ok=True)
+        pdf = os.path.join(MEDIA_ROOT, self.report.report_id, self.report.report_id + 'U1.pdf')
+        try:
+            with open(pdf, 'wb') as fh:
+                fh.write(b'%PDF-1.4')
+            self.assertTrue(build_hunter_submissions(self.report)['updates'][0]['has_file'])
+            self.assertContains(self.client.get(self.URL), "Download PDF")
+        finally:
+            os.remove(pdf)
+
+    def test_cards_are_omitted_when_nothing_was_submitted(self):
+        response = self.client.get(self.URL)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "<h6>Updates")
+        self.assertNotContains(response, "<h6>Appeals")
+
+
+class TroubleshootFixture(TestCase):
+
+    def setUp(self):
+        from django.urls import reverse
+        self.reverse = reverse
+        for i, name in enumerate(PageRenderTests.STATUS_NAMES):
+            ReportStatus.objects.get_or_create(status_id=i, defaults={"status_name": name})
+        MailBox.objects.create(mailbox_id=1, email="ops@example.com", password="pw", mailbox_status=1)
+        self.report = BugReport.objects.create(
+            report_id="AB12CD34EF56", report_datetime=timezone.now(),
+            hunter_email="hunter@example.com", report_reviewer="reviewer",
+            report_title="Test finding", report_summary="s", report_severity=7.5,
+            report_severitytype="", report_status=5, report_permission=2,
+        )
+        Personalization.objects.get_or_create(personalize_id=1)
+        BlacklistRule.objects.get_or_create(rule_id=1)
+        CertificateData.objects.get_or_create(pk=1)
+        StaticRules.objects.get_or_create(pk=1)
+        self.admin = User.objects.create_superuser(username="admin1", password="x", email="a@b.c")
+        self.client.force_login(self.admin)
+
+    def resend(self):
+        with mock.patch("dashboards.views.geroparser.check_mailbox_status", return_value=True), \
+                mock.patch("dashboards.views.geromailer.write_mail") as write_mail, \
+                mock.patch("dashboards.views.geromailer.notify") as notify, \
+                mock.patch("django.db.connection.close"), \
+                mock.patch("dashboards.views.threading.Thread",
+                           side_effect=lambda target, args=(), **kw: mock.Mock(
+                               start=lambda: target(*args))):
+            self.client.post(self.reverse("resend_email"), {"report_id": self.report.report_id})
+        notify.assert_not_called()
+        if not write_mail.called:
+            return None, None
+        return write_mail.call_args[0][0], write_mail.call_args[0][1]
+
+
+class TroubleshootTests(TroubleshootFixture):
+
+    def test_company_action_records_what_resend_replays(self):
+        from geromail import geromailer, geroparser
+        with mock.patch.object(geromailer, "write_mail"):
+            geroparser.company_action(self.report.report_id, "7.5 HIGH", 702)
+        code, payload = self.resend()
+        self.assertEqual((code, payload[3]), (702, "7.5 HIGH"))
+
+    def test_nothing_recorded_sends_nothing(self):
+        self.assertEqual(self.resend(), (None, None))
+
+    def test_resent_calculation_keeps_the_auto_accept_clock(self):
+        from datetime import timedelta
+        stamp = timezone.now() - timedelta(days=25)
+        self.report.report_calc_sent_at = stamp
+        self.report.last_email_code, self.report.last_email_note = 702, "7.5 HIGH"
+        self.report.save()
+
+        code, payload = self.resend()
+        self.assertEqual((code, payload[3]), (702, "7.5 HIGH"))
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.report_calc_sent_at, stamp)
+        self.assertEqual(self.report.report_permission, 2)
+        self.assertEqual(self.report.report_status, 5)
+
+    def test_resend_past_bounty_calculation_leaves_the_clock_alone(self):
+        from datetime import timedelta
+        stamp = timezone.now() - timedelta(days=40)
+        self.report.report_status = 6
+        self.report.report_calc_sent_at = stamp
+        self.report.last_email_code, self.report.last_email_note = 702, "7.5 HIGH"
+        self.report.save()
+        self.assertEqual(self.resend()[0], 702)
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.report_calc_sent_at, stamp)
+
+    def test_resend_of_other_emails_does_not_touch_the_clock(self):
+        self.report.last_email_code, self.report.last_email_note = 701, "need a PoC"
+        self.report.save()
+        self.assertEqual(self.resend()[0], 701)
+        self.report.refresh_from_db()
+        self.assertIsNone(self.report.report_calc_sent_at)
+
+    def test_invalid_handler_records_its_reason(self):
+        self.report.report_status = 2
+        self.report.save()
+        with mock.patch("dashboards.views.geroparser.check_mailbox_status", return_value=True), \
+                mock.patch("dashboards.views.threading.Thread"):
+            self.client.post(self.reverse("invalid_handler", args=[self.report.report_id]),
+                             {"invalidreasons": "Out of scope: staging host"})
+        self.report.refresh_from_db()
+        self.assertEqual((self.report.last_email_code, self.report.last_email_note),
+                         (300, "Out of scope: staging host"))
+
+    def test_resend_requires_superuser(self):
+        reviewer = User.objects.create_user(username="rev", password="x")
+        self.client.force_login(reviewer)
+        self.report.last_email_code = 702
+        self.report.save()
+        self.assertEqual(self.resend(), (None, None))
+
+
+    def test_sinkhole_toggle_and_banner(self):
+        from dashboards.models import TroubleshootSettings
+        self.client.post(self.reverse("toggle_hunter_sinkhole"))
+        row = TroubleshootSettings.objects.get(settings_id=1)
+        self.assertTrue(row.hunter_email_sinkhole)
+        self.assertEqual(row.sinkhole_enabled_by, "admin1")
+        self.assertContains(self.client.get("/dashboard/"), "Hunter email sinkhole is ACTIVE")
+
+        self.client.post(self.reverse("toggle_hunter_sinkhole"))
+        row.refresh_from_db()
+        self.assertFalse(row.hunter_email_sinkhole)
+        self.assertNotContains(self.client.get("/dashboard/"), "Hunter email sinkhole is ACTIVE")
+
+    def test_sinkhole_suppresses_smtp_but_reports_success(self):
+        from dashboards.models import TroubleshootSettings
+        from geromail import geromailer
+        TroubleshootSettings.objects.create(settings_id=1, hunter_email_sinkhole=True)
+        payload = [self.report.report_id, "Title", 5, "note", 7.5]
+        with mock.patch.object(geromailer, "connection"), \
+                mock.patch.object(geromailer.smtplib, "SMTP_SSL") as smtp_ssl:
+            self.assertTrue(geromailer.write_mail(702, payload, "hunter@example.com"))
+            smtp_ssl.assert_not_called()
+
+
+    def test_override_loads_and_saves(self):
+        from dashboards.models import BugHunter
+        BugHunter.objects.create(hunter_email="hunter@example.com", hunter_username="old", hunter_scores=0)
+        data = self.client.get(self.reverse("report_override"),
+                               {"report_id": self.report.report_id}).json()
+        self.assertTrue(data["ok"])
+        self.assertEqual((data["title"], data["hunter_name"]), ("Test finding", "old"))
+
+        self.client.post(self.reverse("report_override"), {
+            "report_id": self.report.report_id, "title": "Fixed title", "status": "3",
+            "endpoint": "https://e", "attack": "XSS", "duplicate": "1", "hunter_name": "new"})
+        self.report.refresh_from_db()
+        self.assertEqual((self.report.report_title, self.report.report_status,
+                          self.report.report_duplicate), ("Fixed title", 3, 1))
+        self.assertEqual(BugHunter.objects.get(hunter_email="hunter@example.com").hunter_username, "new")
+
+    def test_override_rejects_unknown_status(self):
+        self.client.post(self.reverse("report_override"), {
+            "report_id": self.report.report_id, "title": "x", "status": "99"})
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.report_title, "Test finding")
+
+
+    def test_view_logs_is_superuser_only(self):
+        self.assertIn(self.client.get(self.reverse("view_logs")).status_code, (200,))
+        self.client.force_login(User.objects.create_user(username="rev", password="x"))
+        self.assertEqual(self.client.get(self.reverse("view_logs")).status_code, 403)
+
+    def test_settings_page_renders_the_troubleshoot_tab(self):
+        response = self.client.get("/dashboard/setting")
+        self.assertEqual(response.status_code, 200)
+        for heading in ("Resend Email", "Override Report Fields", "Hunter Email Sinkhole", "Server Logs"):
+            self.assertContains(response, heading)
+
+
+class InvalidDuplicateOfTests(TroubleshootFixture):
+
+    def setUp(self):
+        super().setUp()
+        self.report.report_status = 2
+        self.report.save()
+
+    def _invalid(self, **data):
+        with mock.patch("dashboards.views.geroparser.check_mailbox_status", return_value=True), \
+                mock.patch("dashboards.views.threading.Thread"):
+            self.client.post(self.reverse("invalid_handler", args=[self.report.report_id]),
+                             dict({"invalidreasons": "Duplicate of an earlier finding"}, **data))
+        self.report.refresh_from_db()
+
+    def test_marks_and_links_the_original(self):
+        BugReport.objects.create(
+            report_id="ZZ99YY88XX77", report_datetime=timezone.now(), hunter_email="h2@example.com",
+            report_reviewer="r", report_summary="s", report_severitytype="", report_status=2)
+        self._invalid(duplicate_of="zz99yy88xx77")
+        self.assertEqual((self.report.report_status, self.report.report_duplicate,
+                          self.report.report_duplicate_of), (0, 1, "ZZ99YY88XX77"))
+        response = self.client.get(f"/dashboard/report-detail/{self.report.report_id}")
+        self.assertContains(response, "/dashboard/report-detail/ZZ99YY88XX77")
+
+    def test_unknown_original_is_rejected(self):
+        self._invalid(duplicate_of="ZZ99YY88XX77")
+        self.assertEqual((self.report.report_status, self.report.report_duplicate), (2, 0))
+
+    def test_self_reference_is_rejected(self):
+        self._invalid(duplicate_of=self.report.report_id)
+        self.assertEqual(self.report.report_status, 2)
+
+    def test_blank_keeps_a_plain_invalid_marking(self):
+        self._invalid(duplicate_of="")
+        self.assertEqual((self.report.report_status, self.report.report_duplicate,
+                          self.report.report_duplicate_of), (0, 0, ""))
+
+    def test_override_clearing_the_badge_clears_the_link(self):
+        self.report.report_duplicate, self.report.report_duplicate_of = 1, "ZZ99YY88XX77"
+        self.report.save()
+        self.client.post(self.reverse("report_override"), {
+            "report_id": self.report.report_id, "title": "t", "status": "5"})
+        self.report.refresh_from_db()
+        self.assertEqual((self.report.report_duplicate, self.report.report_duplicate_of), (0, ""))
+
+
+class OrphanDetailTests(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="reviewer3", password="x")
+        self.client.force_login(self.user)
+        Personalization.objects.create(personalize_id=1)
+        from dashboards.models import BugReportAppeal, BugReportNDA, BugReportUpdate
+        BugReportUpdate.objects.create(update_id="ZZ99ZZ99ZZ99U1",
+                                       report_id="ZZ99ZZ99ZZ99",
+                                       update_datetime=timezone.now(),
+                                       update_summary="u", update_file=0)
+        BugReportAppeal.objects.create(appeal_id="ZZ99ZZ99ZZ99A1",
+                                       report_id="ZZ99ZZ99ZZ99",
+                                       appeal_datetime=timezone.now(),
+                                       appeal_summary="a", appeal_file=0)
+        BugReportNDA.objects.create(nda_id="ZZ99ZZ99ZZ99N1",
+                                    report_id="ZZ99ZZ99ZZ99",
+                                    nda_datetime=timezone.now(),
+                                    nda_summary="n", nda_file=0)
+        BugReportHunterComment.objects.create(comment_id="ZZ99ZZ99ZZ99C1",
+                                              report_id="ZZ99ZZ99ZZ99",
+                                              comment_datetime=timezone.now(),
+                                              comment_summary="c")
+
+    def test_detail_pages_render_without_the_parent_report(self):
+        for path in ("update-detail/ZZ99ZZ99ZZ99U1",
+                     "appeal-detail/ZZ99ZZ99ZZ99A1",
+                     "nda-detail/ZZ99ZZ99ZZ99N1",
+                     "comment-detail/ZZ99ZZ99ZZ99C1"):
+            with self.subTest(path=path):
+                response = self.client.get("/dashboard/" + path)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.context["report_title"], "")
+
+
+class WithdrawnResendTests(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_superuser(username="admin1",
+                                                  password="x", email="a@b.c")
+        self.client.force_login(self.user)
+        Personalization.objects.create(personalize_id=1)
+        for status_id, name in enumerate(
+                ["Invalid", "Received", "In Review", "Reproduced", "Fixing",
+                 "Bounty Calculation", "Bounty in Process", "Completed"]):
+            ReportStatus.objects.get_or_create(status_id=status_id,
+                                               defaults={"status_name": name})
+        MailBox.objects.create(mailbox_id=1, email="ops@example.com", password="pw",
+                               mailbox_status=1)
+        BugReport.objects.create(
+            report_id="AB12CD34EF56", report_datetime=timezone.now(),
+            hunter_email="hunter@example.com", report_reviewer="reviewer",
+            report_summary="s", report_severitytype="", report_status=0,
+            last_email_code=212, last_email_note="Withdrawn by the hunter")
+
+    def test_212_is_not_resendable(self):
+        from dashboards import views
+        self.assertNotIn(212, views.RESEND_EMAIL_LABELS)
+        with mock.patch("dashboards.views.geroparser.check_mailbox_status",
+                        return_value=True), \
+                mock.patch("dashboards.views.threading.Thread") as thread:
+            response = self.client.post("/dashboard/resend-email",
+                                        {"report_id": "AB12CD34EF56"})
+        self.assertEqual(response.status_code, 302)
+        thread.assert_not_called()
+
+
+class HunterCommentDashboardTests(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="reviewer2", password="x")
+        self.client.force_login(self.user)
+        Personalization.objects.create(personalize_id=1)
+        for status_id, name in enumerate(
+                ["Invalid", "Received", "In Review", "Reproduced", "Fixing",
+                 "Bounty Calculation", "Bounty in Process", "Completed"]):
+            ReportStatus.objects.get_or_create(status_id=status_id,
+                                               defaults={"status_name": name})
+        MailBox.objects.create(mailbox_id=1, email="ops@example.com", password="pw",
+                               mailbox_status=1)
+        self.report = BugReport.objects.create(
+            report_id="AB12CD34EF56", report_datetime=timezone.now(),
+            hunter_email="hunter@example.com", report_reviewer="reviewer",
+            report_summary="s", report_severitytype="", report_status=2,
+        )
+        self.comment = BugReportHunterComment.objects.create(
+            comment_id="AB12CD34EF56C1", report_id=self.report.report_id,
+            comment_datetime=timezone.now(),
+            comment_summary="Do you need a retest from me?",
+        )
+
+    def test_comment_is_listed_on_the_report_page(self):
+        response = self.client.get("/dashboard/report-detail/AB12CD34EF56")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Hunter Questions")
+        self.assertContains(response, "Do you need a retest from me?")
+        self.assertContains(response, "comment-detail/AB12CD34EF56C1")
+
+    def test_comment_detail_renders(self):
+        response = self.client.get("/dashboard/comment-detail/AB12CD34EF56C1")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "AB12CD34EF56C1")
+        self.assertContains(response, "Do you need a retest from me?")
+
+    def test_comment_detail_requires_login(self):
+        self.client.logout()
+        response = self.client.get("/dashboard/comment-detail/AB12CD34EF56C1")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login/", response["Location"])
+
+    def test_comment_text_is_escaped_on_the_detail_page(self):
+        BugReportHunterComment.objects.filter(pk=self.comment.pk).update(
+            comment_summary="<img src=x onerror=1>")
+        response = self.client.get("/dashboard/comment-detail/AB12CD34EF56C1")
+        self.assertNotContains(response, "<img src=x onerror=1>")
+        self.assertContains(response, "&lt;img src=x onerror=1&gt;")
+
+    def test_deleting_a_report_deletes_every_child_row(self):
+        from dashboards.models import BugReportAppeal, BugReportNDA, BugReportUpdate
+        BugReportUpdate.objects.create(update_id="AB12CD34EF56U1",
+                                       report_id=self.report.report_id,
+                                       update_datetime=timezone.now(),
+                                       update_summary="u", update_file=0)
+        BugReportAppeal.objects.create(appeal_id="AB12CD34EF56A1",
+                                       report_id=self.report.report_id,
+                                       appeal_datetime=timezone.now(),
+                                       appeal_summary="a", appeal_file=0)
+        BugReportNDA.objects.create(nda_id="AB12CD34EF56N1",
+                                    report_id=self.report.report_id,
+                                    nda_datetime=timezone.now(),
+                                    nda_summary="n", nda_file=0)
+        self.report.report_status = 0
+        self.report.save()
+        response = self.client.post("/dashboard/report-detail/AB12CD34EF56/delete/")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(BugReport.objects.count(), 0)
+        self.assertEqual(BugReportUpdate.objects.count(), 0)
+        self.assertEqual(BugReportAppeal.objects.count(), 0)
+        self.assertEqual(BugReportNDA.objects.count(), 0)
+        self.assertEqual(BugReportHunterComment.objects.count(), 0)
+
+
+SUBMIT_COMMANDS = ("SUBMIT", "CHECK", "STATUS_OVERVIEW", "MY_SCORE", "HELP",
+                   "UPDATE", "COMMENT", "DATA", "AGREE", "APPEAL", "WITHDRAW")
+
+
+def read_web_submit_template():
+    import os
+    from gerobug.settings import BASE_DIR
+    path = os.path.join(os.path.dirname(BASE_DIR), "gerobug_web", "templates",
+                        "submit.html")
+    with open(path, encoding="utf-8") as fp:
+        return fp.read()
+
+
+class SubmitPageTests(TestCase):
+
+    URL = "/submit/"
+
+    def setUp(self):
+        Personalization.objects.create(personalize_id=1)
+        self.mailbox = MailBox.objects.create(
+            mailbox_id=1, email="bounty@example.com", password="pw", mailbox_status=1)
+
+    def page(self):
+        response = self.client.get(self.URL)
+        self.assertEqual(response.status_code, 200)
+        return response.content.decode()
+
+    def test_mail_limits_sit_in_the_submit_rules(self):
+        html = self.client.get(self.URL).content.decode()
+        rules = html.split('<ul class="gds-rules">', 1)[1].split("</ul>", 1)[0]
+        self.assertIn("Whole email: up to 40 MiB, 25 MiB of attachments in total and 32 MIME parts.", rules)
+        self.assertNotIn("<p>Email limits:", html)
+
+    def test_submit_page_lists_every_command(self):
+        page = self.page()
+        for command in SUBMIT_COMMANDS:
+            self.assertIn(command, page, command)
+
+    def test_submit_page_mailto_uses_mailbox(self):
+        page = self.page()
+        self.assertIn("bounty@example.com", page)
+        self.assertIn('data-verb="HELP"', page)
+        self.assertIn('id="reportIdInput"', page)
+
+    def test_submit_page_without_mailbox_keeps_the_id_box_usable(self):
+        MailBox.objects.all().update(email="")
+        page = self.page()
+        self.assertIn("set their email yet", page)
+        self.assertIn('id="reportIdInput"', page)
+        self.assertIn("The mail buttons are unavailable until the program mailbox "
+                      "is set up.", page)
+        box = page.split('id="reportIdInput"', 1)[1].split(">", 1)[0]
+        self.assertNotIn("disabled", box)
+        self.assertNotIn("bounty@example.com", page)
+
+    def test_copy_controls_are_real_buttons(self):
+        web = read_web_submit_template()
+        self.assertNotIn('class="clipboard" role="button"', web)
+        self.assertIn('<button type="button" class="clipboard"', web)
+        self.assertNotIn('tabindex="0" aria-label="Copy', web)
+        self.assertEqual(web.count('<button type="button" class="clipboard"'),
+                         web.count("onclick=\"copytext("))
+
+    def test_update_rules_name_the_two_stages(self):
+        web = read_web_submit_template()
+        self.assertIn("Updates close once the report moves past Bounty Calculation "
+                      "to Bounty in Process.", web)
+
+    def test_check_example_shows_the_question_allowance(self):
+        web = read_web_submit_template()
+        self.assertIn("Questions you can still ask:", web)
+        example = web.split('class="gds-example"', 1)[1]
+        self.assertIn("left.", example.split("</div>", 1)[0])
+
+    def test_silence_after_the_deadline_is_called_agreed(self):
+        from geromail import gerocard, mail_templates
+        web = read_web_submit_template()
+        self.assertNotIn("counts as accepted", web)
+        self.assertNotIn("treated as accepted", web)
+        self.assertIn("counts as agreed", mail_templates.message_302)
+        self.assertNotIn("considered accepted", mail_templates.message_302)
+        report = BugReport(report_id="AB12CD34EF56", report_status=5,
+                           report_permission=2, report_datetime=timezone.now(),
+                           report_calc_sent_at=timezone.now())
+        self.assertIn("counts as agreed", gerocard.build_report_card(report))
+
+    def test_submit_page_limits_come_from_the_view(self):
+        from geromail import gerofilter
+        from dashboards.models import APPEAL_WINDOW_DAYS
+        response = self.client.get(self.URL)
+        context = response.context
+        self.assertEqual(context["comment_limit"], gerofilter.COMMENT_LIMIT)
+        self.assertEqual(context["self_update_limit"], gerofilter.SELF_UPDATE_LIMIT)
+        self.assertEqual(context["appeal_limit"], gerofilter.APPEAL_LIMIT)
+        self.assertEqual(context["appeal_window_days"], APPEAL_WINDOW_DAYS)
+        self.assertEqual(context["max_pdf_mb"], gerofilter.MAX_PDF_BYTES // 1000000)
+        self.assertEqual(context["endpoint_max"], gerofilter.FIELD_LIMITS["endpoint"][1])
+        self.assertEqual(context["title_max"], gerofilter.FIELD_LIMITS["title"][1])
+        web = read_web_submit_template()
+        self.assertNotIn("10 questions per report", web)
+        self.assertIn("{{ comment_limit }}", web)
+
+    def test_mailbox_address_escaped(self):
+        MailBox.objects.all().update(email='a@b.c"><script>alert(1)</script>')
+        page = self.page()
+        self.assertNotIn("<script>alert(1)</script>", page)
+        self.assertIn("&lt;script&gt;", page)
+
+    def test_submit_pages_in_sync(self):
+        import os
+        from gerobug.settings import BASE_DIR
+        dashboard_path = os.path.join(BASE_DIR, "templates", "submit.html")
+        with open(dashboard_path, encoding="utf-8") as fp:
+            dashboard_template = fp.read()
+        self.assertEqual(dashboard_template, read_web_submit_template())
+        self.assertIn("gds-submit-main", self.page())
+
+    def test_stage_text_matches_submit_page(self):
+        from geromail import gerocard
+        web = read_web_submit_template()
+        for status, text in gerocard.STAGE_TEXT.items():
+            if status == 0:
+                continue
+            self.assertIn(text, web, status)
+
+    def test_submit_page_limits_match_field_limits(self):
+        from geromail import gerofilter
+        page = self.page()
+        title_low, title_high = gerofilter.FIELD_LIMITS["title"]
+        self.assertIn(f"{title_low} to {title_high} characters", page)
+        self.assertIn(str(gerofilter.FIELD_LIMITS["type"][1]), page)
+        self.assertIn(str(gerofilter.FIELD_LIMITS["endpoint"][1]), page)
+        self.assertIn(f"at least {gerofilter.FIELD_LIMITS['summary'][0]} characters", page)
+        self.assertIn(f"{gerofilter.MAX_PDF_BYTES // 1000000} MB", page)
+        self.assertIn(f"{gerofilter.SELF_UPDATE_LIMIT} updates", page)
+        self.assertIn(f"{gerofilter.APPEAL_LIMIT} appeals", page)
+        self.assertIn(f"{gerofilter.COMMENT_LIMIT} questions", page)
+        from dashboards.models import APPEAL_WINDOW_DAYS
+        self.assertIn(f"{APPEAL_WINDOW_DAYS} days", page)
+        endpoint_max = gerofilter.FIELD_LIMITS["endpoint"][1]
+        self.assertIn(f"ENDPOINT: 1 to {endpoint_max} characters", page)
+
+    def test_submit_page_has_no_outdated_screenshots(self):
+        web = read_web_submit_template()
+        self.assertNotIn("sample/check.png", web)
+        self.assertNotIn("sample/overview.png", web)
+        self.assertNotIn("max 100 characters", web)
+
+    def test_submit_page_js_validates_the_id(self):
+        web = read_web_submit_template()
+        self.assertIn("^[0-9A-Za-z]{12}$", web)
+        self.assertIn("encodeURIComponent", web)
+        self.assertNotIn("innerHTML = id", web)
+
+    def test_submit_page_has_no_em_dash(self):
+        self.assertNotIn("\u2014", read_web_submit_template())
+
+    def test_score_card_explains_the_severity_weights(self):
+        sentence = ("Your score: each completed report adds its severity score, rounded "
+                    "down, times a weight (Low 1, Medium 2, High 3, Critical 4). "
+                    "A Critical 9.8 adds 36 points. No Report ID needed.")
+        self.assertIn(sentence, self.page())
+        self.assertIn(sentence, read_web_submit_template())
+
+    def test_hall_of_fame_pages_carry_no_points_formula(self):
+        import os
+        from gerobug.settings import BASE_DIR
+        for path in (os.path.join(BASE_DIR, "templates", "halloffame.html"),
+                     os.path.join(os.path.dirname(BASE_DIR), "gerobug_web", "templates",
+                                  "halloffame.html")):
+            with open(path, encoding="utf-8") as fp:
+                self.assertNotIn("Points: each completed report", fp.read(), path)
+
+
+class SubmitSampleRenderTests(TestCase):
+
+    def test_write_submit_sample(self):
+        import os
+        if os.environ.get("GB_WRITE_SAMPLES") != "1":
+            self.skipTest("set GB_WRITE_SAMPLES=1 to write the sample HTML")
+
+        out = os.environ.get("GB_SAMPLE_DIR") or "."
+        os.makedirs(out, exist_ok=True)
+
+        Personalization.objects.create(personalize_id=1)
+        MailBox.objects.create(mailbox_id=1, email="bounty@example.com", password="pw",
+                               mailbox_status=1)
+        response = self.client.get("/submit/")
+        self.assertEqual(response.status_code, 200)
+        with open(os.path.join(out, "oss-submit.html"), "w", encoding="utf-8") as fp:
+            fp.write(response.content.decode())
+
+
+class ScoreSyncTests(TestCase):
+
+    def setUp(self):
+        for i, name in enumerate(PageRenderTests.STATUS_NAMES):
+            ReportStatus.objects.get_or_create(status_id=i, defaults={"status_name": name})
+        Personalization.objects.get_or_create(personalize_id=1)
+        MailBox.objects.create(mailbox_id=1, email="ops@example.com", password="pw", mailbox_status=1)
+        self.hunter = BugHunter.objects.create(
+            hunter_email="hunter@example.com", hunter_username="Hunter", hunter_scores=10)
+        self.report = BugReport.objects.create(
+            report_id="AB12CD34EF56", report_datetime=timezone.now(),
+            hunter_email="hunter@example.com", report_reviewer="reviewer",
+            report_title="Test finding", report_summary="s", report_severity=7.5,
+            report_severitytype="", report_status=6, report_permission=1)
+        self.admin = User.objects.create_superuser(username="admin2", password="x", email="a@b.c")
+        self.client.force_login(self.admin)
+
+    def _override(self, status):
+        self.client.post(reverse("report_override"), {
+            "report_id": self.report.report_id, "title": self.report.report_title,
+            "status": str(status), "endpoint": "", "attack": "", "hunter_name": "Hunter"})
+        self.report.refresh_from_db()
+        if BugHunter.objects.filter(pk=self.hunter.pk).exists():
+            self.hunter.refresh_from_db()
+
+    def test_override_into_completed_awards(self):
+        self._override(7)
+        self.assertEqual((self.hunter.hunter_scores, self.report.report_score_awarded), (31, 21))
+
+    def test_override_out_of_completed_revokes(self):
+        self._override(7)
+        self._override(6)
+        self.assertEqual((self.hunter.hunter_scores, self.report.report_score_awarded), (10, 0))
+
+    def test_override_to_not_valid_revokes(self):
+        self._override(7)
+        self._override(0)
+        self.assertEqual((self.hunter.hunter_scores, self.report.report_score_awarded), (10, 0))
+
+    def test_resaving_completed_does_not_award_twice(self):
+        self._override(7)
+        self._override(7)
+        self.assertEqual((self.hunter.hunter_scores, self.report.report_score_awarded), (31, 21))
+
+    def test_company_action_704_awards_exactly_once(self):
+        from geromail import geromailer, geroparser
+        self.report.report_status = 6
+        self.report.save()
+        with mock.patch("gerocert.gerocert.generate"), \
+                mock.patch.object(geromailer, "write_mail"):
+            geroparser.company_action(self.report.report_id, "", 704)
+        self.report.refresh_from_db()
+        self.hunter.refresh_from_db()
+        self.assertEqual((self.report.report_status, self.report.report_score_awarded), (7, 21))
+        self.assertEqual(self.hunter.hunter_scores, 31)
+
+    def test_revoke_never_goes_below_zero(self):
+        self.hunter.hunter_scores = 0
+        self.hunter.save()
+        self._override(7)
+        self.hunter.hunter_scores = 2
+        self.hunter.save()
+        self._override(5)
+        self.assertEqual(self.hunter.hunter_scores, 0)
+
+    def test_award_without_a_hunter_row_is_harmless(self):
+        BugHunter.objects.all().delete()
+        self._override(7)
+        self.assertEqual(self.report.report_score_awarded, 0)
+
+    def test_severity_edited_while_completed_revokes_the_recorded_award(self):
+        self._override(7)
+        BugReport.objects.filter(report_id=self.report.report_id).update(report_severity=2.0)
+        self.report.refresh_from_db()
+        self._override(6)
+        self.assertEqual((self.hunter.hunter_scores, self.report.report_score_awarded), (10, 0))
+
+    def test_mixed_case_hunter_email_still_finds_the_hunter(self):
+        BugReport.objects.filter(report_id=self.report.report_id).update(
+            hunter_email="HUNTER@Example.COM")
+        self.report.refresh_from_db()
+        self._override(7)
+        self.assertEqual(self.hunter.hunter_scores, 31)
+
+    def test_backfill_fills_awarded_and_keeps_scores(self):
+        from dashboards.models import backfill_report_score_awarded
+        BugReport.objects.filter(report_id=self.report.report_id).update(report_status=7)
+        self.assertEqual(backfill_report_score_awarded(), 1)
+        self.report.refresh_from_db()
+        self.hunter.refresh_from_db()
+        self.assertEqual((self.report.report_score_awarded, self.hunter.hunter_scores), (21, 10))
+
+        self.assertEqual(backfill_report_score_awarded(), 0)
+        self.report.refresh_from_db()
+        self.hunter.refresh_from_db()
+        self.assertEqual((self.report.report_score_awarded, self.hunter.hunter_scores), (21, 10))
+
+    def test_backfilled_report_revokes_the_right_amount(self):
+        from dashboards.models import backfill_report_score_awarded
+        BugReport.objects.filter(report_id=self.report.report_id).update(report_status=7)
+        backfill_report_score_awarded()
+        self._override(6)
+        self.assertEqual((self.hunter.hunter_scores, self.report.report_score_awarded), (0, 0))
+
+
+def read_setting_template():
+    import os
+    from gerobug.settings import BASE_DIR
+    path = os.path.join(BASE_DIR, "templates", "setting.html")
+    with open(path, encoding="utf-8") as fp:
+        return fp.read()
+
+
+class HallOfFameAdminTests(TestCase):
+
+    def setUp(self):
+        for i, name in enumerate(PageRenderTests.STATUS_NAMES):
+            ReportStatus.objects.get_or_create(status_id=i, defaults={"status_name": name})
+        Personalization.objects.get_or_create(personalize_id=1)
+        BlacklistRule.objects.get_or_create(rule_id=1)
+        CertificateData.objects.get_or_create(pk=1)
+        StaticRules.objects.get_or_create(pk=1)
+        MailBox.objects.create(mailbox_id=1, email="ops@example.com", password="pw", mailbox_status=1)
+        self.hunter = BugHunter.objects.create(
+            hunter_email="hunter@example.com", hunter_username="Hunter", hunter_scores=50)
+        self.orphan = BugHunter.objects.create(
+            hunter_email="orphan@example.com", hunter_username="Orphan", hunter_scores=3)
+        self.report = BugReport.objects.create(
+            report_id="AB12CD34EF56", report_datetime=timezone.now(),
+            hunter_email="hunter@example.com", report_reviewer="reviewer",
+            report_title="Test finding", report_summary="s", report_severity=7.5,
+            report_severitytype="", report_status=7, report_score_awarded=0)
+        self.admin = User.objects.create_superuser(username="admin3", password="x", email="a@b.c")
+        self.client.force_login(self.admin)
+        self.url = reverse("hall_of_fame_admin")
+
+    def post(self, **data):
+        return self.client.post(self.url, data)
+
+    def test_search_returns_hunter_rows(self):
+        data = self.client.get(self.url, {"q": "hunter@"}).json()
+        self.assertTrue(data["ok"])
+        self.assertEqual(len(data["hunters"]), 1)
+        row = data["hunters"][0]
+        self.assertEqual((row["email"], row["score"], row["completed_reports"],
+                          row["recomputed_score"], row["hidden"]),
+                         ("hunter@example.com", 50, 1, 21, False))
+        self.assertEqual(row["public_key"], self.hunter.pk)
+
+    def test_search_matches_name_case_insensitively(self):
+        data = self.client.get(self.url, {"q": "orph"}).json()
+        self.assertEqual([h["email"] for h in data["hunters"]], ["orphan@example.com"])
+
+    def test_non_superuser_is_refused(self):
+        self.client.force_login(User.objects.create_user(username="rev", password="x"))
+        self.assertEqual(self.client.get(self.url).status_code, 403)
+        self.post(hunter_id=self.hunter.pk, action="set_score", score="1")
+        self.hunter.refresh_from_db()
+        self.assertEqual(self.hunter.hunter_scores, 50)
+
+    def test_set_score(self):
+        with self.assertLogs("Gerologger", level="INFO") as logs:
+            self.post(hunter_id=self.hunter.pk, action="set_score", score="123")
+        self.hunter.refresh_from_db()
+        self.assertEqual(self.hunter.hunter_scores, 123)
+        self.assertTrue(any("HALL OF FAME set_score" in line for line in logs.output))
+
+    def test_set_score_rejects_bad_values(self):
+        for bad in ("-1", "abc", "1000001", ""):
+            self.post(hunter_id=self.hunter.pk, action="set_score", score=bad)
+            self.hunter.refresh_from_db()
+            self.assertEqual(self.hunter.hunter_scores, 50, bad)
+
+    def test_hide_and_unhide(self):
+        self.post(hunter_id=self.hunter.pk, action="hide")
+        self.hunter.refresh_from_db()
+        self.assertTrue(self.hunter.hunter_hidden)
+        self.post(hunter_id=self.hunter.pk, action="unhide")
+        self.hunter.refresh_from_db()
+        self.assertFalse(self.hunter.hunter_hidden)
+
+    def test_recompute_fixes_drift_and_resets_awarded(self):
+        other = BugReport.objects.create(
+            report_id="CD12CD34EF56", report_datetime=timezone.now(),
+            hunter_email="hunter@example.com", report_reviewer="r",
+            report_summary="s", report_severity=4.0, report_severitytype="",
+            report_status=3, report_score_awarded=4)
+        self.post(hunter_id=self.hunter.pk, action="recompute")
+        self.hunter.refresh_from_db()
+        self.report.refresh_from_db()
+        other.refresh_from_db()
+        self.assertEqual(self.hunter.hunter_scores, 21)
+        self.assertEqual((self.report.report_score_awarded, other.report_score_awarded), (21, 0))
+
+    def test_recompute_then_uncomplete_subtracts_correctly(self):
+        self.post(hunter_id=self.hunter.pk, action="recompute")
+        report = BugReport.objects.get(report_id=self.report.report_id)
+        report.report_status = 6
+        report.save()
+        self.hunter.refresh_from_db()
+        self.assertEqual(self.hunter.hunter_scores, 0)
+
+    def test_delete_refused_when_reports_exist(self):
+        self.post(hunter_id=self.hunter.pk, action="delete")
+        self.assertTrue(BugHunter.objects.filter(pk=self.hunter.pk).exists())
+
+    def test_delete_works_without_reports(self):
+        self.post(hunter_id=self.orphan.pk, action="delete")
+        self.assertFalse(BugHunter.objects.filter(pk=self.orphan.pk).exists())
+
+    def test_recompute_all_requires_typed_confirmation(self):
+        self.post(action="recompute_all")
+        self.hunter.refresh_from_db()
+        self.assertEqual(self.hunter.hunter_scores, 50)
+
+        self.post(action="recompute_all", confirm="RECOMPUTE")
+        self.hunter.refresh_from_db()
+        self.orphan.refresh_from_db()
+        self.assertEqual((self.hunter.hunter_scores, self.orphan.hunter_scores), (21, 0))
+
+    def test_unknown_hunter_and_action_are_refused(self):
+        self.post(hunter_id=999999, action="set_score", score="1")
+        self.post(hunter_id="abc", action="set_score", score="1")
+        self.post(hunter_id=self.hunter.pk, action="nonsense")
+        self.hunter.refresh_from_db()
+        self.assertEqual(self.hunter.hunter_scores, 50)
+
+    def test_hidden_hunters_are_excluded_from_the_hall_of_fame(self):
+        self.client.logout()
+        self.assertContains(self.client.get("/halloffame/"), "Hunter")
+        self.hunter.hunter_hidden = True
+        self.hunter.save()
+        self.assertNotContains(self.client.get("/halloffame/"), "hunter@example.com")
+        response = self.client.get("/halloffame/")
+        self.assertNotContains(response, ">Hunter<")
+
+    def test_xss_name_is_escaped_in_the_json_consumer(self):
+        self.hunter.hunter_username = "<img src=x onerror=1>"
+        self.hunter.save()
+        response = self.client.get(self.url, {"q": "hunter@"})
+        self.assertEqual(response["Content-Type"], "application/json")
+        self.assertEqual(response.json()["hunters"][0]["name"], "<img src=x onerror=1>")
+        self.assertIn("td.textContent = text;", read_setting_template())
+        page = self.client.get("/dashboard/setting").content.decode()
+        self.assertNotIn("<img src=x", page)
+
+    def test_template_uses_textContent_for_row_cells(self):
+        template = read_setting_template()
+        self.assertIn("Hall of Fame", template)
+        self.assertIn("td.textContent = text;", template)
+        self.assertNotIn("innerHTML", template)
+        self.assertIn("Scores update automatically when a report is completed", template)
+        self.assertIn("Points are the severity score, rounded down, times 1 for Low, "
+                      "2 for Medium, 3 for High and 4 for Critical.", template)
+
+    def test_setting_page_shows_the_card(self):
+        response = self.client.get("/dashboard/setting")
+        self.assertContains(response, "Hall of Fame")
+        self.assertContains(response, "Recompute all")
+
+
+class OverrideClearsLastEmailTests(TestCase):
+
+    def setUp(self):
+        for i, name in enumerate(PageRenderTests.STATUS_NAMES):
+            ReportStatus.objects.get_or_create(status_id=i, defaults={"status_name": name})
+        Personalization.objects.get_or_create(personalize_id=1)
+        BlacklistRule.objects.get_or_create(rule_id=1)
+        CertificateData.objects.get_or_create(pk=1)
+        StaticRules.objects.get_or_create(pk=1)
+        MailBox.objects.create(mailbox_id=1, email="ops@example.com", password="pw",
+                              mailbox_status=1)
+        self.report = BugReport.objects.create(
+            report_id="AB12CD34EF56", report_datetime=timezone.now(),
+            hunter_email="hunter@example.com", report_reviewer="reviewer",
+            report_title="Test finding", report_summary="s", report_severity=7.5,
+            report_severitytype="", report_status=5, report_permission=2,
+            last_email_code=702, last_email_note="7.5 HIGH")
+        self.admin = User.objects.create_superuser(username="admin9", password="x",
+                                                   email="a@b.c")
+        self.client.force_login(self.admin)
+
+    def override(self, status):
+        self.client.post(reverse("report_override"), {
+            "report_id": self.report.report_id, "title": self.report.report_title,
+            "status": str(status), "endpoint": "", "attack": "", "hunter_name": ""})
+        self.report.refresh_from_db()
+
+    def test_status_change_clears_the_stale_last_email(self):
+        self.override(3)
+        self.assertEqual((self.report.report_status, self.report.last_email_code,
+                          self.report.last_email_note), (3, 0, ""))
+
+    def test_override_that_keeps_the_status_leaves_the_last_email(self):
+        self.override(5)
+        self.assertEqual((self.report.report_status, self.report.last_email_code,
+                          self.report.last_email_note), (5, 702, "7.5 HIGH"))
+
+
+class SendReminderTests(TestCase):
+
+    def setUp(self):
+        for i, name in enumerate(PageRenderTests.STATUS_NAMES):
+            ReportStatus.objects.get_or_create(status_id=i, defaults={"status_name": name})
+        Personalization.objects.get_or_create(personalize_id=1)
+        BlacklistRule.objects.get_or_create(rule_id=1)
+        CertificateData.objects.get_or_create(pk=1)
+        StaticRules.objects.get_or_create(pk=1)
+        MailBox.objects.create(mailbox_id=1, email="ops@example.com", password="pw",
+                              mailbox_status=1)
+        self.report = BugReport.objects.create(
+            report_id="AB12CD34EF56", report_datetime=timezone.now(),
+            hunter_email="hunter@example.com", report_reviewer="reviewer",
+            report_title="Test finding", report_summary="s", report_severity=7.5,
+            report_severitytype="", report_status=5, report_permission=2,
+            report_calc_sent_at=timezone.now() - timedelta(days=18),
+            last_email_code=702, last_email_note="7.5 HIGH")
+        self.user = User.objects.create_user(username="operator", password="x")
+        self.client.force_login(self.user)
+        self.url = reverse("report_send_reminder", kwargs={"id": self.report.report_id})
+
+    def remind(self, mailbox_ready=True, sent=True):
+        with mock.patch("dashboards.views.geroparser.check_mailbox_status",
+                        return_value=mailbox_ready), \
+                mock.patch("dashboards.views.geromailer.write_mail",
+                           return_value=sent) as write_mail:
+            response = self.client.post(self.url)
+        self.report.refresh_from_db()
+        return response, write_mail
+
+    def messages_of(self, response):
+        from django.contrib.messages import get_messages
+        return [str(m) for m in get_messages(response.wsgi_request)]
+
+    def test_success_sends_one_706_and_stamps_the_field(self):
+        before = self.report.auto_accept_at
+        with self.assertLogs("Gerologger", level="INFO") as logs:
+            response, write_mail = self.remind()
+        self.assertEqual(write_mail.call_count, 1)
+        code, payload, destination = write_mail.call_args[0][:3]
+        self.assertEqual(code, 706)
+        self.assertEqual(destination, "hunter@example.com")
+        self.assertEqual(payload[0], self.report.report_id)
+        self.assertIn("11 days", payload[3])
+        self.assertIn("UTC", payload[3])
+        self.assertIsNotNone(self.report.report_reminder_sent_at)
+        self.assertEqual(self.report.auto_accept_at, before)
+        self.assertEqual((self.report.last_email_code, self.report.last_email_note,
+                          self.report.report_permission), (702, "7.5 HIGH", 2))
+        self.assertTrue(any("REMINDER (code=706)" in line for line in logs.output))
+        self.assertTrue(any("Reminder sent to hunter@example.com." in m
+                            for m in self.messages_of(response)))
+
+    def test_706_body_has_the_time_left_and_both_actions(self):
+        from geromail import geromailer, mail_templates
+        body = mail_templates.messagelist[706]
+        self.assertIn("~NOTE~", body)
+        self.assertIn("~ACTIONS~", body)
+        self.assertEqual(geromailer.ACTION_VERBS[706], ("AGREE", "APPEAL"))
+        actions = geromailer.render_actions_for(706, self.report.report_id)
+        self.assertIn("?subject=AGREE_" + self.report.report_id, actions)
+        self.assertIn("?subject=APPEAL_" + self.report.report_id, actions)
+
+    def test_report_not_waiting_is_refused(self):
+        BugReport.objects.filter(report_id=self.report.report_id).update(report_permission=0)
+        self.report.refresh_from_db()
+        response, write_mail = self.remind()
+        write_mail.assert_not_called()
+        self.assertIsNone(self.report.report_reminder_sent_at)
+        self.assertIn("This report is not waiting for the hunter's decision, so there "
+                      "is nothing to remind.", self.messages_of(response))
+
+    def test_passed_deadline_is_refused(self):
+        BugReport.objects.filter(report_id=self.report.report_id).update(
+            report_calc_sent_at=timezone.now() - timedelta(days=31))
+        self.report.refresh_from_db()
+        response, write_mail = self.remind()
+        write_mail.assert_not_called()
+        self.assertIsNone(self.report.report_reminder_sent_at)
+        self.assertIn("The decision deadline has passed. The report will be accepted "
+                      "on the next mail check.", self.messages_of(response))
+
+    def test_second_click_within_24_hours_is_refused(self):
+        self.remind()
+        self.report.refresh_from_db()
+        stamped = self.report.report_reminder_sent_at
+        response, write_mail = self.remind()
+        write_mail.assert_not_called()
+        self.assertEqual(self.report.report_reminder_sent_at, stamped)
+        refusal = [m for m in self.messages_of(response)
+                   if m.startswith("A reminder was already sent on")]
+        self.assertEqual(len(refusal), 1)
+        self.assertIn("You can send another after", refusal[0])
+        self.assertEqual(refusal[0].count("UTC"), 2)
+
+    def test_a_reminder_older_than_24_hours_can_be_repeated(self):
+        BugReport.objects.filter(report_id=self.report.report_id).update(
+            report_reminder_sent_at=timezone.now() - timedelta(hours=25))
+        self.report.refresh_from_db()
+        response, write_mail = self.remind()
+        self.assertEqual(write_mail.call_count, 1)
+
+    def test_write_mail_false_leaves_the_field_none(self):
+        response, write_mail = self.remind(sent=False)
+        self.assertEqual(write_mail.call_count, 1)
+        self.assertIsNone(self.report.report_reminder_sent_at)
+        self.assertIn("The reminder could not be sent. Check the mailbox settings and "
+                      "the logs, then try again.", self.messages_of(response))
+
+    def test_mailbox_not_ready_sends_nothing(self):
+        response, write_mail = self.remind(mailbox_ready=False)
+        write_mail.assert_not_called()
+        self.assertIsNone(self.report.report_reminder_sent_at)
+
+    def test_get_is_not_allowed(self):
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+
+    def test_anonymous_is_redirected_to_login(self):
+        self.client.logout()
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login/", response["Location"])
+
+    def test_detail_page_offers_the_button_and_the_last_reminder_line(self):
+        page = self.client.get("/dashboard/report-detail/" + self.report.report_id).content.decode()
+        self.assertIn(self.url, page)
+        self.assertIn("Send Reminder", page)
+        calc = page.index(">Send Calculations</button>")
+        self.assertGreater(page.index(">Send Reminder</button>"), calc)
+        self.assertLess(page.index(">Send Reminder</button>") - calc, 600)
+        self.assertNotIn("Last reminder sent", page)
+        self.remind()
+        page = self.client.get("/dashboard/report-detail/" + self.report.report_id).content.decode()
+        self.assertIn("Last reminder sent", page)
+
+
+class SeverityWeightTests(TestCase):
+
+    CASES = ((0.0, 0), (3.9, 3), (4.0, 8), (6.9, 12), (7.0, 21),
+             (8.9, 24), (9.0, 36), (9.8, 36), (10.0, 40))
+
+    def test_severity_points_pins_every_band(self):
+        from dashboards.models import severity_points
+        for score, expected in self.CASES:
+            self.assertEqual(severity_points(score), expected, score)
+
+    def test_weights_are_the_agreed_table(self):
+        from dashboards.models import SEVERITY_WEIGHTS
+        self.assertEqual(SEVERITY_WEIGHTS,
+                         {"Low": 1, "Medium": 2, "High": 3, "Critical": 4})
+
+    def test_report_points_uses_severity_points(self):
+        from dashboards.models import report_points, severity_points
+        for score, expected in self.CASES:
+            report = BugReport(report_id="ZZ00ZZ00ZZ00", report_severity=score)
+            self.assertEqual(report_points(report), expected, score)
+            self.assertEqual(report_points(report), severity_points(score), score)
+
+
+class HallOfFameRescoreTests(TestCase):
+
+    def setUp(self):
+        for i, name in enumerate(PageRenderTests.STATUS_NAMES):
+            ReportStatus.objects.get_or_create(status_id=i, defaults={"status_name": name})
+        self.hunter = BugHunter.objects.create(
+            hunter_email="hunter@example.com", hunter_username="Hunter", hunter_scores=5)
+        self.report = BugReport.objects.create(
+            report_id="AB12CD34EF56", report_datetime=timezone.now(),
+            hunter_email="hunter@example.com", report_reviewer="r",
+            report_title="t", report_summary="s", report_severity=9.8,
+            report_severitytype="", report_status=7, report_score_awarded=9)
+
+    def test_rescore_recomputes_every_hunter_once(self):
+        from dashboards.models import HallOfFameScoring, rescore_hall_of_fame
+        with self.assertLogs("Gerologger", level="INFO") as logs:
+            self.assertEqual(rescore_hall_of_fame(), 1)
+        self.hunter.refresh_from_db()
+        self.report.refresh_from_db()
+        self.assertEqual((self.hunter.hunter_scores, self.report.report_score_awarded), (36, 36))
+        self.assertTrue(any("Hall of Fame: rescored 1 hunter(s) with severity weights" in line
+                            for line in logs.output))
+        self.assertEqual(HallOfFameScoring.objects.get(pk=1).scoring_version, 2)
+
+    def test_a_second_call_keeps_a_manual_correction(self):
+        from dashboards.models import rescore_hall_of_fame
+        rescore_hall_of_fame()
+        self.hunter.hunter_scores = 1234
+        self.hunter.save(update_fields=['hunter_scores'])
+        self.assertEqual(rescore_hall_of_fame(), 0)
+        self.hunter.refresh_from_db()
+        self.assertEqual(self.hunter.hunter_scores, 1234)
+
+    def test_duplicate_hunter_rows_do_not_count_reports_twice(self):
+        from dashboards.models import rescore_hall_of_fame
+        twin = BugHunter.objects.create(
+            hunter_email="HUNTER@Example.com", hunter_username="Twin", hunter_scores=7)
+        self.assertEqual(rescore_hall_of_fame(), 2)
+        self.hunter.refresh_from_db()
+        twin.refresh_from_db()
+        self.assertEqual((self.hunter.hunter_scores, twin.hunter_scores), (36, 0))
+
+    def test_recompute_hunter_score_returns_before_and_total(self):
+        from dashboards.models import recompute_hunter_score
+        self.assertEqual(recompute_hunter_score(self.hunter), (5, 36))
+
+
+class ReportActionGateFixture(TestCase):
+
+    REPORT_ID = "GATE00000001"
+    STATUS_NAMES = ((0, "Not Valid"), (1, "Need to Review"), (2, "In Review"),
+                    (3, "Fixing"), (4, "Fixing (Retest)"), (5, "Bounty Calculation"),
+                    (6, "Bounty in Process"), (7, "Completed"))
+
+    def setUp(self):
+        for sid, name in self.STATUS_NAMES:
+            ReportStatus.objects.get_or_create(status_id=sid, defaults={'status_name': name})
+        MailBox.objects.create(
+            mailbox_id=1, email="ops@example.com", password="pw", mailbox_status=1)
+        Personalization.objects.get_or_create(personalize_id=1)
+        self.hunter = BugHunter.objects.create(
+            hunter_email="hunter@example.com", hunter_username="h1", hunter_scores=0)
+        self.user = User.objects.create_user(username="gatereviewer", password="x")
+        reviewer_group, _ = Group.objects.get_or_create(name="Reviewer")
+        self.user.groups.add(reviewer_group)
+        self.client.force_login(self.user)
+        self.report = BugReport.objects.create(
+            report_id=self.REPORT_ID, report_datetime=timezone.now(),
+            hunter_email="hunter@example.com", report_reviewer="r",
+            report_title="A finding", report_endpoint="https://x.test",
+            report_attack="XSS", report_summary="s", report_severitytype="",
+            report_severity=7.0, report_status=1)
+
+        thread_patcher = mock.patch("dashboards.views.threading.Thread")
+        self.thread = thread_patcher.start()
+        self.addCleanup(thread_patcher.stop)
+        mailbox_patcher = mock.patch(
+            "dashboards.views.geroparser.check_mailbox_status", return_value=True)
+        mailbox_patcher.start()
+        self.addCleanup(mailbox_patcher.stop)
+
+    def _force_status(self, status):
+        BugReport.objects.filter(report_id=self.REPORT_ID).update(report_status=status)
+        self.report = self._reload()
+
+    def _reload(self):
+        return BugReport.objects.get(report_id=self.REPORT_ID)
+
+    def _score(self):
+        self.hunter.refresh_from_db()
+        return self.hunter.hunter_scores
+
+    def _post_invalid(self, **extra):
+        return self.client.post(
+            "/dashboard/invalid-handling/" + self.REPORT_ID,
+            {"invalidreasons": "not reproducible in any environment"}, **extra)
+
+    def _post_move(self, **extra):
+        return self.client.post(
+            "/dashboard/report-detail/" + self.REPORT_ID + "/move/", **extra)
+
+
+class ReportActionStatusGateTests(ReportActionGateFixture):
+
+    def test_invalid_is_refused_outside_review(self):
+        for status in (0, 3, 4, 5, 6, 7):
+            with self.subTest(status=status):
+                self._force_status(status)
+                duplicate_before = self._reload().report_duplicate
+                score_before = self._score()
+                self.thread.reset_mock()
+
+                self._post_invalid()
+
+                report = self._reload()
+                self.assertEqual(report.report_status, status)
+                self.assertEqual(report.report_duplicate, duplicate_before)
+                self.thread.assert_not_called()
+                self.assertEqual(self._score(), score_before)
+
+    def test_invalid_is_allowed_in_review(self):
+        for status in (1, 2):
+            with self.subTest(status=status):
+                self._force_status(status)
+                self._post_invalid()
+                self.assertEqual(self._reload().report_status, 0)
+
+    def test_move_is_refused_outside_review_and_fixing(self):
+        for status in (0, 5, 6, 7):
+            with self.subTest(status=status):
+                self._force_status(status)
+                self.thread.reset_mock()
+
+                self._post_move()
+
+                self.assertEqual(self._reload().report_status, status)
+                self.thread.assert_not_called()
+
+    def test_move_advances_review_and_fixing(self):
+        for status in (1, 2, 3, 4):
+            with self.subTest(status=status):
+                self._force_status(status)
+                self._post_move()
+                self.assertEqual(self._reload().report_status, status + 1)
+
+    def test_refusal_answers_ajax_with_json_400(self):
+        from dashboards.views import INVALIDATE_REFUSED_MSG
+        self._force_status(7)
+        response = self._post_invalid(HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error"], INVALIDATE_REFUSED_MSG)
+        self.assertEqual(self._reload().report_status, 7)
+
+    def test_completed_report_cannot_be_recycled_for_points(self):
+        self._force_status(6)
+        report = self._reload()
+        report.report_status = 7
+        report.save()
+        self.assertEqual(self._score(), 21)
+
+        self._post_invalid()
+        self._post_move()
+
+        self.assertEqual(self._reload().report_status, 7)
+        self.assertEqual(self._score(), 21)
+
+    def test_delete_is_refused_unless_not_valid(self):
+        url = "/dashboard/report-detail/" + self.REPORT_ID + "/delete/"
+        with tempfile.TemporaryDirectory() as media_root:
+            report_dir = os.path.join(media_root, self.REPORT_ID)
+            with mock.patch("dashboards.views.MEDIA_ROOT", media_root):
+                for status in (1, 2, 7):
+                    with self.subTest(status=status):
+                        self._force_status(status)
+                        os.makedirs(report_dir, exist_ok=True)
+
+                        self.client.get(url)
+                        self.client.post(url)
+
+                        self.assertTrue(BugReport.objects.filter(
+                            report_id=self.REPORT_ID).exists())
+                        self.assertTrue(os.path.exists(report_dir))
+
+    def test_delete_is_allowed_when_not_valid(self):
+        self._force_status(0)
+        response = self.client.post(
+            "/dashboard/report-detail/" + self.REPORT_ID + "/delete/")
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(BugReport.objects.filter(report_id=self.REPORT_ID).exists())
+
+    def test_delete_still_sends_anonymous_callers_to_login(self):
+        self._force_status(7)
+        self.client.logout()
+        response = self.client.get(
+            "/dashboard/report-detail/" + self.REPORT_ID + "/delete/")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login/", response["Location"])
+        self.assertTrue(BugReport.objects.filter(report_id=self.REPORT_ID).exists())
+
+    def test_superuser_override_still_reopens_not_valid(self):
+        self._force_status(0)
+        admin = User.objects.create_superuser(username="gateadmin", password="x",
+                                              email="ga@a.test")
+        self.client.force_login(admin)
+        self.client.post(reverse('report_override'), {
+            'report_id': self.REPORT_ID, 'title': 'A finding', 'status': '1',
+            'endpoint': 'https://x.test', 'attack': 'XSS', 'bounty': '0',
+            'hunter_name': 'h1'})
+        self.assertEqual(self._reload().report_status, 1)
+
+    def test_bounty_stages_still_advance_through_their_own_actions(self):
+        from geromail import geroparser
+
+        BugReport.objects.filter(report_id=self.REPORT_ID).update(
+            report_status=5, report_permission=2,
+            report_calc_sent_at=timezone.now() - timedelta(days=31))
+        with mock.patch("geromail.geromailer.write_mail"), \
+             mock.patch("geromail.geronotify.notify"):
+            geroparser.check_auto_agree()
+        self.assertEqual(self._reload().report_status, 6)
+
+        class InlineThread:
+            def __init__(self, target=None, args=(), kwargs=None, daemon=None):
+                self._target, self._args = target, args
+                self._kwargs = kwargs or {}
+
+            def start(self):
+                self._target(*self._args, **self._kwargs)
+
+        with mock.patch("dashboards.views.threading.Thread", InlineThread), \
+             mock.patch("django.db.connection.close"), \
+             mock.patch("gerocert.gerocert.generate"), \
+             mock.patch("geromail.geromailer.write_mail"):
+            response = self.client.post(
+                "/dashboard/form-handling/" + self.REPORT_ID + "/1",
+                {"reasons": "bounty paid, thank you for the report"})
+        self.assertEqual(response.status_code, 302)
+        report = self._reload()
+        self.assertEqual(report.report_status, 7)
+        self.assertEqual(report.report_score_awarded, 21)
+        self.assertEqual(self._score(), 21)

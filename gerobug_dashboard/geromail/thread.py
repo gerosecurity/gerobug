@@ -1,5 +1,4 @@
 import threading, logging, time, traceback
-from logging.handlers import TimedRotatingFileHandler
 from . import geroparser
 
 
