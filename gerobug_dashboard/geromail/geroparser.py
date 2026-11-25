@@ -51,10 +51,39 @@ def read_submission(msg):
     return body, pdf, gerofilter.pdf_reason_text(reason, size)
 
 
+MAX_RAW_MESSAGE_BYTES = 40 * 1024 * 1024
+
+
+def bounded_fetch(mail, message_id, parts='(RFC822)'):
+    status, rows = mail.fetch(str(message_id), '(RFC822.SIZE)')
+    if status != 'OK':
+        return ('NO', [])
+    sizes = []
+    for row in rows:
+        header = row[0] if isinstance(row, tuple) else row
+        if not isinstance(header, bytes):
+            continue
+        match = re.search(rb'RFC822.SIZE\s+(\d+)', header)
+        if match:
+            sizes.append(int(match.group(1)))
+    if len(sizes) != 1 or not 0 < sizes[0] <= MAX_RAW_MESSAGE_BYTES:
+        return ('NO', [])
+    return mail.fetch(str(message_id), parts)
+
+
 def parse_raw_message(raw):
+    if len(raw) > MAX_RAW_MESSAGE_BYTES:
+        raise ValueError("Message exceeds the 40 MiB limit")
+    count = 0
+    def factory(*args, **kwargs):
+        nonlocal count
+        count += 1
+        if count > gerofilter.MAX_MIME_PARTS:
+            raise ValueError("Message exceeds the 32 MIME part limit")
+        return email.message.Message(*args, **kwargs)
     if isinstance(raw, bytes):
-        return email.message_from_bytes(raw)
-    return email.message_from_string(str(raw))
+        return email.message_from_bytes(raw, _class=factory)
+    return email.message_from_string(str(raw), _class=factory)
 
 
 # SERVER RECEIVE TIME (IMAP INTERNALDATE), NEVER THE SENDER-WRITTEN Date:
@@ -549,7 +578,7 @@ def read_mail(mail, folder_name='inbox'):
                 claimed = ''
                 try:
                     i = int(i_str)
-                    data = mail.fetch(str(i), '(INTERNALDATE RFC822)')
+                    data = bounded_fetch(mail, i, '(INTERNALDATE RFC822)')
                     for response_part in data:
                         arr = response_part[0]
 
@@ -1069,61 +1098,34 @@ def read_mail(mail, folder_name='inbox'):
 
 # PARSE COMPANY REQUEST geroparser.request(id, note, 701/702/703)
 def company_action(id, note, code):
-    report = BugReport.objects.get(report_id=id)
-    
-    if code == 701: # REQUEST AMEND
-        logging.getLogger("Gerologger").info('[CODE 701] Request Amend to Bug Hunter')
-        if not gerofilter.validate_permission("U", id):
-            report.report_permission = report.report_permission + 4 
-            report.save()
-        
-    elif code == 702: # SEND BOUNTY CALCULATIONS
-        logging.getLogger("Gerologger").info('[CODE 702] Send Bounty Calculations')
-        if not gerofilter.validate_permission("A", id):
-            report.report_permission = report.report_permission + 2
-        report.report_calc_sent_at = timezone.now()
-        report.save()
-        
-    elif code == 703: # REQUEST NDA and OTHERS
-        logging.getLogger("Gerologger").info('[CODE 703] Request NDA and Other Requirements to Bug Hunter')
-        if not gerofilter.validate_permission("N", id):
-            report.report_permission = report.report_permission + 1
-            report.save()
-
-    elif code == 705: # REQUEST PREREQUISITES ONLY (NO NDA)
-        logging.getLogger("Gerologger").info('[CODE 705] Request Bounty Prerequisites (No NDA) to Bug Hunter')
-        if not gerofilter.validate_permission("N", id):
-            report.report_permission = report.report_permission + 1
-            report.save()
-
-    elif code == 704: # SEND CERTIFICATE and BOUNTY PROOF TO HUNTER
-        # GET HUNTER NAME AND GENERATE CERTIFICATE
-        hunter_email = report.hunter_email
-        hunter = BugHunter.objects.get(hunter_email=hunter_email)
-
-        try:
-            gerocert.gerocert.generate(id, hunter.hunter_username, int(report.report_severity))
-
-            # UPDATE REPORT STATUS TO COMPLETE
-            report.report_status += 1
-            report.save()
-            
-            logging.getLogger("Gerologger").info('[CODE 704] Send Certificate and Bounty Proof to Bug Hunter')
-
-        except Exception as e:
-            logging.getLogger("Gerologger").error('[ERROR 704] Failed to Complete Report: '+str(e))
-
-    payload = [id, report.report_title, report.report_status, note, report.report_severity]
-    destination = report.hunter_email
-
-    try:
+    allowed = {701: (2, 3, 4), 702: (5,), 703: (6,), 705: (6,), 704: (6,)}
+    with transaction.atomic():
+        report = BugReport.objects.select_for_update().get(report_id=id)
+        if report.report_status not in allowed.get(code, ()):
+            return False
+        if code == 701:
+            report.report_permission |= 4
+        elif code == 702:
+            report.report_permission |= 2
+            report.report_calc_sent_at = timezone.now()
+        elif code in (703, 705):
+            report.report_permission |= 1
+        elif code == 704:
+            hunter = BugHunter.objects.get(hunter_email=report.hunter_email)
+            report.report_status = 7
         report.last_email_code = code
         report.last_email_note = note or ''
-        report.save(update_fields=['last_email_code', 'last_email_note'])
-    except Exception as e:
-        logging.getLogger("Gerologger").warning(f"Could not record last email for {id}: {e}")
+        report.save()
+        payload = [id, report.report_title, report.report_status, note, report.report_severity]
+        destination = report.hunter_email
 
-    geromailer.write_mail(code, payload, destination)
+        def notify():
+            if code == 704:
+                gerocert.gerocert.generate(id, hunter.hunter_username, int(report.report_severity))
+            geromailer.write_mail(code, payload, destination)
+
+        transaction.on_commit(notify)
+    return True
 
 def check_mailbox_status():
     global MAILBOX_READY
@@ -1298,28 +1300,36 @@ def recover_loss_file_handler(BUGREPORTS):
         logging.getLogger("Gerologger").info("SUCCESS RATE: " +  str(success_rate) + "%")
 
 
-def _closest_message_id(mail, id_list, when):
-    if when is None or len(id_list) == 1:
-        return int(id_list[-1])
+def _recovery_subject(subject):
+    decoded = str(email.header.make_header(decode_header(subject)))
+    decoded = normalize('NFKC', decoded).strip()
+    return re.sub(r'^(?:(?:re|fw|fwd):\s*)+', '', decoded, flags=re.IGNORECASE)
 
-    target = when.timestamp()
-    best = int(id_list[-1])
+
+def _closest_message(mail, id_list, when, hunter_email, subjects):
+    best = None
     best_distance = None
-    for raw_id in id_list:
+    target = when.timestamp() if when is not None else None
+    expected = {_recovery_subject(subject) for subject in subjects}
+    for raw_id in sorted(set(id_list), key=int):
         try:
-            data = mail.fetch(str(int(raw_id)), '(BODY.PEEK[HEADER.FIELDS (DATE)])')
-            for response_part in data[1] if isinstance(data, tuple) else data:
-                part = response_part[1] if isinstance(response_part, tuple) else None
-                if part is None:
+            status, rows = bounded_fetch(mail, int(raw_id))
+            if status != 'OK':
+                continue
+            for row in rows:
+                if not isinstance(row, tuple) or not isinstance(row[1], bytes):
                     continue
-                candidate = parse_raw_message(part)
-                distance = abs(message_timestamp(candidate) - target)
-                if best_distance is None or distance < best_distance:
-                    best_distance = distance
-                    best = int(raw_id)
-        except Exception as e:
-            logging.getLogger("Gerologger").debug(f"Could not read the date of message {raw_id}: {e}")
-
+                msg = parse_raw_message(row[1])
+                if (len(msg.get_all('from', [])) != 1
+                        or len(msg.get_all('subject', [])) != 1
+                        or parse_sender(msg.get('from'))[1].strip().casefold() != hunter_email.strip().casefold()
+                        or _recovery_subject(msg.get('subject', '')) not in expected):
+                    continue
+                distance = abs(message_timestamp(msg) - target) if target is not None else 0
+                if best_distance is None or distance <= best_distance:
+                    best, best_distance = msg, distance
+        except (ValueError, TypeError, IndexError, imaplib.IMAP4.error):
+            continue
     return best
 
 
@@ -1344,7 +1354,7 @@ def recover_loss_file(id, type, when=None):
 
     try:
         # LOGIN TO IMAP / MAIL SERVER
-        mail = imaplib.IMAP4_SSL(IMAP_SERVER)
+        mail = imaplib.IMAP4_SSL(IMAP_SERVER, IMAP_PORT, ssl_context=_get_ssl_context(), timeout=30)
         mail.login(EMAIL,PWD)
 
         # READ DATA FROM INBOX
@@ -1369,22 +1379,19 @@ def recover_loss_file(id, type, when=None):
                 data = mail.search(None, SEARCH)
 
             mail_ids = data[1]
-            id_list = mail_ids[0].split()
-            if id_list:
-                break
+            id_list.extend(mail_ids[0].split())
 
         # ITERATE THROUGH LIST OF EMAILS
         if(id_list):
-            latest_email_id = _closest_message_id(mail, id_list, when)
-            data = mail.fetch(str(latest_email_id), '(RFC822)' )
-
-            for response_part in data:
-                arr = response_part[0]
-
-                # EMAIL EXISTS
-                if isinstance(arr, tuple):
-                    msg = parse_raw_message(arr[1])
-                    recover = gerofilter.validate_attachment(msg, id, MEDIA_ROOT) 
+            expected = {
+                None: ['SUBMIT_' + report_title],
+                'U': ['UPDATE_' + report_id],
+                'A': ['APPEAL_' + report_id],
+                'N': ['DATA_' + report_id, 'NDA_' + report_id],
+            }[type]
+            msg = _closest_message(mail, id_list, when, hunter_email, expected)
+            if msg is not None:
+                recover = gerofilter.validate_attachment(msg, id, MEDIA_ROOT)
         else:
             logging.getLogger("Gerologger").error('SEARCHED EMAIL NOT FOUND = ' + str(SEARCH))  
 

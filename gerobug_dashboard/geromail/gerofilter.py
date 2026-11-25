@@ -9,6 +9,8 @@ from gerobug.settings import MEDIA_ROOT
 
 
 MAX_PDF_BYTES = 25_000_000
+MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024
+MAX_MIME_PARTS = 32
 
 FIELD_LIMITS = {
     "title": (3, 150),
@@ -233,7 +235,34 @@ def extract_pdf_sized(msg):
     reason = "none"
     reason_size = 0
 
+    parts = []
+    total = 0
+    oversized = set()
     for part in msg.walk():
+        parts.append(part)
+        if len(parts) > MAX_MIME_PARTS:
+            return None, "resource_limit", 0
+        if part.is_multipart():
+            continue
+        payload = part.get_payload(decode=False) or ''
+        size = len(payload)
+        if str(part.get('Content-Transfer-Encoding', '')).lower() == 'base64':
+            compact = re.sub(r'[ \t\r\n]', '', payload)
+            unpadded = compact.rstrip('=')
+            padding = len(compact) - len(unpadded)
+            if len(compact) % 4 == 0 and padding <= 2 and re.fullmatch(r'[A-Za-z0-9+/]*', unpadded):
+                size = len(compact) // 4 * 3 - padding
+        if part.get_filename() and size > MAX_PDF_BYTES:
+            oversized.add(id(part))
+            if looks_like_pdf(part, b""):
+                reason, reason_size = "too_large", size
+        total += size
+        if total > MAX_ATTACHMENT_BYTES:
+            return None, "resource_limit", total
+
+    for part in parts:
+        if id(part) in oversized:
+            continue
         if part.get_content_maintype() == 'multipart':
             continue
         if part.get('Content-Disposition') is None:
@@ -271,6 +300,8 @@ def extract_pdf(msg):
 
 
 def pdf_reason_text(reason, size=0):
+    if reason == "resource_limit":
+        return "Email exceeds the 25 MiB cumulative attachment or 32 MIME part limit. Send large evidence as a link."
     if reason == "too_large":
         return REASON_PDF_TOO_LARGE.format(mb=size / 1000000.0)
     if reason == "not_pdf":

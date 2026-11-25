@@ -142,6 +142,8 @@ EMAIL_HOST_USER = ""
 EMAIL_HOST_PASSWORD = ""
 
 SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = os.getenv('GEROBUG_SECURE_COOKIES', 'false').lower() == 'true'
+CSRF_COOKIE_SECURE = os.getenv('GEROBUG_SECURE_COOKIES', 'false').lower() == 'true'
 
 
 # MEDIA

@@ -10,6 +10,38 @@
   their completed reports, which replaces any manual score correction made in
   Settings > Hall of Fame.
 
+### Hall of Fame
+
+- **Scores stay in sync with Completed.** Completing a report awards the hunter
+  its severity points, and moving a report back out of Completed takes exactly
+  those points away again. Every path is covered: the completion email (code
+  704), Troubleshooting > Override Report Fields, the Kanban board and any
+  future path, because the award now happens in one place when the status
+  changes. A score can never go below zero.
+- **New operator tool: Settings > Troubleshooting > Hall of Fame**
+  (superuser only). Search hunters by email or name, then per hunter: set the
+  score by hand, hide the hunter from the public Hall of Fame without losing
+  their score, recompute the score from their completed reports, or delete a
+  hunter who has no reports at all. A hunter with reports can only be hidden,
+  so their certificates can still be resent. Recompute All recomputes every
+  hunter and needs a typed RECOMPUTE confirmation. Every action is written to
+  the server log.
+- **Hidden hunters** no longer appear on the public Hall of Fame page, and
+  still receive MY_SCORE replies with their real score.
+
+### Reports
+
+- **Send Reminder for a bounty decision** (code 706). A report waiting for the
+  hunter to agree or appeal can be reminded from the report page, next to Send
+  Calculations. The reminder repeats the severity, the time left to agree or
+  appeal, and what happens if the hunter does not answer. It is refused when
+  the report is not waiting for a decision, when the deadline has already
+  passed, and for 24 hours after the last reminder. Every reminder is written
+  to the server log.
+- **An override that changes the status clears the stale last email.**
+  Troubleshooting > Override Report Fields no longer leaves the previous email
+  code and note on a report whose status it just moved.
+
 ### Fixed
 
 - **Long subjects are no longer rejected or stored broken.** Mail clients fold
@@ -39,25 +71,21 @@
   reserved word (`admin`, `security`, ...), contain the platform or company
   name, or imitate one with look-alike characters are replaced with
   `hunter-<6 hex>`. A name already used by another hunter gets a suffix.
-
-### Hall of Fame
-
-- **Scores stay in sync with Completed.** Completing a report awards the hunter
-  its severity points, and moving a report back out of Completed takes exactly
-  those points away again. Every path is covered: the completion email (code
-  704), Troubleshooting > Override Report Fields, the Kanban board and any
-  future path, because the award now happens in one place when the status
-  changes. A score can never go below zero.
-- **New operator tool: Settings > Troubleshooting > Hall of Fame**
-  (superuser only). Search hunters by email or name, then per hunter: set the
-  score by hand, hide the hunter from the public Hall of Fame without losing
-  their score, recompute the score from their completed reports, or delete a
-  hunter who has no reports at all. A hunter with reports can only be hidden,
-  so their certificates can still be resent. Recompute All recomputes every
-  hunter and needs a typed RECOMPUTE confirmation. Every action is written to
-  the server log.
-- **Hidden hunters** no longer appear on the public Hall of Fame page, and
-  still receive MY_SCORE replies with their real score.
+- **Recovery uses certificate-verified IMAP TLS and the configured port**, and
+  checks the fetched sender and the exact decoded subject before storing
+  attachments. Recovery considers only a matching sender and normalized full
+  subjects, including reply prefixes and legacy NDA subjects.
+- **Operator actions lock and recheck report state.** Completion moves 6 to 7
+  once, and the score change commits before certificate generation and mail
+  delivery. A failed delivery needs an explicit administrator resend, not
+  another completion.
+- **Intake is bounded before any decoding.** Raw messages are limited to
+  40 MiB, the cumulative MIME payload estimate to 25 MiB and MIME parts to 32,
+  all before attachment decoding. The existing 25 MB per-PDF limit remains.
+  IMAP size metadata is checked before full retrieval, and a message whose
+  server supplies no valid size metadata is skipped. The MIME part limit also
+  applies while parsing a raw message, and a malformed transfer encoding
+  cannot bypass the attachment-size preflight.
 
 ### Upgrade notes
 
@@ -65,15 +93,21 @@
   public IP behind NAT) now get HTTP 400. Add the extra names, separated by
   commas, as `GEROBUG_ALLOWED_HOSTS=...` in
   `gerobug_dashboard/secrets/gerobug_secret.env` and restart.
+- **HTTPS dashboard deployments** can set `GEROBUG_SECURE_COOKIES=true` in
+  `gerobug_dashboard/secrets/gerobug_secret.env`. Both the session and the CSRF
+  cookie then require HTTPS. The default stays false for existing local HTTP
+  tunnels.
 - Report titles stored with line breaks from folded subjects are unfolded once
   on first boot.
 - Two new fields are added: `report_score_awarded` on a report (the points that
   report currently contributes) and `hunter_hidden` on a bug hunter.
-- Existing hunter scores are kept exactly as they are. On first boot, completed
+- On upgrade every hunter's Hall of Fame score is recomputed once from their
+  completed reports, which replaces any manual score correction. Completed
   reports are back-filled with the points they awarded, so a later move out of
-  Completed subtracts the right amount. The backfill is idempotent and never
-  changes a hunter score. If an old score has drifted, correct it with
-  Recompute in the new Hall of Fame card.
+  Completed subtracts the right amount. The backfill is idempotent.
+- Existing stored attachments and scores are not retrospectively repaired.
+  Existing Settings > Rules text is preserved; administrators should
+  communicate the new message limits to hunters.
 
 ## v4.0 - 29 OCT 2026
 

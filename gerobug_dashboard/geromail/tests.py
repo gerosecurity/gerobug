@@ -686,6 +686,8 @@ class FakeIMAP:
 
     def fetch(self, num, parts):
         raw = self.messages[int(num) - 1]
+        if parts == "(RFC822.SIZE)":
+            return ("OK", [str(num).encode() + b" (RFC822.SIZE " + str(len(raw)).encode() + b")"])
         header = str(num).encode() + b" (RFC822 {" + str(len(raw)).encode() + b"}"
         return ("OK", [(header, raw)])
 
