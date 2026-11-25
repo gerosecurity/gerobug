@@ -482,6 +482,8 @@ class TroubleshootTests(TroubleshootFixture):
         self.assertIsNone(self.report.report_calc_sent_at)
 
     def test_invalid_handler_records_its_reason(self):
+        self.report.report_status = 2
+        self.report.save()
         with mock.patch("dashboards.views.geroparser.check_mailbox_status", return_value=True), \
                 mock.patch("dashboards.views.threading.Thread"):
             self.client.post(self.reverse("invalid_handler", args=[self.report.report_id]),
@@ -558,6 +560,12 @@ class TroubleshootTests(TroubleshootFixture):
 
 
 class InvalidDuplicateOfTests(TroubleshootFixture):
+
+    def setUp(self):
+        super().setUp()
+        self.report.report_status = 2
+        self.report.save()
+
     def _invalid(self, **data):
         with mock.patch("dashboards.views.geroparser.check_mailbox_status", return_value=True), \
                 mock.patch("dashboards.views.threading.Thread"):
@@ -577,11 +585,11 @@ class InvalidDuplicateOfTests(TroubleshootFixture):
 
     def test_unknown_original_is_rejected(self):
         self._invalid(duplicate_of="ZZ99YY88XX77")
-        self.assertEqual((self.report.report_status, self.report.report_duplicate), (5, 0))
+        self.assertEqual((self.report.report_status, self.report.report_duplicate), (2, 0))
 
     def test_self_reference_is_rejected(self):
         self._invalid(duplicate_of=self.report.report_id)
-        self.assertEqual(self.report.report_status, 5)
+        self.assertEqual(self.report.report_status, 2)
 
     def test_blank_keeps_a_plain_invalid_marking(self):
         self._invalid(duplicate_of="")
@@ -728,6 +736,8 @@ class HunterCommentDashboardTests(TestCase):
                                     report_id=self.report.report_id,
                                     nda_datetime=timezone.now(),
                                     nda_summary="n", nda_file=0)
+        self.report.report_status = 0
+        self.report.save()
         response = self.client.post("/dashboard/report-detail/AB12CD34EF56/delete/")
         self.assertEqual(response.status_code, 302)
         self.assertEqual(BugReport.objects.count(), 0)
