@@ -1,5 +1,5 @@
 ## 📄 Contributor License Agreement (CLA) — Gerobug
-Effective date: <merge date>. Contributions made before this date remain under the version of this CLA in force at the time.
+Effective date: 25 November 2026. Contributions made before this date remain under the version of this CLA in force at the time.
 
 This CLA applies to all contributions submitted to the Gerobug project maintained by the Maintainer (defined in Section 2).
 
