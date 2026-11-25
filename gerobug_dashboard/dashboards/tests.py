@@ -201,6 +201,11 @@ class PageRenderTests(TestCase):
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 200)
 
+    def test_report_detail_uses_the_dark_panel(self):
+        html = self.client.get("/dashboard/report-detail/AB12CD34EF56").content.decode()
+        self.assertIn('<main class="gds-panel">', html)
+        self.assertNotIn("        <main>", html)
+
 
 class ThemePresetTests(TestCase):
     """The design system puts light text on secondary_1/secondary_2 and white
@@ -758,6 +763,12 @@ class SubmitPageTests(TestCase):
         response = self.client.get(self.URL)
         self.assertEqual(response.status_code, 200)
         return response.content.decode()
+
+    def test_mail_limits_sit_in_the_submit_rules(self):
+        html = self.client.get(self.URL).content.decode()
+        rules = html.split('<ul class="gds-rules">', 1)[1].split("</ul>", 1)[0]
+        self.assertIn("Whole email: up to 40 MiB, 25 MiB of attachments in total and 32 MIME parts.", rules)
+        self.assertNotIn("<p>Email limits:", html)
 
     def test_submit_page_lists_every_command(self):
         page = self.page()

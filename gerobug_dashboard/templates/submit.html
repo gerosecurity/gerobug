@@ -137,6 +137,7 @@ SUMMARY= Summary of your finding</textarea>
                             <li>ENDPOINT: 1 to {{ endpoint_max }} characters.</li>
                             <li>SUMMARY: at least 10 characters.</li>
                             <li>One PDF, up to {{ max_pdf_mb }} MB. A report without a PDF is refused.</li>
+                            <li>Whole email: up to 40 MiB, 25 MiB of attachments in total and 32 MIME parts. Send large evidence as a link.</li>
                         </ul>
 
                         <p class="gds-mail-row"><a class="gds-mail-btn" data-verb="SUBMIT" data-body="1" href="#">Open in mail app</a></p>
@@ -585,7 +586,6 @@ SUMMARY= Summary of your finding</textarea>
             render();
         })();
     </script>
-<p>Email limits: 40 MiB raw message, 25 MiB cumulative attachments, and 32 MIME parts. Each report PDF must remain within 25 MB. Use links for large evidence.</p>
 </body>
 
 </html>
