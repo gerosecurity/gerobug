@@ -97,6 +97,12 @@
   server supplies no valid size metadata is skipped. The MIME part limit also
   applies while parsing a raw message, and a malformed transfer encoding
   cannot bypass the attachment-size preflight.
+- **Report actions enforce their status rules on the server.** Mark as Invalid
+  is accepted only in Need to Review and In Review, Move only from Need to
+  Review through Fixing (Retest), and Delete only for Not Valid reports,
+  matching the buttons on the report page. Reopening a Not Valid report stays
+  available to superusers through Settings > Troubleshooting > Override Report
+  Fields.
 
 ### Upgrade notes
 

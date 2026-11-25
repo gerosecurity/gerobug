@@ -1,7 +1,9 @@
+import os
+import tempfile
 from datetime import timedelta
 from unittest import mock
 
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from django.test import TestCase
 from django.utils import timezone
 
@@ -481,6 +483,8 @@ class TroubleshootTests(TroubleshootFixture):
         self.assertIsNone(self.report.report_calc_sent_at)
 
     def test_invalid_handler_records_its_reason(self):
+        self.report.report_status = 2
+        self.report.save()
         with mock.patch("dashboards.views.geroparser.check_mailbox_status", return_value=True), \
                 mock.patch("dashboards.views.threading.Thread"):
             self.client.post(self.reverse("invalid_handler", args=[self.report.report_id]),
@@ -557,6 +561,12 @@ class TroubleshootTests(TroubleshootFixture):
 
 
 class InvalidDuplicateOfTests(TroubleshootFixture):
+
+    def setUp(self):
+        super().setUp()
+        self.report.report_status = 2
+        self.report.save()
+
     def _invalid(self, **data):
         with mock.patch("dashboards.views.geroparser.check_mailbox_status", return_value=True), \
                 mock.patch("dashboards.views.threading.Thread"):
@@ -576,11 +586,11 @@ class InvalidDuplicateOfTests(TroubleshootFixture):
 
     def test_unknown_original_is_rejected(self):
         self._invalid(duplicate_of="ZZ99YY88XX77")
-        self.assertEqual((self.report.report_status, self.report.report_duplicate), (5, 0))
+        self.assertEqual((self.report.report_status, self.report.report_duplicate), (2, 0))
 
     def test_self_reference_is_rejected(self):
         self._invalid(duplicate_of=self.report.report_id)
-        self.assertEqual(self.report.report_status, 5)
+        self.assertEqual(self.report.report_status, 2)
 
     def test_blank_keeps_a_plain_invalid_marking(self):
         self._invalid(duplicate_of="")
@@ -727,6 +737,8 @@ class HunterCommentDashboardTests(TestCase):
                                     report_id=self.report.report_id,
                                     nda_datetime=timezone.now(),
                                     nda_summary="n", nda_file=0)
+        self.report.report_status = 0
+        self.report.save()
         response = self.client.post("/dashboard/report-detail/AB12CD34EF56/delete/")
         self.assertEqual(response.status_code, 302)
         self.assertEqual(BugReport.objects.count(), 0)
@@ -1433,3 +1445,199 @@ class HallOfFameRescoreTests(TestCase):
     def test_recompute_hunter_score_returns_before_and_total(self):
         from dashboards.models import recompute_hunter_score
         self.assertEqual(recompute_hunter_score(self.hunter), (5, 36))
+
+
+class ReportActionGateFixture(TestCase):
+
+    REPORT_ID = "GATE00000001"
+    STATUS_NAMES = ((0, "Not Valid"), (1, "Need to Review"), (2, "In Review"),
+                    (3, "Fixing"), (4, "Fixing (Retest)"), (5, "Bounty Calculation"),
+                    (6, "Bounty in Process"), (7, "Completed"))
+
+    def setUp(self):
+        for sid, name in self.STATUS_NAMES:
+            ReportStatus.objects.get_or_create(status_id=sid, defaults={'status_name': name})
+        MailBox.objects.create(
+            mailbox_id=1, email="ops@example.com", password="pw", mailbox_status=1)
+        Personalization.objects.get_or_create(personalize_id=1)
+        self.hunter = BugHunter.objects.create(
+            hunter_email="hunter@example.com", hunter_username="h1", hunter_scores=0)
+        self.user = User.objects.create_user(username="gatereviewer", password="x")
+        reviewer_group, _ = Group.objects.get_or_create(name="Reviewer")
+        self.user.groups.add(reviewer_group)
+        self.client.force_login(self.user)
+        self.report = BugReport.objects.create(
+            report_id=self.REPORT_ID, report_datetime=timezone.now(),
+            hunter_email="hunter@example.com", report_reviewer="r",
+            report_title="A finding", report_endpoint="https://x.test",
+            report_attack="XSS", report_summary="s", report_severitytype="",
+            report_severity=7.0, report_status=1)
+
+        thread_patcher = mock.patch("dashboards.views.threading.Thread")
+        self.thread = thread_patcher.start()
+        self.addCleanup(thread_patcher.stop)
+        mailbox_patcher = mock.patch(
+            "dashboards.views.geroparser.check_mailbox_status", return_value=True)
+        mailbox_patcher.start()
+        self.addCleanup(mailbox_patcher.stop)
+
+    def _force_status(self, status):
+        BugReport.objects.filter(report_id=self.REPORT_ID).update(report_status=status)
+        self.report = self._reload()
+
+    def _reload(self):
+        return BugReport.objects.get(report_id=self.REPORT_ID)
+
+    def _score(self):
+        self.hunter.refresh_from_db()
+        return self.hunter.hunter_scores
+
+    def _post_invalid(self, **extra):
+        return self.client.post(
+            "/dashboard/invalid-handling/" + self.REPORT_ID,
+            {"invalidreasons": "not reproducible in any environment"}, **extra)
+
+    def _post_move(self, **extra):
+        return self.client.post(
+            "/dashboard/report-detail/" + self.REPORT_ID + "/move/", **extra)
+
+
+class ReportActionStatusGateTests(ReportActionGateFixture):
+
+    def test_invalid_is_refused_outside_review(self):
+        for status in (0, 3, 4, 5, 6, 7):
+            with self.subTest(status=status):
+                self._force_status(status)
+                duplicate_before = self._reload().report_duplicate
+                score_before = self._score()
+                self.thread.reset_mock()
+
+                self._post_invalid()
+
+                report = self._reload()
+                self.assertEqual(report.report_status, status)
+                self.assertEqual(report.report_duplicate, duplicate_before)
+                self.thread.assert_not_called()
+                self.assertEqual(self._score(), score_before)
+
+    def test_invalid_is_allowed_in_review(self):
+        for status in (1, 2):
+            with self.subTest(status=status):
+                self._force_status(status)
+                self._post_invalid()
+                self.assertEqual(self._reload().report_status, 0)
+
+    def test_move_is_refused_outside_review_and_fixing(self):
+        for status in (0, 5, 6, 7):
+            with self.subTest(status=status):
+                self._force_status(status)
+                self.thread.reset_mock()
+
+                self._post_move()
+
+                self.assertEqual(self._reload().report_status, status)
+                self.thread.assert_not_called()
+
+    def test_move_advances_review_and_fixing(self):
+        for status in (1, 2, 3, 4):
+            with self.subTest(status=status):
+                self._force_status(status)
+                self._post_move()
+                self.assertEqual(self._reload().report_status, status + 1)
+
+    def test_refusal_answers_ajax_with_json_400(self):
+        from dashboards.views import INVALIDATE_REFUSED_MSG
+        self._force_status(7)
+        response = self._post_invalid(HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error"], INVALIDATE_REFUSED_MSG)
+        self.assertEqual(self._reload().report_status, 7)
+
+    def test_completed_report_cannot_be_recycled_for_points(self):
+        self._force_status(6)
+        report = self._reload()
+        report.report_status = 7
+        report.save()
+        self.assertEqual(self._score(), 21)
+
+        self._post_invalid()
+        self._post_move()
+
+        self.assertEqual(self._reload().report_status, 7)
+        self.assertEqual(self._score(), 21)
+
+    def test_delete_is_refused_unless_not_valid(self):
+        url = "/dashboard/report-detail/" + self.REPORT_ID + "/delete/"
+        with tempfile.TemporaryDirectory() as media_root:
+            report_dir = os.path.join(media_root, self.REPORT_ID)
+            with mock.patch("dashboards.views.MEDIA_ROOT", media_root):
+                for status in (1, 2, 7):
+                    with self.subTest(status=status):
+                        self._force_status(status)
+                        os.makedirs(report_dir, exist_ok=True)
+
+                        self.client.get(url)
+                        self.client.post(url)
+
+                        self.assertTrue(BugReport.objects.filter(
+                            report_id=self.REPORT_ID).exists())
+                        self.assertTrue(os.path.exists(report_dir))
+
+    def test_delete_is_allowed_when_not_valid(self):
+        self._force_status(0)
+        response = self.client.post(
+            "/dashboard/report-detail/" + self.REPORT_ID + "/delete/")
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(BugReport.objects.filter(report_id=self.REPORT_ID).exists())
+
+    def test_delete_still_sends_anonymous_callers_to_login(self):
+        self._force_status(7)
+        self.client.logout()
+        response = self.client.get(
+            "/dashboard/report-detail/" + self.REPORT_ID + "/delete/")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login/", response["Location"])
+        self.assertTrue(BugReport.objects.filter(report_id=self.REPORT_ID).exists())
+
+    def test_superuser_override_still_reopens_not_valid(self):
+        self._force_status(0)
+        admin = User.objects.create_superuser(username="gateadmin", password="x",
+                                              email="ga@a.test")
+        self.client.force_login(admin)
+        self.client.post(reverse('report_override'), {
+            'report_id': self.REPORT_ID, 'title': 'A finding', 'status': '1',
+            'endpoint': 'https://x.test', 'attack': 'XSS', 'bounty': '0',
+            'hunter_name': 'h1'})
+        self.assertEqual(self._reload().report_status, 1)
+
+    def test_bounty_stages_still_advance_through_their_own_actions(self):
+        from geromail import geroparser
+
+        BugReport.objects.filter(report_id=self.REPORT_ID).update(
+            report_status=5, report_permission=2,
+            report_calc_sent_at=timezone.now() - timedelta(days=31))
+        with mock.patch("geromail.geromailer.write_mail"), \
+             mock.patch("geromail.geronotify.notify"):
+            geroparser.check_auto_agree()
+        self.assertEqual(self._reload().report_status, 6)
+
+        class InlineThread:
+            def __init__(self, target=None, args=(), kwargs=None, daemon=None):
+                self._target, self._args = target, args
+                self._kwargs = kwargs or {}
+
+            def start(self):
+                self._target(*self._args, **self._kwargs)
+
+        with mock.patch("dashboards.views.threading.Thread", InlineThread), \
+             mock.patch("django.db.connection.close"), \
+             mock.patch("gerocert.gerocert.generate"), \
+             mock.patch("geromail.geromailer.write_mail"):
+            response = self.client.post(
+                "/dashboard/form-handling/" + self.REPORT_ID + "/1",
+                {"reasons": "bounty paid, thank you for the report"})
+        self.assertEqual(response.status_code, 302)
+        report = self._reload()
+        self.assertEqual(report.report_status, 7)
+        self.assertEqual(report.report_score_awarded, 21)
+        self.assertEqual(self._score(), 21)

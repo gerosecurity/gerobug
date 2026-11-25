@@ -144,7 +144,14 @@ class ReportDelete(LoginRequiredMixin,DeleteView):
     redirect_field_name = 'login'
     model = BugReport
     template_name = "dashboard_varieties/delete_report.html"
-    
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            report = BugReport.objects.filter(report_id=kwargs.get('pk')).first()
+            if report is not None and report.report_status not in DELETE_SOURCES:
+                return _refuse_action(request, "delete", report)
+        return super().dispatch(request, *args, **kwargs)
+
     def form_valid(self, form):
         report_id = self.get_object().report_id
         for model in (BugReportUpdate, BugReportAppeal, BugReportNDA,
@@ -256,12 +263,12 @@ def ReportStatusView(request, id):
 @login_required
 def ReportUpdateStatus(request,id):
     if request.method == "POST" and gerofilter.validate_id(id):
-        if geroparser.check_mailbox_status():
-            report = BugReport.objects.get(report_id=id)
-            max = ReportStatus.objects.count() - 2 # LIMITED TO "BOUNTY PROCESS"
+        report = BugReport.objects.get(report_id=id)
+        if report.report_status not in MOVE_SOURCES:
+            return _refuse_action(request, "move", report)
 
-            if report.report_status < max:
-                report.report_status += 1
+        if geroparser.check_mailbox_status():
+            report.report_status += 1
             report.last_email_code = 300 if report.report_status == 0 else 301
             report.last_email_note = ''
             report.save()
@@ -286,6 +293,27 @@ def ReportUpdateStatus(request,id):
         else:
             logging.getLogger("Gerologger").error("Mailbox is not ready.")
         
+    return redirect('dashboard')
+
+
+INVALIDATE_SOURCES = (1, 2)
+MOVE_SOURCES = (1, 2, 3, 4)
+DELETE_SOURCES = (0,)
+
+INVALIDATE_REFUSED_MSG = "This report can only be marked invalid while it is in Need to Review or In Review."
+MOVE_REFUSED_MSG = "This report cannot be moved from its current status."
+DELETE_REFUSED_MSG = "Only reports marked Not Valid can be deleted."
+
+
+def _refuse_action(request, action, report):
+    logging.getLogger("Gerologger").warning(
+        "BLOCKED " + action + " on REPORT " + str(report.report_id)
+        + " at status " + str(report.report_status) + " BY " + str(request.user.username))
+    message = {"invalid": INVALIDATE_REFUSED_MSG, "move": MOVE_REFUSED_MSG,
+               "delete": DELETE_REFUSED_MSG}[action]
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({'error': message}, status=400)
+    messages.error(request, message)
     return redirect('dashboard')
 
 
@@ -469,6 +497,8 @@ def SendDecisionReminder(request, id):
 def InvalidHandler(request, id):
     if gerofilter.validate_id(id):
         report = BugReport.objects.get(report_id=id)
+        if request.method == "POST" and report.report_status not in INVALIDATE_SOURCES:
+            return _refuse_action(request, "invalid", report)
         status = ReportStatus.objects.get(status_id=report.report_status)
         status = status.status_name
 
