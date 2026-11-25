@@ -57,7 +57,7 @@ class CompletionSecurityTests(TestCase):
             report.refresh_from_db()
             hunter.refresh_from_db()
             self.assertEqual(report.report_status, 7)
-            self.assertEqual(hunter.hunter_scores, 5)
+            self.assertEqual(hunter.hunter_scores, 10)
             certificate.assert_called_once()
             send.assert_called_once()
 
@@ -249,7 +249,7 @@ class CompletionTransactionTests(TransactionTestCase):
             send.assert_called_once()
         self.report.refresh_from_db()
         self.hunter.refresh_from_db()
-        self.assertEqual((self.report.report_status, self.report.report_score_awarded, self.hunter.hunter_scores), (7, 5, 5))
+        self.assertEqual((self.report.report_status, self.report.report_score_awarded, self.hunter.hunter_scores), (7, 10, 10))
 
     def test_outer_rollback_sends_nothing_and_restores_score(self):
         from django.db import transaction
@@ -281,7 +281,7 @@ class CompletionTransactionTests(TransactionTestCase):
             send.assert_called_once()
             self.assertEqual(send.call_args.args[0], 704)
         self.hunter.refresh_from_db()
-        self.assertEqual(self.hunter.hunter_scores, 5)
+        self.assertEqual(self.hunter.hunter_scores, 10)
 
 
 class ComposeCookieTests(TestCase):
