@@ -92,10 +92,6 @@
   matching the buttons on the report page. Reopening a Not Valid report stays
   available to superusers through Settings > Troubleshooting > Override Report
   Fields.
-- Installs on the released `main` also gain the score reversal from this
-  release, so a completed report invalidated earlier keeps its points until a
-  superuser runs Settings > Troubleshooting > Hall of Fame > Recompute for
-  that hunter.
 
 ### Upgrade notes
 
