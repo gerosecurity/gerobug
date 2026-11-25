@@ -9,6 +9,7 @@
   * [Report Detail](usage/report-detail.md)
   * [Move and Manage Reports](usage/move-and-manage-reports.md)
 * [Bug Hunter Guide (Email Commands)](bug-hunter-guide.md)
+* [Hall of Fame](hall-of-fame.md)
 * [Filter & Validation](filter-and-validation.md)
 * [Troubleshooting](troubleshooting.md)
 * [Logging & Debugging](logging-and-debugging.md)
