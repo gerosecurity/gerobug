@@ -86,6 +86,16 @@
   server supplies no valid size metadata is skipped. The MIME part limit also
   applies while parsing a raw message, and a malformed transfer encoding
   cannot bypass the attachment-size preflight.
+- **Report actions enforce their status rules on the server.** Mark as Invalid
+  is accepted only in Need to Review and In Review, Move only from Need to
+  Review through Fixing (Retest), and Delete only for Not Valid reports,
+  matching the buttons on the report page. Reopening a Not Valid report stays
+  available to superusers through Settings > Troubleshooting > Override Report
+  Fields.
+- Installs on the released `main` also gain the score reversal from this
+  release, so a completed report invalidated earlier keeps its points until a
+  superuser runs Settings > Troubleshooting > Hall of Fame > Recompute for
+  that hunter.
 
 ### Upgrade notes
 
