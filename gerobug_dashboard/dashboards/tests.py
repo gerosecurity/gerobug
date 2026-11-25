@@ -171,8 +171,7 @@ class PageRenderTests(TestCase):
         Personalization.objects.get_or_create(personalize_id=1)
         BlacklistRule.objects.get_or_create(rule_id=1)
         for model in (CertificateData, StaticRules):
-            if not model.objects.exists():
-                model.objects.create()
+            model.objects.get_or_create(pk=1)
         MailBox.objects.create(
             mailbox_id=1, email="ops@example.com", password="pw", mailbox_status=1,
         )

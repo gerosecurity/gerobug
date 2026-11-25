@@ -71,7 +71,7 @@ class ReviewerForm(forms.Form):
 class WebhookForm(forms.Form):
     CHOICES = (('SLACK', 'Slack'),('TELEGRAM', 'Telegram'),)
     webhook_service = forms.ChoiceField(choices=CHOICES,label="Notification Channel")
-    webhook_handle = forms.CharField(widget=forms.URLInput(attrs={'id':'webhook_handle', 'placeholder': 'Webhook URL', 'style': 'width: 100%;', 'class': 'form-control'}),label="Webhook URL")
+    webhook_handle = forms.URLField(widget=forms.URLInput(attrs={'id':'webhook_handle', 'placeholder': 'Webhook URL', 'style': 'width: 100%;', 'class': 'form-control'}),label="Webhook URL")
 
 class BlacklistForm(forms.Form):
     max_counter = forms.IntegerField(widget=forms.NumberInput(attrs={'id':'max_counter', 'placeholder': 'Max emails within buffer monitor', 'style': 'width: 100%;', 'class': 'form-control'}),label="Max Counter", initial=10)

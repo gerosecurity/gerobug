@@ -1296,6 +1296,82 @@ def ReviewerDelete(request,public_id):
     return render(request,'setting.html')
 
 @login_required
+def ResendResetLink(request, public_id):
+    log = logging.getLogger("Gerologger")
+    if not request.user.is_superuser:
+        log.warning("BLOCKED unauthorized reset-link resend for " + str(public_id) + " by " + str(request.user.username))
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect('setting')
+
+    if request.method == "POST":
+        try:
+            uid = uuid.UUID(str(public_id))
+        except (ValueError, TypeError, AttributeError):
+            log.warning("BLOCKED reset-link resend for malformed identifier '" + str(public_id) + "' by " + str(request.user.username))
+            messages.error(request, "User not found.")
+            return redirect('setting')
+
+        target = User.objects.filter(profile__public_id=uid, is_superuser=False).first()
+        if target is None:
+            log.warning("BLOCKED reset-link resend for protected/unknown user " + str(public_id) + " by " + str(request.user.username))
+            messages.error(request, "User not found or not eligible for a reset link.")
+            return redirect('setting')
+
+        if not target.email:
+            messages.error(request, "This user has no email address on file.")
+            return redirect('setting')
+
+        if not geroparser.check_mailbox_status():
+            log.error("Resend reset link aborted: mailbox is not ready.")
+            messages.error(request, "Mailbox is not ready. Cannot send the reset link right now.")
+            return redirect('setting')
+
+        try:
+            if send_password_reset_link(request, target):
+                log.info("Password reset link RESENT to " + target.username + " (public_id " + str(public_id) + ") by " + str(request.user.username))
+                messages.success(request, "A new password reset link has been sent to " + target.email + ".")
+            else:
+                log.error("Failed to resend reset link to " + target.username)
+                messages.error(request, "Failed to send the reset link. Please check the mailbox settings and the logs.")
+        except Exception:
+            log.exception("Resend reset link error for " + target.username)
+            messages.error(request, "Something went wrong while sending the reset link. Please check the logs.")
+
+    return redirect('setting')
+
+@login_required
+def WebhookEdit(request, service):
+    log = logging.getLogger("Gerologger")
+    if not request.user.is_superuser:
+        log.warning("BLOCKED unauthorized webhook-edit of '" + str(service) + "' by " + str(request.user.username))
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect('setting')
+
+    if request.method == "POST":
+        form = WebhookForm(request.POST)
+        if not form.is_valid():
+            messages.error(request, "Enter a valid webhook URL.")
+            return redirect('setting')
+        try:
+            webhook = Webhook.objects.filter(webhook_service=service).first()
+            if webhook is None:
+                messages.error(request, "Notification channel not found.")
+                return redirect('setting')
+            new_service = form.cleaned_data.get('webhook_service')
+            if new_service != service and Webhook.objects.filter(webhook_service=new_service).exists():
+                messages.error(request, "Another notification channel with this service already exists.")
+                return redirect('setting')
+            webhook.webhook_service = new_service
+            webhook.webhook_handle = form.cleaned_data.get('webhook_handle')
+            webhook.save()
+            log.info("Notification '" + str(service) + "' updated by " + str(request.user.username))
+            messages.success(request, "Notification Channel Updated Successfully")
+        except Exception:
+            log.exception("Notification channel update failed")
+            messages.error(request, "Something's wrong while updating.")
+    return redirect('setting')
+
+@login_required
 def NotificationDelete(request,service):
     if not request.user.is_superuser:
         logging.getLogger("Gerologger").warning("BLOCKED unauthorized notification-delete of '" + str(service) + "' by " + str(request.user.username))

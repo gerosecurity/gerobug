@@ -42,6 +42,17 @@
   Troubleshooting > Override Report Fields no longer leaves the previous email
   code and note on a report whose status it just moved.
 
+### Settings
+
+- **Resend a reviewer's password reset link.** Settings > Manage Users has an
+  envelope button on every reviewer row that emails a fresh one-time reset
+  link, for when the first link expired or never arrived. Superuser only,
+  refused for superuser accounts, and refused while the mailbox is not ready.
+- **Edit a notification channel in place.** Settings > Notification Channels
+  has an edit button that changes the webhook URL or the service without
+  deleting the channel first. A channel cannot be switched to a service that
+  already has one, and the URL must be valid.
+
 ### Fixed
 
 - **Long subjects are no longer rejected or stored broken.** Mail clients fold

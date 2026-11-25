@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import LogoutForm, ReportFiles, ReportStatusView, ReportUpdateStatus, KanbanMove, FormHandler, InvalidHandler, AdminSetting, OWASPCalculator, CVSSCalculator, ReviewerDelete, NotificationDelete, RenderDashboardAdmin, ReportDetails, UpdateDetails, AppealDetails, NDADetails, CommentDetails, ReportUpdate, ReportDelete, ResendEmail, SendDecisionReminder, ToggleHunterEmailSinkhole, ViewLogs, ReportOverride, HallOfFameAdmin
+from .views import LogoutForm, ReportFiles, ReportStatusView, ReportUpdateStatus, KanbanMove, FormHandler, InvalidHandler, AdminSetting, OWASPCalculator, CVSSCalculator, ReviewerDelete, ResendResetLink, NotificationDelete, WebhookEdit, RenderDashboardAdmin, ReportDetails, UpdateDetails, AppealDetails, NDADetails, CommentDetails, ReportUpdate, ReportDelete, ResendEmail, SendDecisionReminder, ToggleHunterEmailSinkhole, ViewLogs, ReportOverride, HallOfFameAdmin
 
 urlpatterns = [
     path("", RenderDashboardAdmin.as_view(), name="dashboard"),
@@ -22,7 +22,9 @@ urlpatterns = [
     path("form-handling/<str:id>/<str:complete>", FormHandler, name="form_handler"),
     path("invalid-handling/<str:id>", InvalidHandler, name="invalid_handler"),
     path("review-delete/<str:public_id>", ReviewerDelete,name="reviewer_handler"),
+    path("resend-reset/<str:public_id>", ResendResetLink, name="resend_reset"),
     path("notification-delete/<str:service>", NotificationDelete,name="notification_handler"),
+    path("notification-edit/<str:service>", WebhookEdit, name="webhook_edit"),
     
     path("setting", AdminSetting, name="setting"),
     path("resend-email", ResendEmail, name="resend_email"),
