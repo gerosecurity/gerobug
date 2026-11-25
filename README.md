@@ -1,4 +1,4 @@
-# Gerobug: The First Open Source Bug Bounty Platform.
+# Gerobug: Open Source Bug Bounty and Vulnerability Disclosure Platform.
 
 ![gerobugLogo](https://raw.githubusercontent.com/gerosecurity/gerobug-docs-images/main/logo.png)
 
@@ -10,15 +10,22 @@
 [![Black Hat Arsenal Asia 2024](https://img.shields.io/badge/Black%20Hat%20Arsenal-Asia%202024-black?style=flat&labelColor=555)](https://www.blackhat.com/asia-24/arsenal/schedule/#gerobug-the-first-open-source-bug-bounty-platform-37538)
 
 # Gerobug
-__The first open source self-managed bug bounty platform.__
+__The first open source self-managed bug bounty platform, for vulnerability disclosure programs (VDP) too.__
 
-Are you a company, planning to have your own bug bounty program, with minimum budget?<br>
+Are you a company planning to run your own vulnerability disclosure program (VDP) or bug bounty program, with minimum budget?<br>
 
 __WE GOT YOU!__
 
-We are aware that some organizations have had difficulty establishing their own bug bounty program.<br>
+We are aware that some organizations have had difficulty establishing their own VDP or bug bounty program.<br>
 Using a third-party managed platform usually comes with a hefty price tag and security risks. _(If you know, you know...)_<br>
 In the other hand, creating your own self-managed platform will take time and effort to build and maintain it.
+
+<br>
+
+## VDP or Bug Bounty
+- __Vulnerability Disclosure Program (VDP):__ give researchers a safe, documented way to report vulnerabilities to you. Every report is received, triaged, tracked and closed in one place, and researchers are credited on the Hall of Fame and with a certificate of appreciation. State in your Rules that the program offers recognition rather than a monetary reward.
+- __Bug Bounty Program:__ everything in a VDP, plus rewards: severity scoring with CVSS / OWASP, bounty decisions that hunters can agree to or appeal, and document or NDA requests before payout.
+- __Start small:__ launch a VDP first and add rewards later, on the same installation. Your program's terms live in Settings > Rules and are published on your public page.
 
 <br>
 
@@ -36,7 +43,7 @@ Full details and upgrade notes are in the [CHANGELOG](CHANGELOG.md).
 <br>
 
 ## Why Gerobug?
-- __EASY        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:__ Have your bug bounty program running with just single line of command
+- __EASY        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:__ Have your VDP or bug bounty program running with just single line of command
 - __SECURE      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:__ Gerobug uses email parser and network segregation to minimize security risks.
 - __OPEN SOURCE &nbsp;&nbsp;&nbsp;&nbsp;:__ It is FREE.
 
@@ -111,7 +118,7 @@ Use our run script to install Gerobug, its quick and easy!
 Automated HTTPS configuration using NGINX and Let's Encrypt.
 
 - Homepage<br>
-This should be the only page accessible by public, which contains Rules and Guidelines for your bug bounty program.
+This should be the only page accessible by public, which contains Rules and Guidelines for your program.
 
 - Email Parser<br>
 Bug Hunter will submit their findings by email, which Gerobug will parse, filter, and show them on dashboard. Sender authentication results, bounce notifications and message sizes are checked before anything is stored.
