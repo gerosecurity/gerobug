@@ -6,6 +6,8 @@ Once the [mailbox](../settings.md#mailbox-settings) is active, Gerobug starts re
 
 The dashboard is a Kanban board with one column per active status (Need to Review, In Review, Fixing, Fixing (Retest), Bounty Calculation, Bounty in Process). Each card shows the Report ID, title, hunter and severity name (Informational, Low, Medium, High, Critical).
 
+<figure><img src="../.gitbook/assets/v4-dashboard-kanban.png" alt="Dashboard with the Kanban board, filter bar, aging bars and an auto-accept countdown"><figcaption><p>Dashboard with the Kanban board, filter bar, aging bars and an auto-accept countdown</p></figcaption></figure>
+
 * **Drag and drop** a card to another column to change its status. The hunter receives the same status-change email as when using the forward button, and Hall of Fame points are awarded or revoked when the card enters or leaves Completed.
 * **Search** by Report ID, title or hunter, and **filter** by severity.
 * The highest-severity report is sorted to the top of each column.
@@ -24,6 +26,8 @@ See [Report Detail](report-detail.md) and [Move and Manage Reports](move-and-man
 ## Hunter Submissions
 
 A report page lists everything the hunter has sent, newest first:
+
+<figure><img src="../.gitbook/assets/v4-report-detail-submissions.png" alt="Report detail with an update and a hunter question"><figcaption><p>Report detail with an update and a hunter question</p></figcaption></figure>
 
 * **Updates.** Hunters may send **3 updates on their own initiative** per report. Updates you request with Request Amend are free and do not count. Updates are accepted until the report leaves Bounty Calculation; after that, hunters get an "updates closed" reply naming the current stage.
 * **Appeals.** 3 per report.

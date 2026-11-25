@@ -5,6 +5,8 @@ Reviewers cannot reach these tools, and the restriction is enforced
 server-side. Every action is written to `gerobug.log` with the username that
 performed it.
 
+<figure><img src=".gitbook/assets/v4-settings-troubleshooting.png" alt="Settings > Troubleshooting"><figcaption><p>Settings > Troubleshooting</p></figcaption></figure>
+
 ## Recover Lost Report Files
 
 Searches the mailbox for the original emails of reports, updates, appeals and

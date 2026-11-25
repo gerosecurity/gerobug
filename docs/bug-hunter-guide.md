@@ -3,6 +3,8 @@
 Bug hunters interact with Gerobug only by email. The program's address and every
 command below are shown on the public page `https://[your-domain]/submit/`.
 
+<figure><img src=".gitbook/assets/v4-public-submit.png" alt="The public Submit page: Report ID box, grouped commands and the SUBMIT rules"><figcaption><p>The public Submit page: Report ID box, grouped commands and the SUBMIT rules</p></figcaption></figure>
+
 Each command is identified by the **email subject**. A subject Gerobug cannot
 read is answered with an explanation and a pointer to `HELP`, never ignored.
 

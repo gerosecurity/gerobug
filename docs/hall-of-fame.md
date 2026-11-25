@@ -3,6 +3,8 @@
 The public Hall of Fame page lists hunters by points:
 `https://[your-domain]/halloffame/`.
 
+<figure><img src=".gitbook/assets/v4-public-hall-of-fame.png" alt="The public Hall of Fame page"><figcaption><p>The public Hall of Fame page</p></figcaption></figure>
+
 ## How Points Are Awarded
 
 A completed report adds its severity score, **rounded down**, times a band

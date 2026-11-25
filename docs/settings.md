@@ -33,6 +33,8 @@ Change the email and password of a user account.
 * **Custom colors.** Six colors drive the whole interface (dashboard, login and public pages): canvas background, accent, surface, overlay/hover, border and primary button.
 * **Reset to Gero Dark** restores the default colors.
 
+<figure><img src=".gitbook/assets/v4-settings-personalization.png" alt="Settings > Personalization with the theme preset gallery"><figcaption><p>Settings > Personalization with the theme preset gallery</p></figcaption></figure>
+
 ## Edit Rules and Guidelines
 
 Edit the public Rules and Guidelines page with a rich-text editor. Sections: Bounty Terms, In Scope, Out of Scope, Responsible Disclosure Policy, Report Guidelines and FAQ.

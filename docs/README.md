@@ -47,6 +47,8 @@ Gerobug is FREE and helps companies start and manage their own bug bounty progra
   screening, message and MIME size limits, and an `ALLOWED_HOSTS` allowlist.
   See [Filter & Validation](filter-and-validation.md).
 
+<figure><img src=".gitbook/assets/v4-public-rules.png" alt="The public Rules and Guidelines page"><figcaption><p>The public Rules and Guidelines page</p></figcaption></figure>
+
 Upgrading from v3.x? Read [Upgrading](upgrading.md) first.
 
 ## Main Features

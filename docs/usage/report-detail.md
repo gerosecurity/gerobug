@@ -28,6 +28,8 @@ Next to **Send Calculations**, a **Send Reminder** button emails the hunter a
 reminder that the decision is still open, stating how much time is left to agree
 or appeal.
 
+<figure><img src="../.gitbook/assets/v4-report-detail-reminder.png" alt="Report waiting on the hunter: auto-accept countdown, Send Calculations, Send Reminder and the last reminder date"><figcaption><p>Report waiting on the hunter: auto-accept countdown, Send Calculations, Send Reminder and the last reminder date</p></figcaption></figure>
+
 * Available only while the report is actually waiting for the hunter's decision.
 * Refused once the deadline has passed: the report is accepted on the next mail
   check instead.
