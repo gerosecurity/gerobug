@@ -144,7 +144,14 @@ class ReportDelete(LoginRequiredMixin,DeleteView):
     redirect_field_name = 'login'
     model = BugReport
     template_name = "dashboard_varieties/delete_report.html"
-    
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            report = BugReport.objects.filter(report_id=kwargs.get('pk')).first()
+            if report is not None and report.report_status not in DELETE_SOURCES:
+                return _refuse_action(request, "delete", report)
+        return super().dispatch(request, *args, **kwargs)
+
     def form_valid(self, form):
         report_id = self.get_object().report_id
         for model in (BugReportUpdate, BugReportAppeal, BugReportNDA,
