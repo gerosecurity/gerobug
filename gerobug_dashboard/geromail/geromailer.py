@@ -275,8 +275,8 @@ def write_mail_raw(subject, body, destination):
 
         message = MIMEMultipart("alternative")
         message["From"] = EMAIL
-        message["To"] = destination
-        message["Subject"] = subject
+        message["To"] = clean_header(destination)
+        message["Subject"] = clean_header(subject)
         message["Date"] = formatdate(localtime=True)
         message["Message-ID"] = make_msgid()
         message.attach(MIMEText(body, "html"))

@@ -22,8 +22,10 @@ for host in gerobug_host:
     CSRF_TRUSTED_ORIGINS.append("https://" + str(host) + ":6320")
     CSRF_TRUSTED_ORIGINS.append("http://" + str(host) + ":6320")
 
-ALLOWED_HOSTS = ['*']
-# ALLOWED_HOSTS = ['127.0.0.1', 'localhost', gerobug_host] #INTERNAL IP
+# A FORGED Host HEADER MUST NOT REACH request.build_absolute_uri() (PASSWORD RESET LINKS).
+# EXTRA NAMES (E.G. A PUBLIC IP BEHIND NAT): GEROBUG_ALLOWED_HOSTS=a.example,203.0.113.7
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost'] + [host.strip() for host in gerobug_host if host.strip()]
+ALLOWED_HOSTS += [host.strip() for host in os.getenv('GEROBUG_ALLOWED_HOSTS', '').split(',') if host.strip()]
 
 INSTALLED_APPS = [
     'django.contrib.admin',

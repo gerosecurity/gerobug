@@ -169,6 +169,16 @@ class DashboardsConfig(AppConfig):
                 if updated:
                     logging.getLogger("Gerologger").info(f"Backfilled file flags for {updated} update/NDA record(s)")
 
+            # TITLES STORED BEFORE FOLDED SUBJECTS WERE UNFOLDED CARRY CR/LF/TAB
+            def init_clean_report_titles():
+                updated = 0
+                for report in BugReport.objects.filter(report_title__regex=r'[\r\n\t]').only('report_id', 'report_title'):
+                    BugReport.objects.filter(report_id=report.report_id).update(
+                        report_title=' '.join(report.report_title.split()))
+                    updated += 1
+                if updated:
+                    logging.getLogger("Gerologger").info(f"Unfolded {updated} report title(s)")
+
             def init_report_score_awarded():
                 updated = backfill_report_score_awarded()
                 if updated:
@@ -198,6 +208,7 @@ class DashboardsConfig(AppConfig):
             init_user_profiles()
             init_uan_file_flags()
             init_report_score_awarded()
+            init_clean_report_titles()
             init_hall_of_fame_rescore()
 
             logging.getLogger("Gerologger").info("Number of Status         :"+str(ReportStatus.objects.count()))

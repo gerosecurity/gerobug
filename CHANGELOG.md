@@ -10,6 +10,36 @@
   their completed reports, which replaces any manual score correction made in
   Settings > Hall of Fame.
 
+### Fixed
+
+- **Long subjects are no longer rejected or stored broken.** Mail clients fold
+  a subject longer than about 69 characters onto two lines. The folded line
+  break is now removed before the command is read, so the title is stored
+  without stray line breaks. A subject that starts with a known command but
+  can't be read now gets a reply naming that command, not the generic
+  "could not recognise the command" message.
+
+### Security
+
+- **Password reset links can no longer be pointed at another host**
+  (4E0A67B01C7D). `ALLOWED_HOSTS` was `*`, so a forged `Host` header ended up
+  in the reset link. The dashboard now accepts only `127.0.0.1`, `localhost`
+  and the names in `gerobug_host`.
+- **Forged bounces can no longer blacklist a hunter** (5365C079BAD4).
+  Bounce notifications no longer count toward the sender's rate limit, and
+  bounce alerts are limited to one per report per hour. A quoted Return-Path
+  (`<"victim@example.com"@attacker.example>`) no longer passes as the victim's
+  address. Blacklist and watchlist keys ignore case. The no-reply check no
+  longer slows down on long addresses.
+- **Report time comes from the mail server, not the sender's `Date:`
+  header** (D5D16D93C90A). A backdated report could make itself the
+  "original" and flag older reports as duplicates. A new report can now only
+  flag reports still in Need to Review or In Review.
+- **Hunter display names are screened** (B5F277882DB3). Names that match a
+  reserved word (`admin`, `security`, ...), contain the platform or company
+  name, or imitate one with look-alike characters are replaced with
+  `hunter-<6 hex>`. A name already used by another hunter gets a suffix.
+
 ### Hall of Fame
 
 - **Scores stay in sync with Completed.** Completing a report awards the hunter
@@ -31,6 +61,12 @@
 
 ### Upgrade notes
 
+- **HTTP installs reached by a name not in `gerobug_host`** (for example a
+  public IP behind NAT) now get HTTP 400. Add the extra names, separated by
+  commas, as `GEROBUG_ALLOWED_HOSTS=...` in
+  `gerobug_dashboard/secrets/gerobug_secret.env` and restart.
+- Report titles stored with line breaks from folded subjects are unfolded once
+  on first boot.
 - Two new fields are added: `report_score_awarded` on a report (the points that
   report currently contributes) and `hunter_hidden` on a bug hunter.
 - Existing hunter scores are kept exactly as they are. On first boot, completed
