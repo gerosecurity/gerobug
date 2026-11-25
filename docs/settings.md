@@ -46,6 +46,9 @@ The admin can create and delete **Reviewer** accounts. Reviewers can review, tri
 * Usernames must be 3-30 characters, use only letters, numbers and `. _ -`, and start and end with a letter or number. Reserved names such as `admin`, `root` or `geromin` are rejected.
 * Each reviewer needs a unique email address.
 * A random password is generated for every new reviewer. If the mailbox is active, Gerobug emails the reviewer a **password reset link** so they set their own password. Otherwise, ask the reviewer to use **Forgot Password** on the login page.
+* If that link expired or never arrived, use the **envelope** button on the reviewer's row to send a fresh one. It is not offered for the admin account and needs an active mailbox.
+
+<figure><img src=".gitbook/assets/v4-settings-manage-users.png" alt="Settings > Manage Users with the resend reset link and delete buttons"><figcaption><p>Settings > Manage Users</p></figcaption></figure>
 
 ## Notification Channels
 
@@ -59,6 +62,10 @@ Gerobug sends notifications to Slack and/or Telegram for:
 * Email delivery failure (bounce), with the failed recipient, Report ID and SMTP error
 
 Webhook URLs are stored encrypted.
+
+To change a channel's webhook URL or service, use the **edit** button on its row. You no longer need to delete the channel and add it again. Each service can have one channel.
+
+<figure><img src=".gitbook/assets/v4-settings-edit-notification.png" alt="Edit Notification Channel dialog"><figcaption><p>Editing a notification channel</p></figcaption></figure>
 
 ### [Slack Webhook](https://api.slack.com/messaging/webhooks)
 
