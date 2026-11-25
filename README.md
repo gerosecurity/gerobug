@@ -143,5 +143,6 @@ If you have any feedback, please reach out to us at __support@gerobug.com__
 
 <br>
 
-Copyright (c) 2025-2026 Gero Security<br>
-Licensed under the GNU AGPLv3.0 License
+Copyright (c) 2025 Gero Security<br>
+Licensed under the GNU AGPLv3.0 License<br>
+Copyright (C) 2023-2026 the Gerobug maintainer (GitHub: @VGR6479) and Gerobug contributors.
