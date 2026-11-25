@@ -1,5 +1,7 @@
 ## 📄 Contributor License Agreement (CLA) — Gerobug
-This CLA applies to all contributions submitted to the Gerobug project maintained by Gero Security.
+Effective date: <merge date>. Contributions made before this date remain under the version of this CLA in force at the time.
+
+This CLA applies to all contributions submitted to the Gerobug project maintained by the Project maintainer.
 
 ## 📌 1. Definitions
 “Project” refers to the Gerobug platform, including all source code, documentation, and related files, hosted at https://github.com/gerosecurity/gerobug.
@@ -9,7 +11,7 @@ This CLA applies to all contributions submitted to the Gerobug project maintaine
 “You” (or “Contributor”) means the individual or entity submitting the Contribution.
 
 ## 📌 2. Grant of Rights
-You hereby grant to Gero Security, a PT (Perseroan Terbatas) company based in Indonesia, the following rights:
+You hereby grant to Billy Sudarsono, the Project maintainer and copyright holder, and any entity to which he assigns his rights in the Project, the following rights:
 
 A perpetual, irrevocable, worldwide, non-exclusive, royalty-free license to use, reproduce, modify, display, perform, sublicense, and distribute your Contribution as part of the Project or any derivative works.
 
@@ -25,10 +27,10 @@ The Contribution does not include proprietary, confidential, or third-party code
 If you are submitting on behalf of your employer or organization, you have their authority to do so.
 
 ## 📌 4. No Obligation
-Gero Security is not obligated to use, accept, or include your Contribution in the Project. Contributions may be rejected, modified, or removed at Gero Security's discretion.
+The Project maintainer is not obligated to use, accept, or include your Contribution in the Project. Contributions may be rejected, modified, or removed at the Project maintainer's discretion.
 
 ## 📌 5. No Warranty
-You provide your Contribution “as-is,” without warranty of any kind. Gero Security is not liable for any use of your Contribution.
+You provide your Contribution “as-is,” without warranty of any kind. The Project maintainer is not liable for any use of your Contribution.
 
 ## 📌 6. Governing Law
 This Agreement shall be governed by the laws of the Republic of Indonesia, without regard to conflict of laws.
