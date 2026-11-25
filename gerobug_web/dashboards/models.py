@@ -9,6 +9,7 @@ class DashboardsBughunter(models.Model):
     hunter_email = models.CharField(max_length=254)
     hunter_username = models.CharField(max_length=30)
     hunter_scores = models.IntegerField()
+    hunter_hidden = models.BooleanField(default=False)
 
     class Meta:
         managed = False

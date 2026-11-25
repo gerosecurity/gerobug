@@ -32,7 +32,9 @@ def create_cert(name: str, certificate: str, severity):
     
     # SEVERITY
     font = ImageFont.truetype(font_path, 80)
-    if severity < 4:
+    if severity <= 0:
+        severity = "INFO"
+    elif severity < 4:
         severity = "LOW"
     elif severity < 7:
         severity = "MEDIUM"

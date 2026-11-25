@@ -9,6 +9,7 @@
 
 .wrapper{
   display: flex;
+  flex-wrap: wrap;
   min-height: 100%;
 }
 
@@ -17,12 +18,16 @@
   flex-direction: column;
   margin-bottom: 0;
   min-height: 100vh;
+  height: 100vh;
   width: 260px;
   background: var(--secondary-1);
   background-size: cover;
-  z-index: 100;
+  z-index: 1000;
   justify-content: center;
   transition: all 0.5s ease;
+  position: fixed;
+  top: 0;
+  left: 0;
 }
 
 .sidebar.close{
@@ -208,17 +213,58 @@
     display: none;
 }
 
+/* Sidebar backdrop overlay — dims content when sidebar is expanded */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 999;
+  transition: opacity 0.3s ease;
+}
+
+.sidebar-backdrop.active {
+  display: block;
+}
+
+/* Troubleshooting sinkhole warning — sits above the page content in the same
+   column as .home-section. .sidebar/.sidebar-backdrop are position:fixed, so
+   .home-section is normally the only in-flow flex child of .wrapper; without
+   flex-wrap + a full-row width this banner rendered as a full-height column
+   beside the content instead of a bar above it. Height is intentionally
+   auto so the text can wrap on narrow screens without covering anything. */
+.sinkhole-banner{
+  margin-left: 78px;
+  width: calc(100% - 78px);
+  background: #DA0037;
+  color: #fff;
+  text-align: center;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.sinkhole-banner a{
+  color: #fff;
+  text-decoration: underline;
+}
+
+/* Content always positioned relative to the collapsed sidebar width */
 .home-section{
   position: relative;
   background: #F9F3F3;
-  min-height: 100%;
-  left: 0px;
-  width: calc(100% - 260px);
+  min-height: 100vh;
+  margin-left: 78px;
+  width: calc(100% - 78px);
   transition: all 0.5s ease;
 }
 
 .sidebar.close ~ .home-section{
-  left: 0px;
+  margin-left: 78px;
   width: calc(100% - 78px);
 }
 
@@ -250,10 +296,10 @@
     width: 0;
   }
 
-  .sidebar.close.small-screen ~ .home-section{
+  .sidebar.close.small-screen ~ .home-section,
+  .sidebar.close.small-screen ~ .sinkhole-banner{
     width: 100%;
-    left: 0;
-    z-index: 100;
+    margin-left: 0;
   }
 }
 

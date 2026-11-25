@@ -1,6 +1,6 @@
-{% load crispy_forms_tags %} 
+{% load crispy_forms_tags %}
 {% load static %}
-{% block content %}      
+{% block content %}
 
 
 <!DOCTYPE html>
@@ -13,54 +13,44 @@
     <title>Login</title>
     <link rel="shortcut icon" href='{% static "favicon.ico" %}' type="image/x-icon">
     <link rel="icon" href='{% static "favicon.ico" %}' type="image/x-icon">
-    
+
     <!-- CSS -->
     <link rel="stylesheet" href="{% url 'themes' %}" type="text/css">
-    <link rel="stylesheet" href='{% static "/css/login.css" %}'>
-
-    <!-- BOOTSTRAP CSS -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-
-    <!-- SCRIPTS -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <link href="https://fonts.googleapis.com/css?family=Nunito:600,700,900" rel="stylesheet">
-
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href='{% static "/css/design-system.css" %}'>
 </head>
 
-<body id="body">
-    <div class="container">
-        <div id="login-card" class="card">
-            <div class="card-body">
-                <h2 class="text-center">Login</h2>
-                <br>
-                <form method="POST" action="" id="form-login">
-                  {% csrf_token %}
-                    {{ login_form | crispy }}
-                    <br>
-                    {% for message in messages %}
-                    {% if 'success' in message.tags %}
-                        <p class="alert alert-success" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
-                    {% else %}
-                        <p class="alert alert-warning" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
-                    {% endif %}
-                    {% endfor %}
-                    
-                    <div id="action-btn">
-                        <button type="submit" id="button" class="btn btn-primary deep-purple btn-block ">Submit</button>
-                        <a href="{% url 'password_reset' %}">Forgot Password</a>
-                    </div>
-                    
-                    <br>
+<body class="gds-login-body" id="body">
+    <img class="gds-login-wave" src="{% static 'design/wave-lines.svg' %}" alt="">
 
-                </form>
+    <div id="login-card" class="gds-login-card">
+        <img class="gds-login-logo" src="{% static 'gerobug-favicon.png' %}" alt="Gerobug">
+        <h1 class="gds-login-title">Welcome back</h1>
+        <p class="gds-login-sub">Sign in to your Gerobug dashboard</p>
+
+        <form method="POST" action="" id="form-login">
+          {% csrf_token %}
+            {{ login_form | crispy }}
+
+            {% for message in messages %}
+            {% if 'success' in message.tags %}
+                <p class="alert alert-success" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+            {% else %}
+                <p class="alert alert-warning" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+            {% endif %}
+            {% endfor %}
+
+            <button type="submit" id="button" class="gds-btn gds-btn-primary gds-btn-block" style="margin-top:8px">Sign In</button>
+
+            <div class="gds-login-links">
+                <a href="{% url 'password_reset' %}">Forgot Password</a>
             </div>
+        </form>
 
+        <div class="gds-login-footer">
+            Powered by <strong>Gero Security</strong>
         </div>
     </div>
-            
 
 </body>
 

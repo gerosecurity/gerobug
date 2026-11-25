@@ -1,5 +1,5 @@
 from django import forms
-from dashboards.models import StaticRules, Personalization
+from dashboards.models import StaticRules, Personalization, BugReport
 from dashboards.rulestemplate import *
 from dashboards.validators import *
 from django.core.validators import *
@@ -15,6 +15,21 @@ class CompleteRequestform(forms.Form):
 
 class Invalidform(forms.Form):
     invalidreasons = forms.CharField(widget=forms.Textarea(attrs={"id":"invalidreasons","name":"invalidreasons","placeholder":"Please provide the reason (Minimum 10 Characters)"}),validators=[MinLengthValidator(10)],required=True)
+    duplicate_of = forms.CharField(
+        required=False,
+        max_length=15,
+        label="Duplicate of",
+        widget=forms.TextInput(attrs={"id":"duplicate_of","name":"duplicate_of","class":"form-control","placeholder":"Original Report ID (optional)","autocomplete":"off"}))
+
+    def clean_duplicate_of(self):
+        value = (self.cleaned_data.get('duplicate_of') or '').strip().upper()
+        if not value:
+            return ''
+        if len(value) != 12 or not value.isalnum():
+            raise forms.ValidationError("Report ID must be 12 alphanumeric characters.")
+        if not BugReport.objects.filter(report_id=value).exists():
+            raise forms.ValidationError(f"Report {value} was not found.")
+        return value
 
 class RulesGuidelineForm(forms.ModelForm):  
     class Meta:

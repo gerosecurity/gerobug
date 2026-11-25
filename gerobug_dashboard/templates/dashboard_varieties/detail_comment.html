@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Report Detail{% endblock title %}
+{% block extra_head %}
+<link rel="stylesheet" href='{% static "/css/reportDetail.css" %}'>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.0/css/materialize.min.css">
+<script src='https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.2/dragula.min.js'></script>
+{% endblock extra_head %}
+
+{% block content %}
+
+    <section class="home-section">
+        <header>
+            <div class="home-content">
+                <i class='bx bx-menu'></i>
+                <span class="text">{{ company_name }} Bug Bounty</span> <br />
+            </div>
+        </header>
+        <div class="container">
+        <main class="gds-panel">
+            <h6><a href="{% url 'report_detail' object.report_id %}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-chevron-left" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+              </svg>Back</a></h6>
+            <br>
+            <div id="report-title">
+                <div id="title-left">
+                    <h3 id="report-id">#{{object.comment_id}}</h3>
+                </div>
+            </div>
+
+            <div class="content">
+                <div id="left-div">
+                    <h6>Report Title</h6>
+                    <h4>{{report_title}}</h4>
+                    <br>
+                    <h6>Question</h6>
+                    <div id="report-summary">
+                        {{object.comment_summary}}
+                    </div>
+
+                    <br>
+                    <div class="submission-empty">Questions are text only, no file is stored.</div>
+                </div>
+            </div>
+            <br>
+            <div id="report-download">
+            </div>
+            {% for message in messages %}
+                {% if 'success' in message.tags %}
+                <p class="alert alert-success" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                {% else %}
+                <p class="alert alert-warning" role="alert"><span style="font-weight:bold">{{ message }}</span></p>
+                {% endif %}
+            {% endfor %}
+        </main>
+        </div>
+    </section>
+
+{% endblock content %}

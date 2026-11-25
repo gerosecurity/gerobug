@@ -71,6 +71,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'dashboards.context_processors.troubleshoot',
             ],
             'libraries':{
             'gerobug_tags': 'templatetags.gerobug_tags',
