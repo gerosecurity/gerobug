@@ -28,20 +28,33 @@ Each processed email is logged between `====` lines with time, sender, subject a
 | Code | Meaning |
 | --- | --- |
 | `[CODE 201]` | Report saved |
-| `[CODE 202]` | Status check |
+| `[CODE 202]` | Status check (status card sent) |
 | `[CODE 203]` | Update saved |
 | `[CODE 204]` | Appeal saved |
 | `[CODE 205]` | Agreement saved |
 | `[CODE 206]` | Data/NDA saved |
 | `[CODE 207]` | Score check |
 | `[CODE 208]` | Status overview |
+| `[CODE 210]` | Command list (HELP) sent |
+| `[CODE 211]` | Hunter question saved |
+| `[CODE 212]` | Report withdrawn by the hunter |
+| `[CODE 410]` | No reports on record for this sender |
 | `[ERROR 403]` | Hunter not authorized |
-| `[ERROR 404]` | Invalid format, missing PDF, or fields too short/long |
+| `[ERROR 404]` | Unreadable command, missing PDF, or fields too short/long |
 | `[ERROR 405]` | Unknown Report ID |
 | `[ERROR 407]` | Self-update allowance used up |
 | `[ERROR 408]` | Updates closed for this stage |
 | `[ERROR 409]` | Appeal limit reached |
+| `[ERROR 411]` | Question limit reached for this report |
+| `[ERROR 412]` | Withdrawal refused for this stage |
+| `[ERROR 413]` | Questions closed (report closed or completed) |
 | `[AUTO-AGREE]` | Bounty calculation accepted after 30 days |
+
+Operator-initiated emails are logged the same way: `[CODE 701]` amend request,
+`[CODE 702]` bounty calculation, `[CODE 703]` NDA and prerequisites,
+`[CODE 704]` completion and certificate, `[CODE 705]` prerequisites without an
+NDA, and `REMINDER (code=706)` for a decision reminder sent from the report
+page.
 
 `Permission = ...` lines show how Gerobug validates hunter authorization (similar to RWX on Linux: 4 Update, 2 Appeal, 1 NDA).
 
@@ -53,7 +66,11 @@ Each processed email is logged between `====` lines with time, sender, subject a
 | `No-reply emails, Ignoring Mail!` | No-reply sender |
 | `Self Email` / `Automated sender` / `Own-domain sender (loop guard)` | Mail-loop protection |
 | `EMAIL DELIVERY FAILED ...` | A bounce for an email Gerobug sent |
+| Messages about the 40 MiB, 25 MiB or 32 part limits | Oversized or over-complex message, refused before decoding |
 | Blacklist messages | Sender rate-limited |
+
+A message that was already answered is skipped silently, and `ProcessedMail`
+sweep lines record how many old records were pruned.
 
 ### Outgoing Email
 
@@ -61,4 +78,6 @@ Each processed email is logged between `====` lines with time, sender, subject a
 
 ### Dashboard Actions
 
-Status changes, severity updates, overrides, user management and settings changes are logged with the username that performed them.
+Status changes, severity updates, overrides, Hall of Fame changes (with old and
+new score and visibility), resends, reminders, user management and settings
+changes are logged with the username that performed them.
